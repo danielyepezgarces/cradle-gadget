@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.8.0
+ * Version: 1.8.1
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.1');
  */
 
 (function() {
@@ -3046,9 +3046,9 @@
                 let sSel = rowData.softselect;
 
                 let parts = [];
-                if (mandatory) parts.push('mandatory');
                 if (hSel) parts.push('hardselect:' + hSel);
                 if (sSel) parts.push('softselect:' + sSel);
+                if (mandatory) parts.push('mandatory');
 
                 wikitext += '; ' + pid;
                 if (parts.length > 0) {
