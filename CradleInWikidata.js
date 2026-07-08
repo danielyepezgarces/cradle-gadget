@@ -883,7 +883,7 @@
      */
     function renderEditSchemaSelector() {
         let $content = $('#cradle-content-area').empty();
-        $('#cradle-footer-area').empty();
+        updateDrawerFooter(false);
 
         let $box = $('<div>').addClass('cradle-selector-box');
         $box.append($('<p>').css({'margin-top': '0', 'font-weight': 'bold'}).text(mw.msg('cradle-enter-schema-title')));
