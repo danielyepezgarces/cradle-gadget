@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.6.2
+ * Version: 1.6.3
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.6.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.6.3');
  */
 
 (function() {
@@ -1031,7 +1031,7 @@
                         }
                     });
                 } else {
-                    $customList.append($('<p>').css({'font-style': 'italic', 'color': '#72777d'}).text('Inicie sesión para crear esquemas personalizados.'));
+                    $customList.append($('<p>').css({'font-style': 'italic', 'color': '#72777d'}).text(mw.msg('cradle-login-required-schema')));
                 }
                 $content.append($customBox);
 
@@ -1049,7 +1049,7 @@
                 
                 $searchBtn.on('click', function() {
                     let query = $searchBar.val().trim();
-                    $resultsDiv.empty().append($('<p>').text('Buscando...'));
+                    $resultsDiv.empty().append($('<p>').text(mw.msg('cradle-searching')));
                     searchCommunitySchemas(query, function(results) {
                         $resultsDiv.empty();
                         if (results.length === 0) {
@@ -2403,7 +2403,7 @@
                     summary: 'Eliminado esquema de Cradle: ' + schemaName,
                     formatversion: 2
                 }).done(function() {
-                    mw.notify('Esquema eliminado correctamente.');
+                    mw.notify(mw.msg('cradle-schema-deleted'));
                     renderCreateOptionsSelector();
                 });
             }
@@ -2440,7 +2440,7 @@
                 summary: 'Creado/Actualizado esquema de Cradle: ' + schemaName,
                 formatversion: 2
             }).done(function() {
-                mw.notify('Esquema guardado correctamente.');
+                mw.notify(mw.msg('cradle-schema-saved'));
                 if (callback) callback();
             }).fail(function(code, err) {
                 mw.notify('Error al guardar el esquema: ' + code, { type: 'error' });
@@ -2536,7 +2536,7 @@
                     };
                     loadAndDisplayTemplate(schemaName.toLowerCase().replace(/ /g, '_'));
                 } else {
-                    mw.notify('No se pudo encontrar el esquema en la página.', { type: 'error' });
+                    mw.notify(mw.msg('cradle-schema-not-found'), { type: 'error' });
                 }
             }
         });
@@ -2627,7 +2627,7 @@
                 .attr('placeholder', mw.msg('cradle-hardselect-placeholder'))
                 .val(hardselect || '');
             $row.append($('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '2px'})
-                .append($('<label>').css({'font-size': '11px', 'color': '#72777d'}).text('Opciones fijas (Hardselect)'))
+                .append($('<label>').css({'font-size': '11px', 'color': '#72777d'}).text(mw.msg('cradle-hardselect-label')))
                 .append($hardSelectInput)
             );
 
@@ -2635,7 +2635,7 @@
                 .attr('placeholder', mw.msg('cradle-softselect-placeholder'))
                 .val(softselect || '');
             $row.append($('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '2px'})
-                .append($('<label>').css({'font-size': '11px', 'color': '#72777d'}).text('Sugerencias libres (Softselect)'))
+                .append($('<label>').css({'font-size': '11px', 'color': '#72777d'}).text(mw.msg('cradle-softselect-label')))
                 .append($softSelectInput)
             );
 
@@ -2698,7 +2698,7 @@
 
         // Add Property autocompleter input group
         let $addPropGroup = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '4px', 'margin-top': '8px', 'position': 'relative'});
-        let $addPropInput = $('<input>').addClass('cradle-input').attr('placeholder', 'Buscar propiedad por nombre o PID (ej. P17, país)');
+        let $addPropInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-prop-search-placeholder'));
         $addPropGroup.append($addPropInput);
 
         // Absolute autocomplete dropdown list
@@ -2783,7 +2783,7 @@
         let $saveBtn = $('<button>').addClass('cradle-btn-primary').text(mw.msg('cradle-save-schema')).on('click', function() {
             let name = $titleInput.val().trim();
             if (!name) {
-                mw.notify('El título del esquema es requerido.', { type: 'error' });
+                mw.notify(mw.msg('cradle-schema-title-required'), { type: 'error' });
                 return;
             }
             let wikitext = '== ' + name + ' ==\n';
@@ -2816,7 +2816,7 @@
             });
 
             if (!hasProps) {
-                mw.notify('Debe añadir al menos una propiedad al esquema.', { type: 'error' });
+                mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
                 return;
             }
 

@@ -69,7 +69,18 @@
     "cradle-default-val-placeholder": "default QID/string",
     "cradle-required-checkbox": "Required",
     "cradle-hardselect-placeholder": "hardselect QIDs (comma-separated, e.g. Q5,Q6)",
-    "cradle-softselect-placeholder": "softselect QIDs (comma-separated, e.g. Q5,Q6)"
+    "cradle-softselect-placeholder": "softselect QIDs (comma-separated, e.g. Q5,Q6)",
+    "cradle-schema-title-required": "Schema title is required!",
+    "cradle-schema-prop-required": "You must add at least one property to the schema!",
+    "cradle-prop-invalid-id": "Invalid property ID (e.g. P17)!",
+    "cradle-schema-not-found": "Could not find the schema on the page!",
+    "cradle-schema-saved": "Schema saved successfully.",
+    "cradle-schema-deleted": "Schema deleted successfully.",
+    "cradle-searching": "Searching...",
+    "cradle-hardselect-label": "Fixed options (Hardselect)",
+    "cradle-softselect-label": "Free suggestions (Softselect)",
+    "cradle-login-required-schema": "Log in to create custom schemas.",
+    "cradle-prop-search-placeholder": "Search property by name or PID (e.g. P17, country)"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -141,6 +152,17 @@
     "cradle-default-val-placeholder": "valor/QID por defecto",
     "cradle-required-checkbox": "Obligatorio",
     "cradle-hardselect-placeholder": "QIDs predefinidos (separados por coma, ej. Q5,Q6)",
-    "cradle-softselect-placeholder": "sugerencias de QIDs (separados por coma, ej. Q5,Q6)"
+    "cradle-softselect-placeholder": "sugerencias de QIDs (separados por coma, ej. Q5,Q6)",
+    "cradle-schema-title-required": "\u00a1El t\u00edtulo del esquema es requerido!",
+    "cradle-schema-prop-required": "\u00a1Debe a\u00f1adir al menos una propiedad al esquema!",
+    "cradle-prop-invalid-id": "\u00a1ID de propiedad inv\u00e1lido (ej. P17)!",
+    "cradle-schema-not-found": "\u00a1No se pudo encontrar el esquema en la p\u00e1gina!",
+    "cradle-schema-saved": "Esquema guardado correctamente.",
+    "cradle-schema-deleted": "Esquema eliminado correctamente.",
+    "cradle-searching": "Buscando...",
+    "cradle-hardselect-label": "Opciones fijas (Hardselect)",
+    "cradle-softselect-label": "Sugerencias libres (Softselect)",
+    "cradle-login-required-schema": "Inicie sesi\u00f3n para crear esquemas personalizados.",
+    "cradle-prop-search-placeholder": "Buscar propiedad por nombre o PID (ej. P17, pa\u00eds)"
   }
 }

@@ -1,0 +1,14 @@
+# Cradle Wikidata User Gadget & MediaWiki Extension Rules
+
+These rules apply to any AI coding agent developing or modifying the Cradle Wikidata User Gadget or the CradleWikibase MediaWiki Extension in this workspace.
+
+## 1. Internationalization (i18n)
+- **NO Hardcoded User-Facing Strings**: All alert messages, text labels, input placeholders, user notifications (`mw.notify`), loader text, search status, and generic interface texts must be fully internationalized using `mw.msg('key')`.
+- **Translations Registry**:
+  - Always add the new translation key to the dynamic translation catalog in `CradleI18n.json` (supporting at least `en` and `es`).
+  - Always register the English translation in the local `fallbackMessages` array inside `CradleInWikidata.js` (both the gadget and the extension versions) so that if the wiki fails to fetch the raw JSON from user space, the interface still loads with correct English fallbacks.
+
+## 2. Coding Standards & Comments
+- **Comments in English**: All inline source code comments, documentation headers, and git commit descriptions must be written in English.
+- **Maintain Casing**: Keep remote paths and file paths properly matching casing (e.g. `Cradle.git` instead of lowercase `cradle.git`).
+- **Semantic Versioning**: Bumping the version (`major.minor.patch`) must be done in all relevant files (`CradleInWikidata.js`, `CradleWikibase/modules/CradleInWikidata.js`, `CradleWikibase/extension.json`) whenever a new feature, refinement, or bugfix is implemented.
