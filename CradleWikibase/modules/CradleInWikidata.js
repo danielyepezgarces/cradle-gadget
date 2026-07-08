@@ -8,11 +8,11 @@
  *
  * Authors: Daniel Yepez Garces, Ismael Olea
  * Based on: Cradle (https://cradle.toolforge.org/) by Magnus Manske
- * Version: 1.2.3
+ * Version: 1.5.3
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.2.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.5.3');
  */
 
 (function() {
