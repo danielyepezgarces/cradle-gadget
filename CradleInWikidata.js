@@ -8,7 +8,7 @@
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.2.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.2.1');
  */
 
 (function() {
@@ -1498,6 +1498,30 @@
         let $headerPanel = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '16px'});
         $headerPanel.append($('<button>').addClass('cradle-btn-secondary').text(mw.msg('cradle-change-form')).on('click', renderActiveView));
         $content.append($headerPanel);
+
+        // Display current active schema/template title
+        let activeTitle = "";
+        if (activeTemplate) {
+            activeTitle = activeTemplate.labels[mw.config.get('wgUserLanguage')] || activeTemplate.title;
+        } else if (activeSchema) {
+            activeTitle = `${activeSchema.label} (${activeSchema.id})`;
+        }
+
+        if (activeTitle) {
+            let $formHeader = $('<div>')
+                .css({
+                    'margin-bottom': '20px',
+                    'padding-bottom': '8px',
+                    'border-bottom': '1px solid var(--border-color-base, #a2a9b1)'
+                })
+                .append($('<h2>').css({
+                    'font-size': '1.25rem',
+                    'margin': '0',
+                    'font-weight': 'bold',
+                    'color': 'var(--color-base, #202122)'
+                }).text(activeTitle));
+            $content.append($formHeader);
+        }
 
         // For Create Mode: Ingest Label and Description inputs
         if (activeMode === 'create') {
