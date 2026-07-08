@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.8.1
+ * Version: 1.8.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.2');
  */
 
 (function() {
@@ -723,6 +723,9 @@
             'cradle-login-required-schema': 'Log in to create custom schemas.',
             'cradle-prop-search-placeholder': 'Search property by name or PID (e.g. P17, country)',
             'cradle-preset-none': 'No predefined values',
+            'cradle-tab-predefined': 'Predefined Forms',
+            'cradle-tab-shex': 'EntitySchema (ShEx)',
+            'cradle-tab-custom': 'Custom Schemas',
             'cradle-search-value-placeholder': 'Search QID to add...',
             'cradle-btn-edit-with-cradle': 'Edit with Cradle',
             'cradle-validation-tab': 'Validation',
@@ -1177,9 +1180,9 @@
             let $tabsHeader = $('<div>').addClass('cradle-select-tabs');
 
             let tabs = [
-                { id: 'predefined', label: 'Formularios Predefinidos' },
-                { id: 'shex', label: 'Esquema de Entidad (ShEx)' },
-                { id: 'custom', label: 'Esquemas Personalizados' }
+                { id: 'predefined', label: mw.msg('cradle-tab-predefined') },
+                { id: 'shex', label: mw.msg('cradle-tab-shex') },
+                { id: 'custom', label: mw.msg('cradle-tab-custom') }
             ];
 
             let activeTab = mw.storage.get('cradle-active-tab') || 'predefined';
