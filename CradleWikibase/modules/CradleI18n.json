@@ -82,7 +82,10 @@
     "cradle-login-required-schema": "Log in to create custom schemas.",
     "cradle-prop-search-placeholder": "Search property by name or PID (e.g. P17, country)",
     "cradle-preset-none": "No predefined values",
-    "cradle-search-value-placeholder": "Search QID to add..."
+    "cradle-search-value-placeholder": "Search QID to add...",
+    "cradle-tab-predefined": "Predefined Forms",
+    "cradle-tab-shex": "EntitySchema (ShEx)",
+    "cradle-tab-custom": "Custom Schemas"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -167,6 +170,9 @@
     "cradle-login-required-schema": "Inicie sesi\u00f3n para crear esquemas personalizados.",
     "cradle-prop-search-placeholder": "Buscar propiedad por nombre o PID (ej. P17, pa\u00eds)",
     "cradle-preset-none": "Sin valores predefinidos",
-    "cradle-search-value-placeholder": "Buscar QID de valor para a\u00f1adir..."
+    "cradle-search-value-placeholder": "Buscar QID de valor para a\u00f1adir...",
+    "cradle-tab-predefined": "Formularios Predefinidos",
+    "cradle-tab-shex": "Esquema de Entidad (ShEx)",
+    "cradle-tab-custom": "Esquemas Personalizados"
   }
 }

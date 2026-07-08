@@ -31,7 +31,7 @@ Custom templates designed with the visual builder are stored on your personal us
 
 ```wikitext
 == Actor or Film Director ==
-; P31 : mandatory | hardselect:Q5
+; P31 : hardselect:Q5 | mandatory
 ; P106 : softselect:Q33999,Q2526255
 ```
 
