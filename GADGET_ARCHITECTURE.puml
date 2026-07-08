@@ -1,0 +1,142 @@
+@startuml Cradle Wikidata User Gadget Architecture
+!theme plain
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName sans-serif
+skinparam ArrowColor #54595d
+skinparam ComponentBorderColor #a2a9b1
+skinparam PackageBorderColor #36c
+
+title Cradle Wikidata User Gadget — Component & Data Flow\n(v1.8.2)
+
+actor "Wikidata\nContributor" as User
+
+package "Browser (wikidata.org)" {
+  component "MediaWiki / Vector Skin" as MW [
+    **MediaWiki Page**
+    ----
+    Item pages (Q*)
+    Special:Cradle
+    #firstHeading
+    Sidebar toolbox
+  ]
+
+  component "CradleInWikidata.js" as Cradle [
+    **Cradle Gadget (IIFE)**
+    ----
+    init() / proceedInit()
+    UI: drawer + full page
+    Schema Designer
+    Live validation
+  ]
+
+  component "CradleI18n.json\n(user subpage)" as I18n [
+    **Translation Catalog**
+    ----
+    en / es messages
+    Dynamic fetch + fallbacks
+  ]
+
+  component "In-Memory State" as State [
+    **Runtime State**
+    ----
+    entityData
+    schemaProperties
+    formState (GUIDs)
+    propertyMetadata
+  ]
+}
+
+package "Wikidata Content" {
+  database "EntitySchema:\nE*" as EntitySchema [
+    **EntitySchema Pages**
+    ----
+    JSON wrapper
+    schemaText (ShEx)
+  ]
+
+  database "Wikidata:Cradle" as Predefined [
+    **Predefined Forms**
+    ----
+    Wikitext sections
+    Community templates
+  ]
+
+  database "User:*/Cradle" as UserSchemas [
+    **Custom User Schemas**
+    ----
+    Wikitext sections
+    hardselect / softselect
+  ]
+
+  database "Wikidata Items\n& Properties" as Entities [
+    **Wikibase Entities**
+    ----
+    Items (Q*)
+    Properties (P*)
+    Claims & GUIDs
+  ]
+}
+
+package "MediaWiki Action API\n(/w/api.php)" as API {
+  component "query\n(revisions)" as APIQuery
+  component "wbgetentities" as APIGet
+  component "wbeditentity" as APIEdit
+  component "opensearch" as APISearch
+  component "edit\n(CSRF token)" as APIEditPage
+}
+
+' --- User interactions ---
+User --> MW : Browse item /\nopen Special:Cradle
+MW --> Cradle : mw.loader.load()\n(from common.js)
+Cradle --> I18n : $.getJSON()\nfetch translations
+Cradle --> State : Read / write\nform & schema state
+
+' --- Schema resolution ---
+Cradle --> APIGet : P12861 on item\nP31 / P279 classes
+APIGet --> Entities
+Cradle --> APIQuery : Fetch EntitySchema\nWikidata:Cradle\nUser:*/Cradle
+APIQuery --> EntitySchema
+APIQuery --> Predefined
+APIQuery --> UserSchemas
+
+' --- Parsing pipeline ---
+Cradle --> Cradle : parseShEx()\nparseCradleWikitext()\nparseUserCradlePage()
+Cradle --> APIGet : Property metadata\n(P labels, datatypes, P2559)
+Cradle --> APISearch : Item autocomplete\n(hardselect / softselect)
+APIGet --> Entities
+APISearch --> Entities
+
+' --- Validation & render ---
+Cradle --> Cradle : validateFormState()\nliveUpdateValidation()\nrenderForm()
+Cradle --> MW : Inject drawer /\nfull-page UI\n(Codex SVG badges)
+
+' --- Persistence ---
+User --> Cradle : Save changes /\nCreate item
+Cradle --> APIEdit : wbeditentity\n(claims payload +\nedit token)
+APIEdit --> Entities
+Cradle --> APIEditPage : edit User:*/Cradle\n(schema designer)
+APIEditPage --> UserSchemas
+
+' --- Outcomes ---
+Cradle --> MW : Reload item page\n(edit) or redirect\n(create)
+
+note right of Cradle
+  **Edit mode**: sidebar drawer
+  on item pages (namespace 0)
+
+  **Create mode**: full-page UI
+  at Special:Cradle
+
+  **Designer**: persists wikitext
+  to User:<name>/Cradle
+end note
+
+note bottom of API
+  All API calls use **mw.Api()**
+  for session cookies,
+  CSRF tokens, and
+  edit tokens.
+end note
+
+@enduml
