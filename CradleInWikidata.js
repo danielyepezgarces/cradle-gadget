@@ -6,9 +6,13 @@
  * on the item itself or its P31 "instance of" / P279 "subclass of" classes), parses the ShEx schema,
  * and displays a premium, modern drawer interface to add, modify, or delete claims in-place.
  *
+ * Authors: Daniel Yepez Garces, Ismael Olea
+ * Based on: Cradle (https://cradle.toolforge.org/) by Magnus Manske
+ * Version: 1.2.3
+ *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.2.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.2.3');
  */
 
 (function() {
@@ -548,7 +552,7 @@
             'cradle-edit-summary': 'Updated statements using Cradle Wikidata Gadget (EntitySchema:$1)',
             'cradle-create-summary': 'Created new item using Cradle Wikidata Gadget (Template: $1)',
             'cradle-search-placeholder': 'Search item...',
-            'cradle-credits': 'Created by $1'
+            'cradle-credits': 'Created by $1 & $2. Based on $3 by Magnus Manske.'
         };
 
         // Load local English fallbacks first
@@ -602,7 +606,7 @@
                     'cradle-edit-summary': 'Declaraciones actualizadas con el gadget Cradle de Wikidata (EntitySchema:$1)',
                     'cradle-create-summary': 'Nuevo elemento creado con el gadget Cradle de Wikidata (Plantilla: $1)',
                     'cradle-search-placeholder': 'Buscar elemento...',
-                    'cradle-credits': 'Creado por $1'
+                    'cradle-credits': 'Creado por $1 e $2. Basado en $3 por Magnus Manske.'
                 });
             }
             proceedInit();
@@ -673,6 +677,10 @@
         });
 
         // Add credits linking to PU as centered footer
+        let danielLink = '<a href="' + mw.util.getUrl('User:Danielyepezgarces') + '" target="_blank">Daniel Yepez Garces (dyepezg)</a>';
+        let ismaelLink = '<a href="' + mw.util.getUrl('User:Olea') + '" target="_blank">Ismael Olea</a>';
+        let cradleLink = '<a href="https://cradle.toolforge.org/" target="_blank">Cradle</a>';
+
         let $credits = $('<p>')
             .css({
                 'font-size': '0.8rem',
@@ -682,7 +690,7 @@
                 'text-align': 'center',
                 'width': '100%'
             })
-            .html(mw.msg('cradle-credits', '<a href="' + mw.util.getUrl('User:Danielyepezgarces') + '" target="_blank">Daniel Yepez Garces (dyepezg)</a>'));
+            .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink));
 
         $container.append($content).append($footer).append($credits);
         $contentArea.append($container);
