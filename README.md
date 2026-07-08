@@ -14,7 +14,9 @@ This repository is organized into two separate modules:
 ### 1. Wikidata User Gadget
 A client-side JavaScript gadget designed to be loaded by individual users on Wikidata via their personal JS configuration.
 - **Main Files**: `CradleInWikidata.js` and `CradleI18n.json` at the repository root.
-- **Documentation**: See [README_GADGET.md](file:///home/dyepezg/Desarrollo/GLAM-devs/README_GADGET.md) for installation, custom schemas, and usage instructions.
+- **User guide**: [README_GADGET.md](README_GADGET.md) — installation, features, and custom schema format.
+- **Technical spec**: [GADGET_TECHNICAL.md](GADGET_TECHNICAL.md) — requirements and technical decisions.
+- **Architecture**: [GADGET_ARCHITECTURE.puml](GADGET_ARCHITECTURE.puml) — PlantUML component diagram.
 
 ### 2. MediaWiki Extension (`CradleWikibase`)
 A native PHP extension that packages Cradle's logic and registers the native special page `Special:Cradle` on private or institutional Wikibase repositories.
