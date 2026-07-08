@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.6.5
+ * Version: 1.6.6
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.6.5');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.6.6');
  */
 
 (function() {
@@ -464,7 +464,11 @@
             cursor: not-allowed;
         }
         
-        .cradle-btn-secondary {
+                .cradle-btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
             padding: 8px 16px;
             background-color: var(--background-color-base, #ffffff);
             border: 1px solid var(--border-color-base, #a2a9b1);
@@ -475,6 +479,13 @@
             transition: background-color 0.1s, border-color 0.1s;
             font-size: 0.85rem;
             height: 36px;
+        }
+        .cradle-btn-secondary svg, .cradle-btn-primary svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+            flex-shrink: 0;
+            vertical-align: middle;
         }
         .cradle-btn-secondary:hover {
             background-color: var(--background-color-neutral-subtle, #f8f9fa);
@@ -1431,7 +1442,7 @@
                 schemaProperties[pid] = {
                     id: pid,
                     min: pDef.mandatory ? 1 : 0,
-                    max: pDef.hardselect.length > 0 ? 1 : Infinity,
+                    max: (pDef.mandatory || pDef.hardselect.length > 0) ? 1 : Infinity,
                     mandatory: pDef.mandatory,
                     softselect: pDef.hardselect.length > 0 ? pDef.hardselect : pDef.softselect,
                     defaultValue: pDef.defaultValue
