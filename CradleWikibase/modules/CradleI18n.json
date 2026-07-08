@@ -33,7 +33,7 @@
     "cradle-edit-summary": "Updated statements using Cradle Wikidata Gadget (EntitySchema:$1)",
     "cradle-create-summary": "Created new item using Cradle Wikidata Gadget (Template: $1)",
     "cradle-search-placeholder": "Search item...",
-    "cradle-credits": "Created by $1 & $2. Based on $3 by Magnus Manske.",
+    "cradle-credits": "Created by $1 & $2. Based on $3 by $4.",
     "cradle-btn-edit-with-cradle": "Edit with Cradle",
     "cradle-validation-title": "Schema Validation Status",
     "cradle-validation-summary": "Validation result for $1: $2 of $3 required, and $4 of $5 optional properties present.",
@@ -67,7 +67,9 @@
     "cradle-add-prop-btn": "Add",
     "cradle-prop-placeholder": "e.g. P17",
     "cradle-default-val-placeholder": "default QID/string",
-    "cradle-required-checkbox": "Required"
+    "cradle-required-checkbox": "Required",
+    "cradle-hardselect-placeholder": "hardselect QIDs (comma-separated, e.g. Q5,Q6)",
+    "cradle-softselect-placeholder": "softselect QIDs (comma-separated, e.g. Q5,Q6)"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -103,7 +105,7 @@
     "cradle-edit-summary": "Declaraciones actualizadas con el gadget Cradle de Wikidata (EntitySchema:$1)",
     "cradle-create-summary": "Nuevo elemento creado con el gadget Cradle de Wikidata (Plantilla: $1)",
     "cradle-search-placeholder": "Buscar elemento...",
-    "cradle-credits": "Creado por $1 e $2. Basado en $3 por Magnus Manske.",
+    "cradle-credits": "Creado por $1 y $2. Basado en $3 de $4.",
     "cradle-btn-edit-with-cradle": "Editar con Cradle",
     "cradle-validation-title": "Estado de validaci\u00f3n de esquema",
     "cradle-validation-summary": "Resultado de la validaci\u00f3n para $1: $2 de $3 obligatorias, y $4 de $5 opcionales presentes.",
@@ -137,6 +139,8 @@
     "cradle-add-prop-btn": "A\u00f1adir",
     "cradle-prop-placeholder": "ej. P17",
     "cradle-default-val-placeholder": "valor/QID por defecto",
-    "cradle-required-checkbox": "Obligatorio"
+    "cradle-required-checkbox": "Obligatorio",
+    "cradle-hardselect-placeholder": "QIDs predefinidos (separados por coma, ej. Q5,Q6)",
+    "cradle-softselect-placeholder": "sugerencias de QIDs (separados por coma, ej. Q5,Q6)"
   }
 }

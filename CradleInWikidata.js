@@ -625,7 +625,9 @@
             'cradle-edit-summary': 'Updated statements using Cradle Wikidata Gadget (EntitySchema:$1)',
             'cradle-create-summary': 'Created new item using Cradle Wikidata Gadget (Template: $1)',
             'cradle-search-placeholder': 'Search item...',
-            'cradle-credits': 'Created by $1 & $2. Based on $3 by Magnus Manske.',
+            'cradle-credits': 'Created by $1 & $2. Based on $3 by $4.',
+            'cradle-hardselect-placeholder': 'hardselect QIDs (comma-separated, e.g. Q5,Q6)',
+            'cradle-softselect-placeholder': 'softselect QIDs (comma-separated, e.g. Q5,Q6)',
             'cradle-btn-edit-with-cradle': 'Edit with Cradle',
             'cradle-validation-tab': 'Validation',
             'cradle-validation-title': 'Schema Validation Status',
@@ -2029,6 +2031,7 @@
             let danielLink = '<a href="' + mw.util.getUrl('User:Danielyepezgarces') + '" target="_blank">Daniel Yepez Garces</a>';
             let ismaelLink = '<a href="' + mw.util.getUrl('User:Olea') + '" target="_blank">Ismael Olea</a>';
             let cradleLink = '<a href="https://cradle.toolforge.org/" target="_blank">Cradle</a>';
+            let magnusLink = '<a href="https://meta.wikimedia.org/wiki/User:Magnus_Manske" target="_blank">Magnus Manske</a>';
  
             let $credits = $('<p>')
                 .css({
@@ -2039,7 +2042,7 @@
                     'width': '100%',
                     'line-height': '1.3'
                 })
-                .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink));
+                .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink, magnusLink));
  
             $footer.append($credits);
         }
@@ -3005,11 +3008,6 @@
         let $form = $('<div>').addClass('cradle-selector-box').css({'display': 'flex', 'flex-direction': 'column', 'gap': '12px'});
         $form.append($('<h3>').css({'margin': '0'}).text(mw.msg('cradle-schema-designer')));
 
-        let $back = $('<button>').addClass('cradle-btn-secondary').css({'align-self': 'flex-start'}).text(mw.msg('cradle-back')).on('click', function() {
-            renderCreateOptionsSelector();
-        });
-        $form.append($back);
-
         let $titleInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-schema-title')).val(titleVal);
         if (isEdit) {
             $titleInput.attr('disabled', 'disabled');
@@ -3039,40 +3037,65 @@
         let $propsList = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '8px'});
         $propertiesDiv.append($propsList);
 
-        function renderPropRow(pid, mandatory, defaultValue) {
+        function renderPropRow(pid, mandatory, defaultValue, hardselect, softselect) {
             let $row = $('<div>').addClass('cradle-prop-row-builder').css({
                 'display': 'flex',
-                'align-items': 'center',
+                'flex-direction': 'column',
                 'gap': '8px',
-                'padding': '6px',
+                'padding': '10px',
                 'background': '#f8f9fa',
                 'border-radius': '4px',
                 'border': '1px solid #a2a9b1'
             });
-            $row.append($('<strong>').css({'min-width': '45px'}).text(pid));
 
+            // Header line with PID and Remove button
+            let $headerRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center'});
+            $headerRow.append($('<strong>').css({'font-size': '15px'}).text(pid));
+            let $remove = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'color': '#d33', 'font-weight': 'bold'}).text('✕').on('click', function() {
+                $row.remove();
+            });
+            $headerRow.append($remove);
+            $row.append($headerRow);
+
+            // Mandatory checkbox and default value input
+            let $optionsRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center'});
             let $reqCheck = $('<input>').attr('type', 'checkbox').attr('checked', mandatory ? 'checked' : false);
             let $reqLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '4px', 'font-size': '13px'})
                 .append($reqCheck)
                 .append(mw.msg('cradle-required-checkbox'));
-            $row.append($reqLabel);
+            $optionsRow.append($reqLabel);
 
-            let $defValInput = $('<input>').addClass('cradle-input').css({'height': '24px', 'padding': '2px 6px', 'font-size': '13px'})
+            let $defValInput = $('<input>').addClass('cradle-input').css({'height': '26px', 'padding': '2px 6px', 'font-size': '13px', 'flex': '1'})
                 .attr('placeholder', mw.msg('cradle-default-val-placeholder'))
                 .val(defaultValue || '');
-            $row.append($defValInput);
+            $optionsRow.append($defValInput);
+            $row.append($optionsRow);
 
-            let $remove = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'height': '28px', 'color': '#d33'}).text('✕').on('click', function() {
-                $row.remove();
-            });
-            $row.append($remove);
+            // Hardselect and Softselect inputs for multiselect/options
+            let $hardSelectInput = $('<input>').addClass('cradle-input').css({'height': '26px', 'padding': '2px 6px', 'font-size': '12px'})
+                .attr('placeholder', mw.msg('cradle-hardselect-placeholder'))
+                .val(hardselect || '');
+            $row.append($('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '2px'})
+                .append($('<label>').css({'font-size': '11px', 'color': '#72777d'}).text('Opciones fijas (Hardselect)'))
+                .append($hardSelectInput)
+            );
+
+            let $softSelectInput = $('<input>').addClass('cradle-input').css({'height': '26px', 'padding': '2px 6px', 'font-size': '12px'})
+                .attr('placeholder', mw.msg('cradle-softselect-placeholder'))
+                .val(softselect || '');
+            $row.append($('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '2px'})
+                .append($('<label>').css({'font-size': '11px', 'color': '#72777d'}).text('Sugerencias libres (Softselect)'))
+                .append($softSelectInput)
+            );
 
             $row.data('pid', pid);
             $row.data('get_data', function() {
                 return {
                     pid: pid,
                     mandatory: $reqCheck.is(':checked'),
-                    defaultValue: $defValInput.val().trim()
+                    defaultValue: $defValInput.val().trim(),
+                    hardselect: $hardSelectInput.val().trim(),
+                    softselect: $softSelectInput.val().trim()
                 };
             });
 
@@ -3084,7 +3107,9 @@
                 let p = editSchemaData.props[pid];
                 let isMandatory = p.mandatory === true || p.mandatory === 1 || p.mandatory === '1';
                 let defVal = p.defaultValue || '';
-                renderPropRow(pid, isMandatory, defVal);
+                let hSel = (p.hardselect && p.hardselect.length > 0) ? p.hardselect.join(', ') : '';
+                let sSel = (p.softselect && p.softselect.length > 0) ? p.softselect.join(', ') : '';
+                renderPropRow(pid, isMandatory, defVal, hSel, sSel);
             });
         }
 
@@ -3093,7 +3118,7 @@
         let $addPropBtn = $('<button>').addClass('cradle-btn-secondary').text(mw.msg('cradle-add-prop-btn')).on('click', function() {
             let pid = $addPropInput.val().trim().toUpperCase();
             if (pid && /^P\d+$/.test(pid)) {
-                renderPropRow(pid, false, '');
+                renderPropRow(pid, false, '', '', '');
                 $addPropInput.val('');
             } else {
                 mw.notify('ID de propiedad inválido (ej. P17)', { type: 'error' });
@@ -3102,13 +3127,11 @@
         $addPropGroup.append($addPropInput).append($addPropBtn);
         $propertiesDiv.append($addPropGroup);
         $form.append($propertiesDiv);
+        $content.append($form);
 
-        let $saveBtn = $('<button>').addClass('cradle-btn-secondary').css({
-            'background': '#36c',
-            'color': '#fff',
-            'font-weight': 'bold',
-            'padding': '10px'
-        }).text(mw.msg('cradle-save-schema')).on('click', function() {
+        // Delegate Save/Back buttons to the Main Drawer Footer
+        let $footer = $('#cradle-footer-area').empty();
+        let $saveBtn = $('<button>').addClass('cradle-btn-primary').text(mw.msg('cradle-save-schema')).on('click', function() {
             let name = $titleInput.val().trim();
             if (!name) {
                 mw.notify('El título del esquema es requerido.', { type: 'error' });
@@ -3126,10 +3149,14 @@
                 let pid = rowData.pid;
                 let mandatory = rowData.mandatory;
                 let defVal = rowData.defaultValue;
+                let hSel = rowData.hardselect;
+                let sSel = rowData.softselect;
 
                 let parts = [];
                 if (mandatory) parts.push('mandatory');
                 if (defVal) parts.push('default:' + defVal);
+                if (hSel) parts.push('hardselect:' + hSel);
+                if (sSel) parts.push('softselect:' + sSel);
 
                 wikitext += '; ' + pid;
                 if (parts.length > 0) {
@@ -3148,9 +3175,12 @@
                 renderCreateOptionsSelector();
             });
         });
-        $form.append($saveBtn);
 
-        $content.append($form);
+        let $cancelBtn = $('<button>').addClass('cradle-btn-secondary').text(mw.msg('cradle-back')).on('click', function() {
+            renderCreateOptionsSelector();
+        });
+
+        $footer.append($cancelBtn).append($saveBtn);
     }
     
     $(document).ready(function() {
