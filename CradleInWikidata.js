@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.7.2
+ * Version: 1.7.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.7.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.7.3');
  */
 
 (function() {
@@ -623,6 +623,23 @@
             margin-right: 12px;
             font-size: 1.2rem;
         }
+        .cradle-card-validation-badge svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+        .cradle-field-card.valid .cradle-card-validation-badge {
+            color: var(--color-success, #00af89);
+        }
+        .cradle-field-card.invalid .cradle-card-validation-badge {
+            color: var(--color-destructive, #d33);
+        }
+        .cradle-field-card.optional-present .cradle-card-validation-badge {
+            color: var(--color-progressive, #36c);
+        }
+        .cradle-field-card.optional-missing .cradle-card-validation-badge {
+            color: var(--color-warning, #e69138);
+        }
         .cradle-validation-label {
             flex-grow: 1;
             font-weight: bold;
@@ -645,6 +662,9 @@
         trash: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M17 2h-3.5l-1-1h-5l-1 1H3v2h14zm-12 4v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6zm3 11H6V8h2zm3 0H9V8h2zm3 0h-2V8h2z"/></svg>`,
         undo: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M17.8 8A7.8 7.8 0 0 1 10 15.8c-1.3 0-2.5-.3-3.6-.9l1.5-1.5c.7.4 1.4.6 2.1.6a5.8 5.8 0 1 0 0-11.6c-.9 0-1.7.2-2.5.6H10V5H4v6h6V9H6.9c.8-.9 1.9-1.4 3.1-1.4A7.8 7.8 0 0 1 17.8 8"/></svg>`,
         back: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M19 9H4.414l5.293-5.293-1.414-1.414L1.586 10l6.707 6.707 1.414-1.414L4.414 11H19z"/></svg>`,
+        check: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m8.16 13.9 7.4-8.15 1.5 1.35-8.9 9.8L3.25 12l1.4-1.4z"/></svg>`,
+        alert: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M11.53 2.3A1.85 1.85 0 0 0 10 1.25 1.85 1.85 0 0 0 8.47 2.3L1.31 14.73A1.82 1.82 0 0 0 1.3 16.5a1.76 1.76 0 0 0 1.54.85h14.32a1.76 1.76 0 0 0 1.54-.85 1.82 1.82 0 0 0 0-1.77ZM11 15H9v-2h2Zm0-4H9V6h2z"/></svg>`,
+        info: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 0a10 10 0 1 0 10 10A10 10 0 0 0 10 0m1 15H9v-6h2Zm0-8H9V5h2z"/></svg>`,
         external: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
     };
 
@@ -1976,30 +1996,31 @@
             let badgeText = "";
             let statusText = "";
             
+            let badgeHtml = "";
             if (isRequired) {
                 if (isPresent && isValid) {
                     itemClass = "valid";
-                    badgeText = "✅";
+                    badgeHtml = ICONS.check;
                     statusText = mw.msg('cradle-val-present');
                 } else {
                     itemClass = "invalid";
-                    badgeText = "❌";
+                    badgeHtml = ICONS.close;
                     statusText = errors.length > 0 ? errors.join(', ') : mw.msg('cradle-val-missing');
                 }
             } else {
                 if (isPresent) {
                     if (isValid) {
                         itemClass = "optional-present";
-                        badgeText = "ℹ️";
+                        badgeHtml = ICONS.info;
                         statusText = mw.msg('cradle-val-optional-present');
                     } else {
                         itemClass = "invalid";
-                        badgeText = "❌";
+                        badgeHtml = ICONS.close;
                         statusText = errors.join(', ');
                     }
                 } else {
                     itemClass = "optional-missing";
-                    badgeText = "⚠️";
+                    badgeHtml = ICONS.alert;
                     statusText = mw.msg('cradle-val-optional-missing');
                 }
             }
@@ -2010,7 +2031,7 @@
                 isRequired: isRequired,
                 errors: errors,
                 itemClass: itemClass,
-                badgeText: badgeText,
+                badgeHtml: badgeHtml,
                 statusText: statusText
             };
         });
@@ -2054,7 +2075,7 @@
                  .addClass(propVal.itemClass);
 
             // Update badge icon next to title
-            $card.find('.cradle-card-validation-badge').text(propVal.badgeText);
+            $card.find('.cradle-card-validation-badge').html(propVal.badgeHtml);
 
             // Update card error text list
             $card.find('.cradle-field-errors').remove();
@@ -2067,7 +2088,7 @@
                     'line-height': '1.3'
                 });
                 propVal.errors.forEach(err => {
-                    $errList.append($('<div>').text(`⚠️ ${err}`));
+                    $errList.append($('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '4px'}).html(ICONS.alert + ' <span>' + err + '</span>'));
                 });
                 $(`#cradle-rows-${pid}`).after($errList);
             }
@@ -3183,29 +3204,38 @@
             $headerRow.append($remove);
             $row.append($headerRow);
 
-            // Mandatory checkbox and default value
+            // Mandatory checkbox
             let $optionsRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center'});
             let $reqCheck = $('<input>').attr('type', 'checkbox').attr('checked', mandatory ? 'checked' : false);
             let $reqLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '4px', 'font-size': '13px'})
                 .append($reqCheck)
                 .append(mw.msg('cradle-required-checkbox'));
             $optionsRow.append($reqLabel);
-
-            let $defValInput = $('<input>').addClass('cradle-input').css({'height': '26px', 'padding': '2px 6px', 'font-size': '13px', 'flex': '1'})
-                .attr('placeholder', mw.msg('cradle-default-val-placeholder'))
-                .val(defaultValue || '');
-            $optionsRow.append($defValInput);
             $row.append($optionsRow);
 
-            // Selection options layout: Radio buttons for Hard/Soft selector
-            let isHard = !!hardselectQIDs;
+            // Selection options layout: Radio buttons for Value type
+            let isHard = !!hardselectQIDs || (defaultValue && defaultValue.startsWith('Q'));
+            let isSoft = !isHard && !!softselectQIDs;
+            let activePreset = 'none';
+            if (isHard) activePreset = 'hard';
+            else if (isSoft) activePreset = 'soft';
+
             let $radioGroup = $('<div>').css({'display': 'flex', 'gap': '12px', 'margin-top': '4px'});
             
+            let $radioNone = $('<input>').attr({
+                type: 'radio',
+                name: `select-type-${uniqueRowId}`,
+                id: `none-${uniqueRowId}`,
+                checked: (activePreset === 'none')
+            });
+            let $labelNone = $('<label>').attr('for', `none-${uniqueRowId}`).css({'font-size': '12px', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
+                .append($radioNone).append('Sin valores predefinidos');
+
             let $radioHard = $('<input>').attr({
                 type: 'radio',
                 name: `select-type-${uniqueRowId}`,
                 id: `hard-${uniqueRowId}`,
-                checked: (isHard || !softselectQIDs)
+                checked: (activePreset === 'hard')
             });
             let $labelHard = $('<label>').attr('for', `hard-${uniqueRowId}`).css({'font-size': '12px', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
                 .append($radioHard).append(mw.msg('cradle-hardselect-label'));
@@ -3214,21 +3244,29 @@
                 type: 'radio',
                 name: `select-type-${uniqueRowId}`,
                 id: `soft-${uniqueRowId}`,
-                checked: !!softselectQIDs
+                checked: (activePreset === 'soft')
             });
             let $labelSoft = $('<label>').attr('for', `soft-${uniqueRowId}`).css({'font-size': '12px', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
                 .append($radioSoft).append(mw.msg('cradle-softselect-label'));
 
-            $radioGroup.append($labelHard).append($labelSoft);
+            $radioGroup.append($labelNone).append($labelHard).append($labelSoft);
             $row.append($radioGroup);
 
-            // Chips Container for selected select values
+            // Container for preset value options
+            let $valuePresetContainer = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '6px'});
+            
+            // Chips Container
             let $chipsDiv = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px', 'margin-top': '4px'});
-            $row.append($chipsDiv);
+            $valuePresetContainer.append($chipsDiv);
 
             let selectedItems = []; // List of { qid, label }
 
             function addChip(qid, label) {
+                let useHard = $radioHard.is(':checked');
+                if (useHard) {
+                    selectedItems = [];
+                    $chipsDiv.empty();
+                }
                 if (selectedItems.some(i => i.qid === qid)) return;
                 selectedItems.push({ qid: qid, label: label });
 
@@ -3251,22 +3289,28 @@
                 }).html(ICONS.close).on('click', function() {
                     selectedItems = selectedItems.filter(item => item.qid !== qid);
                     $chip.remove();
+                    updateSearchInputVisibility();
                 });
 
                 $chip.append($removeChip);
                 $chipsDiv.append($chip);
+                updateSearchInputVisibility();
             }
 
-            // Populate existing chips on edit
-            let initialQIDs = hardselectQIDs || softselectQIDs || [];
-            initialQIDs.forEach(qid => {
-                addChip(qid, labelsMap[qid] || qid);
-            });
+            // Populate existing values on edit
+            if (isHard) {
+                let qid = hardselectQIDs ? hardselectQIDs[0] : defaultValue;
+                if (qid) addChip(qid, labelsMap[qid] || qid);
+            } else if (isSoft) {
+                softselectQIDs.forEach(qid => {
+                    addChip(qid, labelsMap[qid] || qid);
+                });
+            }
 
-            // Autocomplete search input for select values
+            // Autocomplete search input group
             let $valSearchGroup = $('<div>').css({'position': 'relative', 'margin-top': '4px'});
-            let $valSearchInput = $('<input>').addClass('cradle-input').css({'height': '26px', 'padding': '2px 6px', 'font-size': '12px'})
-                .attr('placeholder', 'Buscar opción o QID para añadir a la lista...');
+            let $valSearchInput = $('<input>').addClass('cradle-input').css({'height': '36px', 'padding': '2px 8px', 'font-size': '13px'})
+                .attr('placeholder', 'Buscar QID de valor para añadir...');
             $valSearchGroup.append($valSearchInput);
 
             let $valAutocompleteMenu = $('<ul>').css({
@@ -3287,7 +3331,8 @@
                 'display': 'none'
             });
             $valSearchGroup.append($valAutocompleteMenu);
-            $row.append($valSearchGroup);
+            $valuePresetContainer.append($valSearchGroup);
+            $row.append($valuePresetContainer);
 
             // Bind autocomplete searches for select item values
             let valDebounce;
@@ -3336,6 +3381,40 @@
                 }, 300);
             });
 
+            function updateSearchInputVisibility() {
+                let useNone = $radioNone.is(':checked');
+                let useHard = $radioHard.is(':checked');
+                if (useNone) {
+                    $valuePresetContainer.hide();
+                } else {
+                    $valuePresetContainer.show();
+                    if (useHard && selectedItems.length >= 1) {
+                        $valSearchGroup.hide();
+                    } else {
+                        $valSearchGroup.show();
+                    }
+                }
+            }
+
+            $radioNone.on('change', function() {
+                selectedItems = [];
+                $chipsDiv.empty();
+                updateSearchInputVisibility();
+            });
+            $radioHard.on('change', function() {
+                if (selectedItems.length > 1) {
+                    selectedItems = [selectedItems[0]];
+                    $chipsDiv.children().slice(1).remove();
+                }
+                updateSearchInputVisibility();
+            });
+            $radioSoft.on('change', function() {
+                updateSearchInputVisibility();
+            });
+
+            // Set initial visibility
+            updateSearchInputVisibility();
+
             $(document).on('click', function(e) {
                 if (!$(e.target).closest($valSearchGroup).length) {
                     $valAutocompleteMenu.hide();
@@ -3346,12 +3425,13 @@
             $row.data('get_data', function() {
                 let qidString = selectedItems.map(i => i.qid).join(',');
                 let useHard = $radioHard.is(':checked');
+                let useSoft = $radioSoft.is(':checked');
                 return {
                     pid: pid,
                     mandatory: $reqCheck.is(':checked'),
-                    defaultValue: $defValInput.val().trim(),
+                    defaultValue: '',
                     hardselect: (useHard && qidString) ? qidString : '',
-                    softselect: (!useHard && qidString) ? qidString : ''
+                    softselect: (useSoft && qidString) ? qidString : ''
                 };
             });
 
@@ -3365,6 +3445,7 @@
             editPIDs.forEach(pid => {
                 qidsToFetch.push(pid);
                 let p = editSchemaData.props[pid];
+                if (p.defaultValue && p.defaultValue.startsWith('Q')) qidsToFetch.push(p.defaultValue);
                 if (p.hardselect) qidsToFetch = qidsToFetch.concat(p.hardselect);
                 if (p.softselect) qidsToFetch = qidsToFetch.concat(p.softselect);
             });
@@ -3482,13 +3563,11 @@
                 let rowData = $(this).data('get_data')();
                 let pid = rowData.pid;
                 let mandatory = rowData.mandatory;
-                let defVal = rowData.defaultValue;
                 let hSel = rowData.hardselect;
                 let sSel = rowData.softselect;
 
                 let parts = [];
                 if (mandatory) parts.push('mandatory');
-                if (defVal) parts.push('default:' + defVal);
                 if (hSel) parts.push('hardselect:' + hSel);
                 if (sSel) parts.push('softselect:' + sSel);
 
@@ -3511,7 +3590,6 @@
         });
 
         let $cancelBtn = $('<button>').addClass('cradle-btn-secondary').html(ICONS.back + ' <span>' + mw.msg('cradle-back') + '</span>').on('click', function() {
-
             renderCreateOptionsSelector();
         });
 
