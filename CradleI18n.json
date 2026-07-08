@@ -80,7 +80,9 @@
     "cradle-hardselect-label": "Fixed options (Hardselect)",
     "cradle-softselect-label": "Free suggestions (Softselect)",
     "cradle-login-required-schema": "Log in to create custom schemas.",
-    "cradle-prop-search-placeholder": "Search property by name or PID (e.g. P17, country)"
+    "cradle-prop-search-placeholder": "Search property by name or PID (e.g. P17, country)",
+    "cradle-preset-none": "No predefined values",
+    "cradle-search-value-placeholder": "Search QID to add..."
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -163,6 +165,8 @@
     "cradle-hardselect-label": "Opciones fijas (Hardselect)",
     "cradle-softselect-label": "Sugerencias libres (Softselect)",
     "cradle-login-required-schema": "Inicie sesi\u00f3n para crear esquemas personalizados.",
-    "cradle-prop-search-placeholder": "Buscar propiedad por nombre o PID (ej. P17, pa\u00eds)"
+    "cradle-prop-search-placeholder": "Buscar propiedad por nombre o PID (ej. P17, pa\u00eds)",
+    "cradle-preset-none": "Sin valores predefinidos",
+    "cradle-search-value-placeholder": "Buscar QID de valor para a\u00f1adir..."
   }
 }
