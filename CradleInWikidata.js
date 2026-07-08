@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.6.6
+ * Version: 1.7.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.6.6');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.7.0');
  */
 
 (function() {
@@ -174,6 +174,44 @@
             gap: 16px;
             width: 100%;
         }
+
+        /* Select/Community Tab Menu responsive styling */
+        .cradle-select-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color-base, #a2a9b1);
+            margin-bottom: 15px;
+            gap: 4px;
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+        .cradle-select-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        .cradle-select-tab {
+            flex-shrink: 0;
+            border: none;
+            background: none;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            color: var(--color-subtle, #54595d);
+            border-bottom: 3px solid transparent;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            font-weight: normal;
+            transition: all 0.15s;
+            box-shadow: none;
+            box-sizing: border-box;
+            height: 36px;
+        }
+        .cradle-select-tab:hover {
+            color: var(--color-link, #3366cc);
+        }
+        .cradle-select-tab.active {
+            font-weight: bold;
+            color: var(--color-link, #3366cc);
+            border-bottom: 3px solid var(--color-link, #3366cc);
+        }
         .cradle-tab {
             padding: 8px 4px;
             cursor: pointer;
@@ -294,7 +332,8 @@
             font-size: 0.85rem;
             outline: none;
             transition: border-color 0.1s, box-shadow 0.1s;
-            height: 32px;
+            height: 36px;
+            box-sizing: border-box;
         }
         .cradle-input:focus {
             border-color: var(--border-color-progressive-focus, #36c);
@@ -310,7 +349,8 @@
             color: var(--color-base, #202122);
             font-size: 0.85rem;
             outline: none;
-            height: 32px;
+            height: 36px;
+            box-sizing: border-box;
         }
         .cradle-select:focus {
             border-color: var(--border-color-progressive-focus, #36c);
@@ -450,6 +490,7 @@
             justify-content: center;
             gap: 8px;
             height: 36px;
+            box-sizing: border-box;
         }
         .cradle-btn-primary:hover {
             background-color: var(--background-color-progressive-hover, #447ff5);
@@ -464,7 +505,7 @@
             cursor: not-allowed;
         }
         
-                .cradle-btn-secondary {
+        .cradle-btn-secondary {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -479,6 +520,7 @@
             transition: background-color 0.1s, border-color 0.1s;
             font-size: 0.85rem;
             height: 36px;
+            box-sizing: border-box;
         }
         .cradle-btn-secondary svg, .cradle-btn-primary svg {
             width: 18px;
@@ -1100,13 +1142,8 @@
             cradleTemplates = parseCradleWikitext(wikitext);
             $content.empty();
 
-            // Render Tabs Header
-            let $tabsHeader = $('<div>').css({
-                'display': 'flex',
-                'border-bottom': '1px solid #c8ccd1',
-                'margin-bottom': '15px',
-                'gap': '4px'
-            });
+            // Render Tabs Header using dedicated responsive classes
+            let $tabsHeader = $('<div>').addClass('cradle-select-tabs');
 
             let tabs = [
                 { id: 'predefined', label: 'Formularios Predefinidos' },
@@ -1118,20 +1155,15 @@
 
             tabs.forEach(tab => {
                 let $tab = $('<button>')
-                    .addClass('cradle-btn-secondary')
-                    .css({
-                        'border-bottom': activeTab === tab.id ? '3px solid #36c' : 'none',
-                        'border-radius': '4px 4px 0 0',
-                        'padding': '8px 12px',
-                        'font-weight': activeTab === tab.id ? 'bold' : 'normal',
-                        'background': 'none',
-                        'box-shadow': 'none'
-                    })
+                    .addClass('cradle-select-tab')
                     .text(tab.label)
                     .on('click', function() {
                         mw.storage.set('cradle-active-tab', tab.id);
                         renderCreateOptionsSelector();
                     });
+                if (activeTab === tab.id) {
+                    $tab.addClass('active');
+                }
                 $tabsHeader.append($tab);
             });
             $content.append($tabsHeader);
