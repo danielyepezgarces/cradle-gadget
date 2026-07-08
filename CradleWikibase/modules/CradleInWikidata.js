@@ -6,8 +6,8 @@
  * on the item itself or its P31 "instance of" / P279 "subclass of" classes), parses the ShEx schema,
  * and displays a premium, modern drawer interface to add, modify, or delete claims in-place.
  *
- * Authors: Daniel Yepez Garces, Ismael Olea
- * Based on: Cradle (https://cradle.toolforge.org/) by Magnus Manske
+ * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
+ * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * Version: 1.6.0
  *
  * Installation:
@@ -1265,7 +1265,7 @@
 
         fetchSchema(schemaId).then(schema => {
             activeSchema = schema;
-            if (!isSpecialCradle) {
+            if (true) {
                 $('.cradle-subtitle').text(`Schema: ${schema.label} (${schema.id})`);
             }
 
@@ -1745,6 +1745,24 @@
             });
 
         $footer.append($cancelBtn).append($saveBtn);
+
+        // Render Credits in the extension too
+        let danielLink = '<a href="' + mw.util.getUrl('User:Danielyepezgarces') + '" target="_blank">Daniel Yepez Garces</a>';
+        let ismaelLink = '<a href="' + mw.util.getUrl('User:Olea') + '" target="_blank">Ismael Olea</a>';
+        let cradleLink = '<a href="https://cradle.toolforge.org/" target="_blank">Cradle</a>';
+
+        let $credits = $('<p>')
+            .css({
+                'font-size': '0.72rem',
+                'color': 'var(--color-subtle, #54595d)',
+                'margin': '4px auto 0 auto',
+                'text-align': 'center',
+                'width': '100%',
+                'line-height': '1.3'
+            })
+            .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink));
+
+        $footer.append($credits);
     }
 
     /**
