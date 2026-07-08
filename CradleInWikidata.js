@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.6.1
+ * Version: 1.6.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.6.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.6.2');
  */
 
 (function() {
@@ -798,23 +798,7 @@
             'border': '1px solid var(--border-color-base, #a2a9b1)'
         });
 
-        // Add credits linking to PU as centered footer
-        let danielLink = '<a href="' + mw.util.getUrl('User:Danielyepezgarces') + '" target="_blank">Daniel Yepez Garces (dyepezg)</a>';
-        let ismaelLink = '<a href="' + mw.util.getUrl('User:Olea') + '" target="_blank">Ismael Olea</a>';
-        let cradleLink = '<a href="https://cradle.toolforge.org/" target="_blank">Cradle</a>';
-
-        let $credits = $('<p>')
-            .css({
-                'font-size': '0.8rem',
-                'color': 'var(--color-subtle, #54595d)',
-                'margin-top': '20px',
-                'margin-bottom': '10px',
-                'text-align': 'center',
-                'width': '100%'
-            })
-            .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink));
-
-        $container.append($content).append($footer).append($credits);
+        $container.append($content).append($footer);
         $contentArea.append($container);
 
         // Remove early hiding styles so the newly rendered content and heading are displayed cleanly
@@ -1103,8 +1087,8 @@
 
             let tabs = [
                 { id: 'predefined', label: 'Formularios Predefinidos' },
-                { id: 'custom', label: 'Esquemas Personalizados' },
-                { id: 'shex', label: 'Esquema de Entidad (ShEx)' }
+                { id: 'shex', label: 'Esquema de Entidad (ShEx)' },
+                { id: 'custom', label: 'Esquemas Personalizados' }
             ];
 
             let activeTab = mw.storage.get('cradle-active-tab') || 'predefined';
