@@ -3067,8 +3067,49 @@
         let $propsList = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '8px'});
         $propertiesDiv.append($propsList);
 
-        function renderPropRow(pid, mandatory, defaultValue, hardselect, softselect, propertyLabel) {
-            let labelText = propertyLabel ? ` (${propertyLabel})` : '';
+        // Helper to batch fetch labels for properties and items
+        function fetchLabelsInBatches(ids, callback) {
+            let labels = {};
+            if (ids.length === 0) {
+                callback(labels);
+                return;
+            }
+            let api = new mw.Api();
+            let chunks = [];
+            for (let i = 0; i < ids.length; i += 50) {
+                chunks.push(ids.slice(i, i + 50));
+            }
+            let pending = chunks.length;
+            chunks.forEach(chunk => {
+                api.get({
+                    action: 'wbgetentities',
+                    ids: chunk,
+                    props: 'labels',
+                    languages: mw.config.get('wgUserLanguage') || 'en',
+                    format: 'json'
+                }).done(function(res) {
+                    if (res.entities) {
+                        let lang = mw.config.get('wgUserLanguage') || 'en';
+                        chunk.forEach(id => {
+                            if (res.entities[id] && res.entities[id].labels) {
+                                let lbl = res.entities[id].labels[lang] || res.entities[id].labels['en'];
+                                labels[id] = lbl ? lbl.value : '';
+                            }
+                        });
+                    }
+                    pending--;
+                    if (pending === 0) callback(labels);
+                }).fail(function() {
+                    pending--;
+                    if (pending === 0) callback(labels);
+                });
+            });
+        }
+
+        function renderPropRow(pid, mandatory, defaultValue, hardselectQIDs, softselectQIDs, labelsMap) {
+            let propLabel = labelsMap[pid] ? ` (${labelsMap[pid]})` : '';
+            let uniqueRowId = Math.random().toString(36).substring(2, 9);
+
             let $row = $('<div>').addClass('cradle-prop-row-builder').css({
                 'display': 'flex',
                 'flex-direction': 'column',
@@ -3076,19 +3117,20 @@
                 'padding': '10px',
                 'background': '#f8f9fa',
                 'border-radius': '4px',
-                'border': '1px solid #a2a9b1'
+                'border': '1px solid #a2a9b1',
+                'position': 'relative'
             });
 
-            // Header line with PID + Label and Remove button
+            // Header line
             let $headerRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center'});
-            $headerRow.append($('<strong>').css({'font-size': '14px'}).text(pid + labelText));
+            $headerRow.append($('<strong>').css({'font-size': '14px'}).text(pid + propLabel));
             let $remove = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'color': '#d33', 'font-weight': 'bold'}).text('✕').on('click', function() {
                 $row.remove();
             });
             $headerRow.append($remove);
             $row.append($headerRow);
 
-            // Mandatory checkbox and default value input
+            // Mandatory checkbox and default value
             let $optionsRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center'});
             let $reqCheck = $('<input>').attr('type', 'checkbox').attr('checked', mandatory ? 'checked' : false);
             let $reqLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '4px', 'font-size': '13px'})
@@ -3102,86 +3144,197 @@
             $optionsRow.append($defValInput);
             $row.append($optionsRow);
 
-            // Hardselect and Softselect inputs for multiselect/options
-            let $hardSelectInput = $('<input>').addClass('cradle-input').css({'height': '26px', 'padding': '2px 6px', 'font-size': '12px'})
-                .attr('placeholder', mw.msg('cradle-hardselect-placeholder'))
-                .val(hardselect || '');
-            $row.append($('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '2px'})
-                .append($('<label>').css({'font-size': '11px', 'color': '#72777d'}).text(mw.msg('cradle-hardselect-label')))
-                .append($hardSelectInput)
-            );
+            // Selection options layout: Radio buttons for Hard/Soft selector
+            let isHard = !!hardselectQIDs;
+            let $radioGroup = $('<div>').css({'display': 'flex', 'gap': '12px', 'margin-top': '4px'});
+            
+            let $radioHard = $('<input>').attr({
+                type: 'radio',
+                name: `select-type-${uniqueRowId}`,
+                id: `hard-${uniqueRowId}`,
+                checked: (isHard || !softselectQIDs)
+            });
+            let $labelHard = $('<label>').attr('for', `hard-${uniqueRowId}`).css({'font-size': '12px', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
+                .append($radioHard).append(mw.msg('cradle-hardselect-label'));
 
-            let $softSelectInput = $('<input>').addClass('cradle-input').css({'height': '26px', 'padding': '2px 6px', 'font-size': '12px'})
-                .attr('placeholder', mw.msg('cradle-softselect-placeholder'))
-                .val(softselect || '');
-            $row.append($('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '2px'})
-                .append($('<label>').css({'font-size': '11px', 'color': '#72777d'}).text(mw.msg('cradle-softselect-label')))
-                .append($softSelectInput)
-            );
+            let $radioSoft = $('<input>').attr({
+                type: 'radio',
+                name: `select-type-${uniqueRowId}`,
+                id: `soft-${uniqueRowId}`,
+                checked: !!softselectQIDs
+            });
+            let $labelSoft = $('<label>').attr('for', `soft-${uniqueRowId}`).css({'font-size': '12px', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
+                .append($radioSoft).append(mw.msg('cradle-softselect-label'));
+
+            $radioGroup.append($labelHard).append($labelSoft);
+            $row.append($radioGroup);
+
+            // Chips Container for selected select values
+            let $chipsDiv = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px', 'margin-top': '4px'});
+            $row.append($chipsDiv);
+
+            let selectedItems = []; // List of { qid, label }
+
+            function addChip(qid, label) {
+                if (selectedItems.some(i => i.qid === qid)) return;
+                selectedItems.push({ qid: qid, label: label });
+
+                let $chip = $('<span>').css({
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '6px',
+                    'background': '#eaecf0',
+                    'border': '1px solid #c8ccd1',
+                    'border-radius': '3px',
+                    'padding': '3px 8px',
+                    'font-size': '12px'
+                }).text(`${label} (${qid})`);
+
+                let $removeChip = $('<span>').css({
+                    'cursor': 'pointer',
+                    'color': '#72777d',
+                    'font-weight': 'bold',
+                    'margin-left': '4px'
+                }).text('✕').on('click', function() {
+                    selectedItems = selectedItems.filter(item => item.qid !== qid);
+                    $chip.remove();
+                });
+
+                $chip.append($removeChip);
+                $chipsDiv.append($chip);
+            }
+
+            // Populate existing chips on edit
+            let initialQIDs = hardselectQIDs || softselectQIDs || [];
+            initialQIDs.forEach(qid => {
+                addChip(qid, labelsMap[qid] || qid);
+            });
+
+            // Autocomplete search input for select values
+            let $valSearchGroup = $('<div>').css({'position': 'relative', 'margin-top': '4px'});
+            let $valSearchInput = $('<input>').addClass('cradle-input').css({'height': '26px', 'padding': '2px 6px', 'font-size': '12px'})
+                .attr('placeholder', 'Buscar opción o QID para añadir a la lista...');
+            $valSearchGroup.append($valSearchInput);
+
+            let $valAutocompleteMenu = $('<ul>').css({
+                'position': 'absolute',
+                'top': '100%',
+                'left': '0',
+                'right': '0',
+                'background': '#fff',
+                'border': '1px solid #a2a9b1',
+                'border-radius': '0 0 4px 4px',
+                'box-shadow': '0 2px 4px rgba(0,0,0,0.15)',
+                'max-height': '150px',
+                'overflow-y': 'auto',
+                'z-index': '1010',
+                'list-style': 'none',
+                'margin': '0',
+                'padding': '0',
+                'display': 'none'
+            });
+            $valSearchGroup.append($valAutocompleteMenu);
+            $row.append($valSearchGroup);
+
+            // Bind autocomplete searches for select item values
+            let valDebounce;
+            $valSearchInput.on('input', function() {
+                clearTimeout(valDebounce);
+                let val = $valSearchInput.val().trim();
+                if (val.length < 2) {
+                    $valAutocompleteMenu.hide().empty();
+                    return;
+                }
+                valDebounce = setTimeout(function() {
+                    let api = new mw.Api();
+                    api.get({
+                        action: 'wbsearchentities',
+                        search: val,
+                        language: mw.config.get('wgUserLanguage') || 'en',
+                        type: 'item',
+                        format: 'json'
+                    }).done(function(res) {
+                        $valAutocompleteMenu.empty();
+                        let items = res.search || [];
+                        if (items.length === 0) {
+                            $valAutocompleteMenu.hide();
+                            return;
+                        }
+                        items.forEach(item => {
+                            let desc = item.description ? ` - ${item.description}` : '';
+                            let $li = $('<li>').css({
+                                'padding': '6px 10px',
+                                'cursor': 'pointer',
+                                'border-bottom': '1px solid #eaecf0',
+                                'font-size': '12px'
+                            })
+                            .html(`<strong>${item.id}</strong>: ${item.label}${desc}`)
+                            .on('click', function() {
+                                addChip(item.id, item.label);
+                                $valSearchInput.val('');
+                                $valAutocompleteMenu.hide().empty();
+                            })
+                            .on('mouseenter', function() { $(this).css('background', '#f8f9fa'); })
+                            .on('mouseleave', function() { $(this).css('background', '#fff'); });
+                            $valAutocompleteMenu.append($li);
+                        });
+                        $valAutocompleteMenu.show();
+                    });
+                }, 300);
+            });
+
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest($valSearchGroup).length) {
+                    $valAutocompleteMenu.hide();
+                }
+            });
 
             $row.data('pid', pid);
             $row.data('get_data', function() {
+                let qidString = selectedItems.map(i => i.qid).join(',');
+                let useHard = $radioHard.is(':checked');
                 return {
                     pid: pid,
                     mandatory: $reqCheck.is(':checked'),
                     defaultValue: $defValInput.val().trim(),
-                    hardselect: $hardSelectInput.val().trim(),
-                    softselect: $softSelectInput.val().trim()
+                    hardselect: (useHard && qidString) ? qidString : '',
+                    softselect: (!useHard && qidString) ? qidString : ''
                 };
             });
 
             $propsList.append($row);
         }
 
-        // Fetch labels dynamically for existing properties if editing
+        // Initialize designer: Gather edit details and load labels in a single batch
+        let editPIDs = isEdit ? Object.keys(editSchemaData.props) : [];
+        let qidsToFetch = [];
         if (isEdit && editSchemaData.props) {
-            let pids = Object.keys(editSchemaData.props);
-            if (pids.length > 0) {
-                let api = new mw.Api();
-                api.get({
-                    action: 'wbgetentities',
-                    ids: pids,
-                    props: 'labels',
-                    languages: mw.config.get('wgUserLanguage') || 'en',
-                    format: 'json'
-                }).done(function(res) {
-                    let labels = {};
-                    if (res.entities) {
-                        pids.forEach(pid => {
-                            if (res.entities[pid] && res.entities[pid].labels) {
-                                let lang = mw.config.get('wgUserLanguage') || 'en';
-                                let lbl = res.entities[pid].labels[lang] || res.entities[pid].labels['en'];
-                                labels[pid] = lbl ? lbl.value : '';
-                            }
-                        });
-                    }
-                    pids.forEach(pid => {
-                        let p = editSchemaData.props[pid];
-                        let isMandatory = p.mandatory === true || p.mandatory === 1 || p.mandatory === '1';
-                        let defVal = p.defaultValue || '';
-                        let hSel = (p.hardselect && p.hardselect.length > 0) ? p.hardselect.join(', ') : '';
-                        let sSel = (p.softselect && p.softselect.length > 0) ? p.softselect.join(', ') : '';
-                        renderPropRow(pid, isMandatory, defVal, hSel, sSel, labels[pid]);
-                    });
-                }).fail(function() {
-                    pids.forEach(pid => {
-                        let p = editSchemaData.props[pid];
-                        let isMandatory = p.mandatory === true || p.mandatory === 1 || p.mandatory === '1';
-                        let defVal = p.defaultValue || '';
-                        let hSel = (p.hardselect && p.hardselect.length > 0) ? p.hardselect.join(', ') : '';
-                        let sSel = (p.softselect && p.softselect.length > 0) ? p.softselect.join(', ') : '';
-                        renderPropRow(pid, isMandatory, defVal, hSel, sSel, '');
-                    });
+            editPIDs.forEach(pid => {
+                qidsToFetch.push(pid);
+                let p = editSchemaData.props[pid];
+                if (p.hardselect) qidsToFetch = qidsToFetch.concat(p.hardselect);
+                if (p.softselect) qidsToFetch = qidsToFetch.concat(p.softselect);
+            });
+        }
+        qidsToFetch = [...new Set(qidsToFetch)].filter(id => /^[QP]\d+$/.test(id));
+
+        fetchLabelsInBatches(qidsToFetch, function(labelsMap) {
+            if (isEdit && editSchemaData.props) {
+                editPIDs.forEach(pid => {
+                    let p = editSchemaData.props[pid];
+                    let isMandatory = p.mandatory === true || p.mandatory === 1 || p.mandatory === '1';
+                    let defVal = p.defaultValue || '';
+                    let hSel = p.hardselect || null;
+                    let sSel = p.softselect || null;
+                    renderPropRow(pid, isMandatory, defVal, hSel, sSel, labelsMap);
                 });
             }
-        }
+        });
 
-        // Add Property autocompleter input group
         let $addPropGroup = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '4px', 'margin-top': '8px', 'position': 'relative'});
         let $addPropInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-prop-search-placeholder'));
         $addPropGroup.append($addPropInput);
 
-        // Absolute autocomplete dropdown list
         let $autocompleteMenu = $('<ul>').css({
             'position': 'absolute',
             'top': '100%',
@@ -3204,7 +3357,6 @@
         $form.append($propertiesDiv);
         $content.append($form);
 
-        // Binding property search autocomplete
         let debounceTimer;
         $addPropInput.on('input', function() {
             clearTimeout(debounceTimer);
@@ -3238,7 +3390,9 @@
                         })
                         .html(`<strong>${item.id}</strong>: ${item.label}${desc}`)
                         .on('click', function() {
-                            renderPropRow(item.id, false, '', '', '', item.label);
+                            let map = {};
+                            map[item.id] = item.label;
+                            renderPropRow(item.id, false, '', null, null, map);
                             $addPropInput.val('');
                             $autocompleteMenu.hide().empty();
                         })
@@ -3251,14 +3405,12 @@
             }, 300);
         });
 
-        // Hide autocomplete menu when clicking outside
         $(document).on('click', function(e) {
             if (!$(e.target).closest($addPropGroup).length) {
                 $autocompleteMenu.hide();
             }
         });
 
-        // Delegate Save/Back buttons to the Main Drawer Footer
         let $footer = $('#cradle-footer-area').empty();
         let $saveBtn = $('<button>').addClass('cradle-btn-primary').text(mw.msg('cradle-save-schema')).on('click', function() {
             let name = $titleInput.val().trim();
