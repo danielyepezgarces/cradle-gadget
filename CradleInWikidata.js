@@ -1690,6 +1690,7 @@
                 $select.val(row.value);
                 $select.on('change', function() {
                     row.value = $select.val();
+                    liveUpdateValidation();
                 });
                 return $select;
             }
@@ -1715,8 +1716,16 @@
             let searchTimeout = null;
             $input.on('input', function() {
                 let query = $input.val().trim();
-                clearTimeout(searchTimeout);
 
+                // If they typed a valid QID directly, update row value immediately
+                if (/^[qQ]\d+$/.test(query)) {
+                    row.value = query.toUpperCase();
+                } else {
+                    row.value = '';
+                }
+                liveUpdateValidation();
+
+                clearTimeout(searchTimeout);
                 if (query.length < 2) {
                     $dropdown.hide();
                     return;
@@ -1741,6 +1750,7 @@
                                 row.value = res.id;
                                 $input.val(`${res.label} (${res.id})`);
                                 $dropdown.hide();
+                                liveUpdateValidation();
                             });
 
                             $dropdown.append($row);
@@ -1780,10 +1790,12 @@
             $langInput.on('input', function() {
                 valObj.language = $langInput.val().trim();
                 row.value = valObj;
+                liveUpdateValidation();
             });
             $textInput.on('input', function() {
                 valObj.text = $textInput.val();
                 row.value = valObj;
+                liveUpdateValidation();
             });
 
             $group.append($langInput).append($textInput);
@@ -1800,6 +1812,7 @@
 
             $input.on('input', function() {
                 row.value = $input.val();
+                liveUpdateValidation();
             });
             return $input;
         }
@@ -1814,6 +1827,7 @@
 
             $input.on('input', function() {
                 row.value = $input.val();
+                liveUpdateValidation();
             });
             return $input;
         }
@@ -1827,6 +1841,7 @@
 
         $input.on('input', function() {
             row.value = $input.val();
+            liveUpdateValidation();
         });
         return $input;
     }
