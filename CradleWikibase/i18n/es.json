@@ -1,0 +1,11 @@
+{
+  "@metadata": {
+    "authors": [
+      "Daniel Yepez Garces",
+      "Ismael Olea"
+    ]
+  },
+  "cradlewikibase-desc": "Integración nativa del gadget Cradle de Wikidata para MediaWiki y Wikibase Suite/Cloud",
+  "cradlewikibase-cradle-title": "Cradle - Editor de formularios",
+  "cradlewikibase-report-title": "Cradle - Panel de reportes de calidad"
+}

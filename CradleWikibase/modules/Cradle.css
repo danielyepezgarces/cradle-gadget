@@ -1,0 +1,5 @@
+/* CSS Styles for Cradle Extension */
+.cradle-container-native, .cradle-report-container-native {
+    margin-top: 15px;
+    font-family: sans-serif;
+}

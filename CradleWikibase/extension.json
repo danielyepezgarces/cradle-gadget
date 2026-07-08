@@ -1,0 +1,43 @@
+{
+  "name": "CradleWikibase",
+  "version": "1.6.1",
+  "author": [
+    "Daniel Yepez Garces",
+    "Ismael Olea"
+  ],
+  "url": "https://github.com/daniel-yepez/cradle-wikibase",
+  "descriptionmsg": "cradlewikibase-desc",
+  "license-name": "GPL-2.0-or-later",
+  "type": "other",
+  "requires": {
+    "MediaWiki": ">=1.39.0"
+  },
+  "AutoloadClasses": {
+    "MediaWiki\\Extension\\CradleWikibase\\Hooks": "src/Hooks.php",
+    "MediaWiki\\Extension\\CradleWikibase\\SpecialCradle": "src/SpecialCradle.php",
+    "MediaWiki\\Extension\\CradleWikibase\\SpecialCradleReport": "src/SpecialCradleReport.php"
+  },
+  "SpecialPages": {
+    "Cradle": "MediaWiki\\Extension\\CradleWikibase\\SpecialCradle",
+    "CradleReport": "MediaWiki\\Extension\\CradleWikibase\\SpecialCradleReport"
+  },
+  "MessagesDirs": {
+    "CradleWikibase": [ "i18n" ]
+  },
+  "ResourceModules": {
+    "ext.cradleWikibase": {
+      "scripts": [ "modules/CradleInWikidata.js" ],
+      "styles": [ "modules/Cradle.css" ],
+      "dependencies": [
+        "mediawiki.api",
+        "mediawiki.jqueryMsg",
+        "mediawiki.util"
+      ],
+      "targets": [ "desktop", "mobile" ]
+    }
+  },
+  "Hooks": {
+    "BeforePageDisplay": "MediaWiki\\Extension\\CradleWikibase\\Hooks::onBeforePageDisplay"
+  },
+  "manifest_version": 2
+}
