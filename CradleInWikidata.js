@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.7.3
+ * Version: 1.7.4
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.7.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.7.4');
  */
 
 (function() {
@@ -3105,8 +3105,6 @@
 
         let isEdit = !!editSchemaName;
         let titleVal = isEdit ? editSchemaName : '';
-        let labelEnVal = isEdit ? (editSchemaData.labels['en'] || '') : '';
-        let labelEsVal = isEdit ? (editSchemaData.labels['es'] || '') : '';
 
         let $form = $('<div>').addClass('cradle-selector-box').css({'display': 'flex', 'flex-direction': 'column', 'gap': '12px'});
         $form.append($('<h3>').css({'margin': '0'}).text(mw.msg('cradle-schema-designer')));
@@ -3118,13 +3116,6 @@
         $form.append($('<div>')
             .append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title')))
             .append($titleInput)
-        );
-
-        let $labelEn = $('<input>').addClass('cradle-input').attr('placeholder', 'English label').val(labelEnVal);
-        let $labelEs = $('<input>').addClass('cradle-input').attr('placeholder', 'Spanish label').val(labelEsVal);
-        $form.append($('<div>')
-            .append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Labels (English / Spanish)'))
-            .append($labelEn).append($('<div style="height: 6px;"></div>')).append($labelEs)
         );
 
         let $propertiesDiv = $('<div>').css({
@@ -3553,10 +3544,6 @@
                 return;
             }
             let wikitext = '== ' + name + ' ==\n';
-            let labelEn = $labelEn.val().trim();
-            let labelEs = $labelEs.val().trim();
-            if (labelEn) wikitext += ':en:' + labelEn + '\n';
-            if (labelEs) wikitext += ':es:' + labelEs + '\n';
 
             let hasProps = false;
             $propsList.children().each(function() {
