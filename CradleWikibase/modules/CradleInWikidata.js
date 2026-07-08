@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.7.1
+ * Version: 1.7.2
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.7.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.7.2');
  */
 
 (function() {
@@ -182,17 +182,18 @@
         /* Select/Community Tab Menu responsive styling */
         .cradle-select-tabs {
             display: flex;
-            flex-wrap: wrap;
             border-bottom: 1px solid var(--border-color-base, #a2a9b1);
             margin-bottom: 15px;
             gap: 4px;
+            width: 100%;
         }
         .cradle-select-tab {
-            flex-shrink: 0;
+            flex: 1;
+            flex-shrink: 1;
             border: none;
             background: none;
-            padding: 8px 12px;
-            font-size: 0.85rem;
+            padding: 8px 4px;
+            font-size: 0.8rem;
             color: var(--color-subtle, #54595d);
             border-bottom: 3px solid transparent;
             border-radius: 4px 4px 0 0;
@@ -201,7 +202,14 @@
             transition: all 0.15s;
             box-shadow: none;
             box-sizing: border-box;
-            height: 36px;
+            height: auto;
+            min-height: 38px;
+            text-align: center;
+            white-space: normal;
+            word-wrap: break-word;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .cradle-select-tab:hover {
             color: var(--color-link, #3366cc);
