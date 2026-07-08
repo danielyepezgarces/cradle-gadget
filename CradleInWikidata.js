@@ -8,7 +8,7 @@
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.2.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.2.2');
  */
 
 (function() {
@@ -126,7 +126,6 @@
         /* Header styling */
         .cradle-header {
             padding: 16px 20px;
-            border-bottom: 1px solid var(--border-color-base, #a2a9b1);
             background-color: var(--background-color-neutral-subtle, #f8f9fa);
             display: flex;
             justify-content: space-between;
@@ -1511,8 +1510,7 @@
             let $formHeader = $('<div>')
                 .css({
                     'margin-bottom': '20px',
-                    'padding-bottom': '8px',
-                    'border-bottom': '1px solid var(--border-color-base, #a2a9b1)'
+                    'padding-bottom': '8px'
                 })
                 .append($('<h2>').css({
                     'font-size': '1.25rem',
