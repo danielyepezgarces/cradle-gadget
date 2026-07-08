@@ -506,10 +506,12 @@
     // SVG Icons
     const ICONS = {
         cradle: `<svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
-        close: `<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
-        plus: `<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
-        trash: `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
-        undo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>`
+        close: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m4.34 2.93 12.73 12.73-1.41 1.41L2.93 4.34z"/><path d="M17.07 4.34 4.34 17.07l-1.41-1.41L15.66 2.93z"/></svg>`,
+        plus: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M11 9V4H9v5H4v2h5v5h2v-5h5V9z"/></svg>`,
+        trash: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M17 2h-3.5l-1-1h-5l-1 1H3v2h14zm-12 4v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6zm3 11H6V8h2zm3 0H9V8h2zm3 0h-2V8h2z"/></svg>`,
+        undo: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M17.8 8A7.8 7.8 0 0 1 10 15.8c-1.3 0-2.5-.3-3.6-.9l1.5-1.5c.7.4 1.4.6 2.1.6a5.8 5.8 0 1 0 0-11.6c-.9 0-1.7.2-2.5.6H10V5H4v6h6V9H6.9c.8-.9 1.9-1.4 3.1-1.4A7.8 7.8 0 0 1 17.8 8"/></svg>`,
+        back: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M19 9H4.414l5.293-5.293-1.414-1.414L1.586 10l6.707 6.707 1.414-1.414L4.414 11H19z"/></svg>`,
+        external: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
     };
 
     /**
@@ -524,7 +526,7 @@
             'cradle-edit-tab': 'Edit Current Item',
             'cradle-create-tab': 'Create New Item',
             'cradle-subtitle': 'Modify entity claims using schemas',
-            'cradle-change-form': '← Change Form',
+            'cradle-change-form': 'Change Schema',
             'cradle-new-item-identity': 'New Item Identity',
             'cradle-new-item-identity-desc': 'Provide the label and description for the new Wikidata item.',
             'cradle-new-item-label': 'Enter item label (e.g. Marie Curie)...',
@@ -548,7 +550,7 @@
             'cradle-loading-schema': 'Loading schema $1...',
             'cradle-loading-templates': 'Loading templates from Wikidata:Cradle...',
             'cradle-enter-schema-title': 'Enter or select an EntitySchema to edit this item:',
-            'cradle-change-schema': '← Change Schema',
+            'cradle-change-schema': 'Change Schema',
             'cradle-edit-summary': 'Updated statements using Cradle Wikidata Gadget (EntitySchema:$1)',
             'cradle-create-summary': 'Created new item using Cradle Wikidata Gadget (Template: $1)',
             'cradle-search-placeholder': 'Search item...',
@@ -578,7 +580,7 @@
                     'cradle-edit-tab': 'Editar elemento actual',
                     'cradle-create-tab': 'Crear nuevo elemento',
                     'cradle-subtitle': 'Modificar declaraciones utilizando esquemas',
-                    'cradle-change-form': '← Cambiar formulario',
+                    'cradle-change-form': 'Cambiar esquema',
                     'cradle-new-item-identity': 'Identidad del nuevo elemento',
                     'cradle-new-item-identity-desc': 'Proporciona la etiqueta y descripción para el nuevo elemento de Wikidata.',
                     'cradle-new-item-label': 'Introduce la etiqueta del elemento (ej. Marie Curie)...',
@@ -602,7 +604,7 @@
                     'cradle-loading-schema': 'Cargando el esquema $1...',
                     'cradle-loading-templates': 'Cargando plantillas desde Wikidata:Cradle...',
                     'cradle-enter-schema-title': 'Introduce o selecciona un EntitySchema para editar este elemento:',
-                    'cradle-change-schema': '← Cambiar esquema',
+                    'cradle-change-schema': 'Cambiar esquema',
                     'cradle-edit-summary': 'Declaraciones actualizadas con el gadget Cradle de Wikidata (EntitySchema:$1)',
                     'cradle-create-summary': 'Nuevo elemento creado con el gadget Cradle de Wikidata (Plantilla: $1)',
                     'cradle-search-placeholder': 'Buscar elemento...',
@@ -1629,7 +1631,7 @@
 
         // Render back button
         let $headerPanel = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '16px'});
-        $headerPanel.append($('<button>').addClass('cradle-btn-secondary').text(mw.msg('cradle-change-form')).on('click', renderActiveView));
+        $headerPanel.append($('<button>').addClass('cradle-btn-secondary').html(ICONS.back + ' <span>' + mw.msg('cradle-change-form') + '</span>').on('click', renderActiveView));
         $content.append($headerPanel);
 
         // Display current active schema/template title
@@ -2644,7 +2646,7 @@
             // Header line
             let $headerRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center'});
             $headerRow.append($('<strong>').css({'font-size': '14px'}).text(pid + propLabel));
-            let $remove = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'color': '#d33', 'font-weight': 'bold'}).text('✕').on('click', function() {
+            let $remove = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'color': '#d33', 'font-weight': 'bold'}).html(ICONS.close).on('click', function() {
                 $row.remove();
             });
             $headerRow.append($remove);
@@ -2715,7 +2717,7 @@
                     'color': '#72777d',
                     'font-weight': 'bold',
                     'margin-left': '4px'
-                }).text('✕').on('click', function() {
+                }).html(ICONS.close).on('click', function() {
                     selectedItems = selectedItems.filter(item => item.qid !== qid);
                     $chip.remove();
                 });
@@ -2977,7 +2979,8 @@
             });
         });
 
-        let $cancelBtn = $('<button>').addClass('cradle-btn-secondary').text(mw.msg('cradle-back')).on('click', function() {
+        let $cancelBtn = $('<button>').addClass('cradle-btn-secondary').html(ICONS.back + ' <span>' + mw.msg('cradle-back') + '</span>').on('click', function() {
+
             renderCreateOptionsSelector();
         });
 
