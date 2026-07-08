@@ -6,8 +6,8 @@
  * on the item itself or its P31 "instance of" / P279 "subclass of" classes), parses the ShEx schema,
  * and displays a premium, modern drawer interface to add, modify, or delete claims in-place.
  * 
- * Authors: Daniel Yepez Garces, Ismael Olea
- * Based on: Cradle (https://cradle.toolforge.org/) by Magnus Manske
+ * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
+ * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
  * Version: 1.6.0
  * 
@@ -1449,7 +1449,7 @@
             return fetchSchema(schemaId);
         }).then(schema => {
             activeSchema = schema;
-            if (!isSpecialCradle) {
+            if (true) {
                 $('.cradle-subtitle').text(`Schema: ${schema.label} (${schema.id})`);
             }
             
@@ -2025,7 +2025,7 @@
             $footer.append($btnContainer);
         }
  
-        if (!isSpecialCradle) {
+        if (true) {
             let danielLink = '<a href="' + mw.util.getUrl('User:Danielyepezgarces') + '" target="_blank">Daniel Yepez Garces</a>';
             let ismaelLink = '<a href="' + mw.util.getUrl('User:Olea') + '" target="_blank">Ismael Olea</a>';
             let cradleLink = '<a href="https://cradle.toolforge.org/" target="_blank">Cradle</a>';
