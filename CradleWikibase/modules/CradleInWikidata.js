@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.7.0
+ * Version: 1.7.1
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.7.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.7.1');
  */
 
 (function() {
@@ -182,15 +182,10 @@
         /* Select/Community Tab Menu responsive styling */
         .cradle-select-tabs {
             display: flex;
+            flex-wrap: wrap;
             border-bottom: 1px solid var(--border-color-base, #a2a9b1);
             margin-bottom: 15px;
             gap: 4px;
-            overflow-x: auto;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-        }
-        .cradle-select-tabs::-webkit-scrollbar {
-            display: none;
         }
         .cradle-select-tab {
             flex-shrink: 0;
@@ -314,6 +309,9 @@
 
         .cradle-input {
             flex: 1;
+            display: block;
+            width: 100%;
+            max-width: 100%;
             padding: 6px 8px;
             border-radius: 2px;
             border: 1px solid var(--border-color-base, #a2a9b1);
@@ -332,6 +330,9 @@
 
         .cradle-select {
             flex: 1;
+            display: block;
+            width: 100%;
+            max-width: 100%;
             padding: 6px 8px;
             border-radius: 2px;
             border: 1px solid var(--border-color-base, #a2a9b1);
