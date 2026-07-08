@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.7.4
+ * Version: 1.8.0
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.7.4');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.0');
  */
 
 (function() {
@@ -1309,7 +1309,7 @@
                 schemaProperties[pid] = {
                     id: pid,
                     min: pDef.mandatory ? 1 : 0,
-                    max: (pDef.mandatory || pDef.hardselect.length > 0) ? 1 : Infinity,
+                    max: Infinity,
                     mandatory: pDef.mandatory,
                     softselect: pDef.hardselect.length > 0 ? pDef.hardselect : pDef.softselect,
                     defaultValue: pDef.defaultValue
@@ -2723,7 +2723,7 @@
                 checked: (activePreset === 'none')
             });
             let $labelNone = $('<label>').attr('for', `none-${uniqueRowId}`).css({'font-size': '12px', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
-                .append($radioNone).append('Sin valores predefinidos');
+                .append($radioNone).append(mw.msg('cradle-preset-none'));
 
             let $radioHard = $('<input>').attr({
                 type: 'radio',
@@ -2757,10 +2757,6 @@
 
             function addChip(qid, label) {
                 let useHard = $radioHard.is(':checked');
-                if (useHard) {
-                    selectedItems = [];
-                    $chipsDiv.empty();
-                }
                 if (selectedItems.some(i => i.qid === qid)) return;
                 selectedItems.push({ qid: qid, label: label });
 
@@ -2793,8 +2789,10 @@
 
             // Populate existing values on edit
             if (isHard) {
-                let qid = hardselectQIDs ? hardselectQIDs[0] : defaultValue;
-                if (qid) addChip(qid, labelsMap[qid] || qid);
+                let qids = hardselectQIDs || (defaultValue ? [defaultValue] : []);
+                qids.forEach(qid => {
+                    if (qid) addChip(qid, labelsMap[qid] || qid);
+                });
             } else if (isSoft) {
                 softselectQIDs.forEach(qid => {
                     addChip(qid, labelsMap[qid] || qid);
@@ -2804,7 +2802,7 @@
             // Autocomplete search input group
             let $valSearchGroup = $('<div>').css({'position': 'relative', 'margin-top': '4px'});
             let $valSearchInput = $('<input>').addClass('cradle-input').css({'height': '36px', 'padding': '2px 8px', 'font-size': '13px'})
-                .attr('placeholder', 'Buscar QID de valor para añadir...');
+                .attr('placeholder', mw.msg('cradle-search-value-placeholder'));
             $valSearchGroup.append($valSearchInput);
 
             let $valAutocompleteMenu = $('<ul>').css({
@@ -2877,16 +2875,11 @@
 
             function updateSearchInputVisibility() {
                 let useNone = $radioNone.is(':checked');
-                let useHard = $radioHard.is(':checked');
                 if (useNone) {
                     $valuePresetContainer.hide();
                 } else {
                     $valuePresetContainer.show();
-                    if (useHard && selectedItems.length >= 1) {
-                        $valSearchGroup.hide();
-                    } else {
-                        $valSearchGroup.show();
-                    }
+                    $valSearchGroup.show();
                 }
             }
 
@@ -2896,10 +2889,6 @@
                 updateSearchInputVisibility();
             });
             $radioHard.on('change', function() {
-                if (selectedItems.length > 1) {
-                    selectedItems = [selectedItems[0]];
-                    $chipsDiv.children().slice(1).remove();
-                }
                 updateSearchInputVisibility();
             });
             $radioSoft.on('change', function() {
