@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.8.2
+ * Version: 1.8.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.3');
  */
 
 (function() {
@@ -1734,74 +1734,81 @@
      * Fetches property metadata.
      */
     function loadPropertiesMetadata(propIds) {
-        let api = new mw.Api();
-        let userLang = mw.config.get('wgUserLanguage') || 'en';
-        return api.get({
-            action: 'wbgetentities',
-            ids: propIds.join('|'),
-            props: 'info|labels|descriptions|datatype|claims',
-            languages: userLang + '|en',
-            format: 'json'
-        }).then(res => {
-            let metadata = {};
-            if (res && res.entities) {
-                Object.keys(res.entities).forEach(pid => {
-                    let ent = res.entities[pid];
-                    let label = pid;
-                    if (ent.labels) {
-                        label = (ent.labels[userLang] && ent.labels[userLang].value) ||
-                                (ent.labels['en'] && ent.labels['en'].value) ||
-                                pid;
-                    }
-                    
-                    let desc = "";
-                    let p2559Texts = [];
-                    if (ent.claims && ent.claims.P2559) {
-                        ent.claims.P2559.forEach(claim => {
-                            if (claim.mainsnak && 
-                                claim.mainsnak.snaktype === 'value' && 
-                                claim.mainsnak.datavalue && 
-                                claim.mainsnak.datavalue.value) {
-                                let val = claim.mainsnak.datavalue.value;
-                                if (val.text && val.language) {
-                                    p2559Texts.push({
-                                        text: val.text,
-                                        language: val.language
-                                    });
+        console.log("[Cradle] Loading properties metadata for:", propIds);
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            let userLang = mw.config.get('wgUserLanguage') || 'en';
+            api.get({
+                action: 'wbgetentities',
+                ids: propIds.join('|'),
+                props: 'info|labels|descriptions|datatype|claims',
+                languages: userLang + '|en',
+                format: 'json'
+            }).done(function(res) {
+                let metadata = {};
+                if (res && res.entities) {
+                    Object.keys(res.entities).forEach(pid => {
+                        let ent = res.entities[pid];
+                        let label = pid;
+                        if (ent.labels) {
+                            label = (ent.labels[userLang] && ent.labels[userLang].value) ||
+                                    (ent.labels['en'] && ent.labels['en'].value) ||
+                                    pid;
+                        }
+                        
+                        let desc = "";
+                        let p2559Texts = [];
+                        if (ent.claims && ent.claims.P2559) {
+                            ent.claims.P2559.forEach(claim => {
+                                if (claim.mainsnak && 
+                                    claim.mainsnak.snaktype === 'value' && 
+                                    claim.mainsnak.datavalue && 
+                                    claim.mainsnak.datavalue.value) {
+                                    let val = claim.mainsnak.datavalue.value;
+                                    if (val.text && val.language) {
+                                        p2559Texts.push({
+                                            text: val.text,
+                                            language: val.language
+                                        });
+                                    }
+                                }
+                            });
+                        }
+
+                        // 1. Try P2559 in user interface language
+                        let targetUsage = p2559Texts.find(t => t.language === userLang);
+                        if (targetUsage) {
+                            desc = targetUsage.text;
+                        } else {
+                            // 2. Try P2559 in English
+                            let enUsage = p2559Texts.find(t => t.language === 'en');
+                            if (enUsage) {
+                                desc = enUsage.text;
+                            } else {
+                                // 3. Try standard description in user interface language
+                                if (ent.descriptions && ent.descriptions[userLang]) {
+                                    desc = ent.descriptions[userLang].value;
+                                } else if (ent.descriptions && ent.descriptions['en']) {
+                                    // 4. Try standard description in English
+                                    desc = ent.descriptions['en'].value;
                                 }
                             }
-                        });
-                    }
-
-                    // 1. Try P2559 in user interface language
-                    let targetUsage = p2559Texts.find(t => t.language === userLang);
-                    if (targetUsage) {
-                        desc = targetUsage.text;
-                    } else {
-                        // 2. Try P2559 in English
-                        let enUsage = p2559Texts.find(t => t.language === 'en');
-                        if (enUsage) {
-                            desc = enUsage.text;
-                        } else {
-                            // 3. Try standard description in user interface language
-                            if (ent.descriptions && ent.descriptions[userLang]) {
-                                desc = ent.descriptions[userLang].value;
-                            } else if (ent.descriptions && ent.descriptions['en']) {
-                                // 4. Try standard description in English
-                                desc = ent.descriptions['en'].value;
-                            }
                         }
-                    }
 
-                    metadata[pid] = {
-                        id: pid,
-                        label: label,
-                        description: desc,
-                        datatype: ent.datatype
-                    };
-                });
-            }
-            return metadata;
+                        metadata[pid] = {
+                            id: pid,
+                            label: label,
+                            description: desc,
+                            datatype: ent.datatype
+                        };
+                    });
+                }
+                console.log("[Cradle] Loaded properties metadata:", metadata);
+                resolve(metadata);
+            }).fail(function(err) {
+                console.error("[Cradle] loadPropertiesMetadata request failed:", err);
+                resolve({});
+            });
         });
     }
 
@@ -3339,6 +3346,7 @@
                 }
                 valDebounce = setTimeout(function() {
                     let api = new mw.Api();
+                    console.log('[Cradle Designer] Searching value preset:', val);
                     api.get({
                         action: 'wbsearchentities',
                         search: val,
@@ -3486,6 +3494,7 @@
             }
             debounceTimer = setTimeout(function() {
                 let api = new mw.Api();
+                console.log('[Cradle Designer] Searching property:', val);
                 api.get({
                     action: 'wbsearchentities',
                     search: val,
