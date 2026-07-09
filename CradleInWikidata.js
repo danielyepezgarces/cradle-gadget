@@ -9,15 +9,31 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.8.3
+ * Version: 1.8.4
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.4');
  */
 
 (function() {
     'use strict';
+    let debugMode = false;
+    try {
+        debugMode = new URLSearchParams(window.location.search).has('cradledebug');
+    } catch (e) {}
+
+    function logDebug(...args) {
+        if (debugMode) {
+            console.log(...args);
+        }
+    }
+
+    function logError(...args) {
+        if (debugMode) {
+            console.error(...args);
+        }
+    }
 
     // Verify if we are on Wikidata
     if (!mw.config.get('wgServer').includes('wikidata.org')) {
@@ -860,9 +876,9 @@
                 return findAssociatedSchemas(data);
             }).then(schemas => {
                 detectedSchemas = schemas;
-                console.log("[Cradle] Detected EntitySchemas:", detectedSchemas);
+                logDebug("[Cradle] Detected EntitySchemas:", detectedSchemas);
             }).catch(err => {
-                console.error("[Cradle] Error loading claims/schemas:", err);
+                logError("[Cradle] Error loading claims/schemas:", err);
             });
         }
     }
@@ -1734,7 +1750,7 @@
      * Fetches property metadata.
      */
     function loadPropertiesMetadata(propIds) {
-        console.log("[Cradle] Loading properties metadata for:", propIds);
+        logDebug("[Cradle] Loading properties metadata for:", propIds);
         return new Promise((resolve) => {
             let api = new mw.Api();
             let userLang = mw.config.get('wgUserLanguage') || 'en';
@@ -1803,10 +1819,10 @@
                         };
                     });
                 }
-                console.log("[Cradle] Loaded properties metadata:", metadata);
+                logDebug("[Cradle] Loaded properties metadata:", metadata);
                 resolve(metadata);
             }).fail(function(err) {
-                console.error("[Cradle] loadPropertiesMetadata request failed:", err);
+                logError("[Cradle] loadPropertiesMetadata request failed:", err);
                 resolve({});
             });
         });
@@ -2745,7 +2761,7 @@
                 }, 1200);
             }
         }).catch((code, err) => {
-            console.error("[Cradle] Save error:", code, err);
+            logError("[Cradle] Save error:", code, err);
             let errMsg = err && err.error && err.error.info ? err.error.info : code;
             alert(mw.msg('cradle-save-error', errMsg));
             $saveBtn.prop('disabled', false).html(origHtml);
@@ -3346,7 +3362,7 @@
                 }
                 valDebounce = setTimeout(function() {
                     let api = new mw.Api();
-                    console.log('[Cradle Designer] Searching value preset:', val);
+                    logDebug('[Cradle Designer] Searching value preset:', val);
                     api.get({
                         action: 'wbsearchentities',
                         search: val,
@@ -3494,7 +3510,7 @@
             }
             debounceTimer = setTimeout(function() {
                 let api = new mw.Api();
-                console.log('[Cradle Designer] Searching property:', val);
+                logDebug('[Cradle Designer] Searching property:', val);
                 api.get({
                     action: 'wbsearchentities',
                     search: val,
