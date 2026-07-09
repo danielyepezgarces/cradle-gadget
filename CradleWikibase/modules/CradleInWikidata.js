@@ -8,15 +8,31 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.8.3
+ * Version: 1.8.4
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.4');
  */
 
 (function() {
     'use strict';
+    let debugMode = false;
+    try {
+        debugMode = new URLSearchParams(window.location.search).has('cradledebug');
+    } catch (e) {}
+
+    function logDebug(...args) {
+        if (debugMode) {
+            console.log(...args);
+        }
+    }
+
+    function logError(...args) {
+        if (debugMode) {
+            console.error(...args);
+        }
+    }
 
     // Verify if we are on Wikidata
     if (!mw.config.get('wgServer').includes('wikidata.org')) {
@@ -706,9 +722,9 @@
                 return findAssociatedSchemas(entityData);
             }).then(schemas => {
                 detectedSchemas = schemas;
-                console.log("[Cradle] Detected EntitySchemas:", detectedSchemas);
+                logDebug("[Cradle] Detected EntitySchemas:", detectedSchemas);
             }).catch(err => {
-                console.error("[Cradle] Error loading claims/schemas:", err);
+                logError("[Cradle] Error loading claims/schemas:", err);
             });
         }
     }
@@ -1559,7 +1575,7 @@
     function loadItemLabels(qids) {
         if (qids.length === 0) return Promise.resolve({});
         qids = [...new Set(qids)];
-        console.log("[Cradle] Loading item labels for:", qids);
+        logDebug("[Cradle] Loading item labels for:", qids);
         return new Promise((resolve) => {
             let api = new mw.Api();
             let userLang = mw.config.get('wgUserLanguage') || 'en';
@@ -1583,10 +1599,10 @@
                         labels[qid] = label;
                     });
                 }
-                console.log("[Cradle] Loaded labels map:", labels);
+                logDebug("[Cradle] Loaded labels map:", labels);
                 resolve(labels);
             }).fail(function(err) {
-                console.error("[Cradle] loadItemLabels request failed:", err);
+                logError("[Cradle] loadItemLabels request failed:", err);
                 resolve({});
             });
         });
@@ -2081,7 +2097,7 @@
      * Search wikidata items.
      */
     function searchWikidataItems(term) {
-        console.log("[Cradle] Searching Wikidata items for:", term);
+        logDebug("[Cradle] Searching Wikidata items for:", term);
         return new Promise((resolve) => {
             let api = new mw.Api();
             api.get({
@@ -2091,10 +2107,10 @@
                 type: 'item',
                 format: 'json'
             }).done(function(res) {
-                console.log("[Cradle] Search results received:", res.search);
+                logDebug("[Cradle] Search results received:", res.search);
                 resolve(res.search || []);
             }).fail(function(err) {
-                console.error("[Cradle] Search API request failed:", err);
+                logError("[Cradle] Search API request failed:", err);
                 resolve([]);
             });
         });
@@ -2247,7 +2263,7 @@
                 }, 1200);
             }
         }).catch((code, err) => {
-            console.error("[Cradle] Save error:", code, err);
+            logError("[Cradle] Save error:", code, err);
             let errMsg = err && err.error && err.error.info ? err.error.info : code;
             alert(mw.msg('cradle-save-error', errMsg));
             $saveBtn.prop('disabled', false).html(origHtml);
@@ -2848,7 +2864,7 @@
                 }
                 valDebounce = setTimeout(function() {
                     let api = new mw.Api();
-                    console.log('[Cradle Designer] Searching value preset:', val);
+                    logDebug('[Cradle Designer] Searching value preset:', val);
                     api.get({
                         action: 'wbsearchentities',
                         search: val,
@@ -2996,7 +3012,7 @@
             }
             debounceTimer = setTimeout(function() {
                 let api = new mw.Api();
-                console.log('[Cradle Designer] Searching property:', val);
+                logDebug('[Cradle Designer] Searching property:', val);
                 api.get({
                     action: 'wbsearchentities',
                     search: val,
