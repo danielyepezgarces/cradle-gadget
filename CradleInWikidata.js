@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.8.4
+ * Version: 1.8.5
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.4');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.5');
  */
 
 (function() {
@@ -2583,34 +2583,22 @@
      * Search wikidata items.
      */
     function searchWikidataItems(term) {
-        let api = new mw.Api();
-        return api.get({
-            action: 'opensearch',
-            search: term,
-            namespace: 0,
-            limit: 10,
-            format: 'json'
-        }).then(res => {
-            // opensearch response format: [ query, [titles], [descriptions], [urls] ]
-            let suggestions = [];
-            if (res && res[1]) {
-                let titles = res[1];
-                let descriptions = res[2] || [];
-                let urls = res[3] || [];
-                for (let i = 0; i < titles.length; i++) {
-                    let url = urls[i] || '';
-                    let match = url.match(/(Q\d+)$/);
-                    if (match) {
-                        let qid = match[1];
-                        suggestions.push({
-                            id: qid,
-                            label: titles[i],
-                            description: descriptions[i] || ''
-                        });
-                    }
-                }
-            }
-            return suggestions;
+        logDebug("[Cradle] Searching Wikidata items for:", term);
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            api.get({
+                action: 'wbsearchentities',
+                search: term,
+                language: mw.config.get('wgUserLanguage') || 'en',
+                type: 'item',
+                format: 'json'
+            }).done(function(res) {
+                logDebug("[Cradle] Search results received:", res.search);
+                resolve(res.search || []);
+            }).fail(function(err) {
+                logError("[Cradle] Search API request failed:", err);
+                resolve([]);
+            });
         });
     }
 
