@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.8.2
+ * Version: 1.8.3
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.3');
  */
 
 (function() {
@@ -1558,33 +1558,37 @@
      */
     function loadItemLabels(qids) {
         if (qids.length === 0) return Promise.resolve({});
-
-        // Remove duplicates
         qids = [...new Set(qids)];
-
-        let api = new mw.Api();
-        let userLang = mw.config.get('wgUserLanguage') || 'en';
-        return api.get({
-            action: 'wbgetentities',
-            ids: qids.join('|'),
-            props: 'labels',
-            languages: userLang + '|en',
-            format: 'json'
-        }).then(res => {
-            let labels = {};
-            if (res && res.entities) {
-                Object.keys(res.entities).forEach(qid => {
-                    let ent = res.entities[qid];
-                    let label = qid;
-                    if (ent.labels) {
-                        label = (ent.labels[userLang] && ent.labels[userLang].value) ||
-                                (ent.labels['en'] && ent.labels['en'].value) ||
-                                qid;
-                    }
-                    labels[qid] = label;
-                });
-            }
-            return labels;
+        console.log("[Cradle] Loading item labels for:", qids);
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            let userLang = mw.config.get('wgUserLanguage') || 'en';
+            api.get({
+                action: 'wbgetentities',
+                ids: qids.join('|'),
+                props: 'labels',
+                languages: userLang + '|en',
+                format: 'json'
+            }).done(function(res) {
+                let labels = {};
+                if (res && res.entities) {
+                    Object.keys(res.entities).forEach(qid => {
+                        let ent = res.entities[qid];
+                        let label = qid;
+                        if (ent.labels) {
+                            label = (ent.labels[userLang] && ent.labels[userLang].value) ||
+                                    (ent.labels['en'] && ent.labels['en'].value) ||
+                                    qid;
+                        }
+                        labels[qid] = label;
+                    });
+                }
+                console.log("[Cradle] Loaded labels map:", labels);
+                resolve(labels);
+            }).fail(function(err) {
+                console.error("[Cradle] loadItemLabels request failed:", err);
+                resolve({});
+            });
         });
     }
 
@@ -2077,15 +2081,22 @@
      * Search wikidata items.
      */
     function searchWikidataItems(term) {
-        let api = new mw.Api();
-        return api.get({
-            action: 'wbsearchentities',
-            search: term,
-            language: mw.config.get('wgUserLanguage') || 'en',
-            type: 'item',
-            format: 'json'
-        }).then(res => {
-            return res.search || [];
+        console.log("[Cradle] Searching Wikidata items for:", term);
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            api.get({
+                action: 'wbsearchentities',
+                search: term,
+                language: mw.config.get('wgUserLanguage') || 'en',
+                type: 'item',
+                format: 'json'
+            }).done(function(res) {
+                console.log("[Cradle] Search results received:", res.search);
+                resolve(res.search || []);
+            }).fail(function(err) {
+                console.error("[Cradle] Search API request failed:", err);
+                resolve([]);
+            });
         });
     }
 
@@ -2837,6 +2848,7 @@
                 }
                 valDebounce = setTimeout(function() {
                     let api = new mw.Api();
+                    console.log('[Cradle Designer] Searching value preset:', val);
                     api.get({
                         action: 'wbsearchentities',
                         search: val,
@@ -2984,6 +2996,7 @@
             }
             debounceTimer = setTimeout(function() {
                 let api = new mw.Api();
+                console.log('[Cradle Designer] Searching property:', val);
                 api.get({
                     action: 'wbsearchentities',
                     search: val,
