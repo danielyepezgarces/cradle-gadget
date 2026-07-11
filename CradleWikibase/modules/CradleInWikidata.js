@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.8.6
+ * Version: 1.8.7
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.6');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.7');
  */
 
 (function() {
@@ -783,16 +783,21 @@
      * Fetch the entity data from Wikidata Action API.
      */
     function loadEntityData(id) {
-        let api = new mw.Api();
-        return api.get({
-            action: 'wbgetentities',
-            ids: id,
-            format: 'json'
-        }).then(res => {
-            if (res && res.entities && res.entities[id]) {
-                return res.entities[id];
-            }
-            throw new Error("Unable to load entity data");
+        return new Promise((resolve, reject) => {
+            let api = new mw.Api();
+            api.get({
+                action: 'wbgetentities',
+                ids: id,
+                format: 'json'
+            }).done(function(res) {
+                if (res && res.entities && res.entities[id]) {
+                    resolve(res.entities[id]);
+                } else {
+                    reject(new Error("Unable to load entity data"));
+                }
+            }).fail(function(err) {
+                reject(err);
+            });
         });
     }
 
