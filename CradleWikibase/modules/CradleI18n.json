@@ -85,7 +85,9 @@
     "cradle-search-value-placeholder": "Search QID to add...",
     "cradle-tab-predefined": "Predefined Forms",
     "cradle-tab-shex": "EntitySchema (ShEx)",
-    "cradle-tab-custom": "Custom Schemas"
+    "cradle-tab-custom": "Custom Schemas",
+    "cradle-detected-schemas": "Detected schemas for this item:",
+    "cradle-or-enter-schema": "Or enter another EntitySchema ID:"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -173,6 +175,8 @@
     "cradle-search-value-placeholder": "Buscar QID de valor para a\u00f1adir...",
     "cradle-tab-predefined": "Formularios Predefinidos",
     "cradle-tab-shex": "Esquema de Entidad (ShEx)",
-    "cradle-tab-custom": "Esquemas Personalizados"
+    "cradle-tab-custom": "Esquemas Personalizados",
+    "cradle-detected-schemas": "Esquemas detectados para este elemento:",
+    "cradle-or-enter-schema": "O introduce otro ID de EntitySchema:"
   }
 }
