@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.8.5
+ * Version: 1.8.6
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.5');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.6');
  */
 
 (function() {
@@ -71,6 +71,7 @@
     let propertyMetadata = {};
     let softselectLabels = {};
     let formState = {}; // propertyId -> Array of { id, guid, value, datatype, isDeleted }
+    let userWantsToChangeSchema = false;
 
     // Stylesheet aligned with Wikimedia design guidelines & Vector light/dark mode
     const customCSS = `
@@ -742,6 +743,8 @@
             'cradle-tab-predefined': 'Predefined Forms',
             'cradle-tab-shex': 'EntitySchema (ShEx)',
             'cradle-tab-custom': 'Custom Schemas',
+            'cradle-detected-schemas': 'Detected schemas for this item:',
+            'cradle-or-enter-schema': 'Or enter another EntitySchema ID:',
             'cradle-search-value-placeholder': 'Search QID to add...',
             'cradle-btn-edit-with-cradle': 'Edit with Cradle',
             'cradle-validation-tab': 'Validation',
@@ -1038,6 +1041,7 @@
      * Opens the Sidebar Drawer editor.
      */
     function openEditor() {
+        userWantsToChangeSchema = false;
         if ($('.cradle-drawer').length === 0) {
             createDrawerUI();
         }
@@ -1132,7 +1136,7 @@
         activeTemplate = null;
         
         if (activeMode === 'edit') {
-            if (detectedSchemas.length > 0) {
+            if (detectedSchemas.length > 0 && !userWantsToChangeSchema) {
                 loadAndDisplaySchema(detectedSchemas[0]);
             } else {
                 renderEditSchemaSelector();
@@ -1150,8 +1154,27 @@
         updateDrawerFooter(false);
 
         let $box = $('<div>').addClass('cradle-selector-box');
-        $box.append($('<p>').css({'margin-top': '0', 'font-weight': 'bold'}).text(mw.msg('cradle-enter-schema-title')));
         
+        if (detectedSchemas.length > 0) {
+            $box.append($('<p>').css({'margin-top': '0', 'font-weight': 'bold'}).text(mw.msg('cradle-detected-schemas')));
+            let $btnGroup = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '8px', 'margin-bottom': '16px'});
+            detectedSchemas.forEach(schemaId => {
+                let $btn = $('<button>')
+                    .addClass('cradle-btn-secondary')
+                    .css({'padding': '6px 12px'})
+                    .text(schemaId)
+                    .on('click', function() {
+                        userWantsToChangeSchema = false;
+                        loadAndDisplaySchema(schemaId);
+                    });
+                $btnGroup.append($btn);
+            });
+            $box.append($btnGroup);
+            $box.append($('<p>').css({'font-weight': 'bold', 'margin-top': '12px'}).text(mw.msg('cradle-or-enter-schema')));
+        } else {
+            $box.append($('<p>').css({'margin-top': '0', 'font-weight': 'bold'}).text(mw.msg('cradle-enter-schema-title')));
+        }
+
         let $manualInput = $('<input>')
             .addClass('cradle-input')
             .attr('type', 'text')
@@ -1166,6 +1189,7 @@
                     if (!schemaId.startsWith('E')) {
                         schemaId = 'E' + schemaId.replace(/\D/g, '');
                     }
+                    userWantsToChangeSchema = false;
                     loadAndDisplaySchema(schemaId);
                 }
             });
@@ -2189,6 +2213,7 @@
         formState = {};
         activeSchema = null;
         activeTemplate = null;
+        userWantsToChangeSchema = true;
         renderActiveView();
     }
 
