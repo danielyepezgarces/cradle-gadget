@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.8.6
+ * Version: 1.8.7
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.6');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.7');
  */
 
 (function() {
@@ -963,16 +963,21 @@
      * Fetch the entity data from Wikidata Action API.
      */
     function loadEntityData(id) {
-        let api = new mw.Api();
-        return api.get({
-            action: 'wbgetentities',
-            ids: id,
-            format: 'json'
-        }).then(res => {
-            if (res && res.entities && res.entities[id]) {
-                return res.entities[id];
-            }
-            throw new Error("Unable to load entity data");
+        return new Promise((resolve, reject) => {
+            let api = new mw.Api();
+            api.get({
+                action: 'wbgetentities',
+                ids: id,
+                format: 'json'
+            }).done(function(res) {
+                if (res && res.entities && res.entities[id]) {
+                    resolve(res.entities[id]);
+                } else {
+                    reject(new Error("Unable to load entity data"));
+                }
+            }).fail(function(err) {
+                reject(err);
+            });
         });
     }
 
@@ -1010,30 +1015,34 @@
             return Promise.resolve(schemas);
         }
 
-        // Query the classes to see if they have P12861
-        let api = new mw.Api();
-        return api.get({
-            action: 'wbgetentities',
-            ids: classesToCheck.join('|'),
-            props: 'claims',
-            format: 'json'
-        }).then(res => {
-            if (res && res.entities) {
-                Object.keys(res.entities).forEach(qid => {
-                    let cls = res.entities[qid];
-                    if (cls.claims && cls.claims[P12861]) {
-                        cls.claims[P12861].forEach(claim => {
-                            if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value) {
-                                let schemaId = claim.mainsnak.datavalue.value.id;
-                                if (schemaId && !schemas.includes(schemaId)) {
-                                    schemas.push(schemaId);
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            api.get({
+                action: 'wbgetentities',
+                ids: classesToCheck.join('|'),
+                props: 'claims',
+                format: 'json'
+            }).done(function(res) {
+                if (res && res.entities) {
+                    Object.keys(res.entities).forEach(qid => {
+                        let cls = res.entities[qid];
+                        if (cls.claims && cls.claims[P12861]) {
+                            cls.claims[P12861].forEach(claim => {
+                                if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value) {
+                                    let schemaId = claim.mainsnak.datavalue.value.id;
+                                    if (schemaId && !schemas.includes(schemaId)) {
+                                        schemas.push(schemaId);
+                                    }
                                 }
-                            }
-                        });
-                    }
-                });
-            }
-            return schemas;
+                            });
+                        }
+                    });
+                }
+                resolve(schemas);
+            }).fail(function(err) {
+                logError("[Cradle] findAssociatedSchemas request failed:", err);
+                resolve(schemas);
+            });
         });
     }
 
