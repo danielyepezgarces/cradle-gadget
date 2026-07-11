@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.8.7
+ * Version: 1.8.8
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.7');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.8');
  */
 
 (function() {
@@ -72,6 +72,7 @@
     let softselectLabels = {};
     let formState = {}; // propertyId -> Array of { id, guid, value, datatype, isDeleted }
     let userWantsToChangeSchema = false;
+    let schemasLoadedPromise = null;
 
     // Stylesheet aligned with Wikimedia design guidelines & Vector light/dark mode
     const customCSS = `
@@ -875,13 +876,15 @@
             createHeadingButton();
             
             // Scan for schemas if on an item page (uses caching/on-demand loader)
-            getEntityData().then(data => {
+            schemasLoadedPromise = getEntityData().then(data => {
                 return findAssociatedSchemas(data);
             }).then(schemas => {
                 detectedSchemas = schemas;
                 logDebug("[Cradle] Detected EntitySchemas:", detectedSchemas);
+                return schemas;
             }).catch(err => {
                 logError("[Cradle] Error loading claims/schemas:", err);
+                return [];
             });
         }
     }
@@ -1145,8 +1148,21 @@
         activeTemplate = null;
         
         if (activeMode === 'edit') {
-            if (detectedSchemas.length > 0 && !userWantsToChangeSchema) {
-                loadAndDisplaySchema(detectedSchemas[0]);
+            if (schemasLoadedPromise && !userWantsToChangeSchema) {
+                // Show loader spinner while waiting for class schemas scan to complete
+                let $content = $('#cradle-content-area').empty();
+                $content.append($('<div>').css({'text-align': 'center', 'margin-top': '40px'})
+                    .append($('<div>').addClass('cradle-spinner').css({'border-top-color': 'var(--border-color-progressive, #36c)', 'width': '30px', 'height': '30px'}))
+                    .append($('<p>').text('Checking associated schemas...'))
+                );
+
+                schemasLoadedPromise.then(schemas => {
+                    if (schemas.length > 0 && !userWantsToChangeSchema) {
+                        loadAndDisplaySchema(schemas[0]);
+                    } else {
+                        renderEditSchemaSelector();
+                    }
+                });
             } else {
                 renderEditSchemaSelector();
             }
@@ -1866,33 +1882,37 @@
      */
     function loadItemLabels(qids) {
         if (qids.length === 0) return Promise.resolve({});
-        
-        // Remove duplicates
         qids = [...new Set(qids)];
-        
-        let api = new mw.Api();
-        let userLang = mw.config.get('wgUserLanguage') || 'en';
-        return api.get({
-            action: 'wbgetentities',
-            ids: qids.join('|'),
-            props: 'labels',
-            languages: userLang + '|en',
-            format: 'json'
-        }).then(res => {
-            let labels = {};
-            if (res && res.entities) {
-                Object.keys(res.entities).forEach(qid => {
-                    let ent = res.entities[qid];
-                    let label = qid;
-                    if (ent.labels) {
-                        label = (ent.labels[userLang] && ent.labels[userLang].value) ||
-                                (ent.labels['en'] && ent.labels['en'].value) ||
-                                qid;
-                    }
-                    labels[qid] = label;
-                });
-            }
-            return labels;
+        logDebug("[Cradle] Loading item labels for:", qids);
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            let userLang = mw.config.get('wgUserLanguage') || 'en';
+            api.get({
+                action: 'wbgetentities',
+                ids: qids.join('|'),
+                props: 'labels',
+                languages: userLang + '|en',
+                format: 'json'
+            }).done(function(res) {
+                let labels = {};
+                if (res && res.entities) {
+                    Object.keys(res.entities).forEach(qid => {
+                        let ent = res.entities[qid];
+                        let label = qid;
+                        if (ent.labels) {
+                            label = (ent.labels[userLang] && ent.labels[userLang].value) ||
+                                    (ent.labels['en'] && ent.labels['en'].value) ||
+                                    qid;
+                        }
+                        labels[qid] = label;
+                    });
+                }
+                logDebug("[Cradle] Loaded labels map:", labels);
+                resolve(labels);
+            }).fail(function(err) {
+                logError("[Cradle] loadItemLabels request failed:", err);
+                resolve({});
+            });
         });
     }
 
