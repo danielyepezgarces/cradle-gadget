@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.8.7
+ * Version: 1.8.8
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.7');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.8');
  */
 
 (function() {
@@ -61,6 +61,7 @@
     let softselectLabels = {};
     let formState = {}; // propertyId -> Array of { id, guid, value, datatype, isDeleted }
     let userWantsToChangeSchema = false;
+    let schemasLoadedPromise = null;
 
     // Stylesheet aligned with Wikimedia design guidelines & Vector light/dark mode
     const customCSS = `
@@ -718,14 +719,16 @@
             createFAB();
 
             // Scan for schemas if on an item page
-            loadEntityData(entityId).then(data => {
+            schemasLoadedPromise = loadEntityData(entityId).then(data => {
                 entityData = data;
                 return findAssociatedSchemas(entityData);
             }).then(schemas => {
                 detectedSchemas = schemas;
                 logDebug("[Cradle] Detected EntitySchemas:", detectedSchemas);
+                return schemas;
             }).catch(err => {
                 logError("[Cradle] Error loading claims/schemas:", err);
+                return [];
             });
         }
     }
@@ -946,10 +949,23 @@
 
         activeSchema = null;
         activeTemplate = null;
-
+        
         if (activeMode === 'edit') {
-            if (detectedSchemas.length > 0 && !userWantsToChangeSchema) {
-                loadAndDisplaySchema(detectedSchemas[0]);
+            if (schemasLoadedPromise && !userWantsToChangeSchema) {
+                // Show loader spinner while waiting for class schemas scan to complete
+                let $content = $('#cradle-content-area').empty();
+                $content.append($('<div>').css({'text-align': 'center', 'margin-top': '40px'})
+                    .append($('<div>').addClass('cradle-spinner').css({'border-top-color': 'var(--border-color-progressive, #36c)', 'width': '30px', 'height': '30px'}))
+                    .append($('<p>').text('Checking associated schemas...'))
+                );
+
+                schemasLoadedPromise.then(schemas => {
+                    if (schemas.length > 0 && !userWantsToChangeSchema) {
+                        loadAndDisplaySchema(schemas[0]);
+                    } else {
+                        renderEditSchemaSelector();
+                    }
+                });
             } else {
                 renderEditSchemaSelector();
             }
