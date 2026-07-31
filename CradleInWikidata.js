@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.11.2
+ * Version: 1.11.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.11.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.11.3');
  */
 
 (function() {
@@ -1994,16 +1994,46 @@
         });
     }
 
+    /**
+     * Formats a snak value (string, monolingualtext object, entityid object, etc.) for UI display input.
+     */
+    function formatSnakValueForDisplay(val) {
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'object') {
+            if (val.text !== undefined) return val.text;
+            if (val.id !== undefined) return val.id;
+            if (val.time !== undefined) return val.time;
+            if (val.amount !== undefined) return val.amount;
+            return JSON.stringify(val);
+        }
+        return String(val);
+    }
+
 function buildSnakObject(pid, val) {
-        val = (val || '').toString().trim();
-        if (val.startsWith('http://') || val.startsWith('https://')) {
+        if (pid === 'P1476') {
+            let textVal = typeof val === 'object' ? (val.text || '') : String(val || '');
+            let langVal = typeof val === 'object' ? (val.language || mw.config.get('wgUserLanguage') || 'en') : (mw.config.get('wgUserLanguage') || 'en');
             return {
                 snaktype: 'value',
                 property: pid,
-                datavalue: { type: 'string', value: val }
+                datavalue: {
+                    type: 'monolingualtext',
+                    value: { text: textVal.trim(), language: langVal }
+                }
             };
-        } else if (val.match(/^[+-]?\d{4}-\d{2}-\d{2}/)) {
-            let timeVal = val;
+        }
+
+        let rawStr = typeof val === 'object' ? (val.text || val.id || val.time || val.amount || JSON.stringify(val)) : String(val || '');
+        rawStr = rawStr.trim();
+
+        if (rawStr.startsWith('http://') || rawStr.startsWith('https://')) {
+            return {
+                snaktype: 'value',
+                property: pid,
+                datavalue: { type: 'string', value: rawStr }
+            };
+        } else if (rawStr.match(/^[+-]?\d{4}-\d{2}-\d{2}/)) {
+            let timeVal = rawStr;
             if (!timeVal.startsWith('+') && !timeVal.startsWith('-')) {
                 timeVal = '+' + timeVal;
             }
@@ -2025,20 +2055,20 @@ function buildSnakObject(pid, val) {
                     }
                 }
             };
-        } else if (val.match(/^Q\d+$/i)) {
+        } else if (rawStr.match(/^Q\d+$/i)) {
             return {
                 snaktype: 'value',
                 property: pid,
                 datavalue: {
                     type: 'wikibase-entityid',
-                    value: { 'entity-type': 'item', id: val.toUpperCase() }
+                    value: { 'entity-type': 'item', id: rawStr.toUpperCase() }
                 }
             };
         } else {
             return {
                 snaktype: 'value',
                 property: pid,
-                datavalue: { type: 'string', value: val }
+                datavalue: { type: 'string', value: rawStr }
             };
         }
     }
@@ -2649,7 +2679,7 @@ function initializeFormState() {
                     let $qInput = $('<input>')
                         .addClass('cradle-input')
                         .css({'font-size': '0.85rem', 'flex': '1'})
-                        .val(row.qualifiers[qPid][0] || '')
+                        .val(formatSnakValueForDisplay(row.qualifiers[qPid][0]))
                         .on('input', function() {
                             row.qualifiers[qPid][0] = $(this).val();
                         });
@@ -2795,7 +2825,7 @@ function initializeFormState() {
                         let $snakValInput = $('<input>')
                             .addClass('cradle-input')
                             .css({'font-size': '0.8rem', 'flex': '1'})
-                            .val(refBlock.snaks[refPid][0] || '')
+                            .val(formatSnakValueForDisplay(refBlock.snaks[refPid][0]))
                             .on('input', function() {
                                 refBlock.snaks[refPid][0] = $(this).val();
                             });
