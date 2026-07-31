@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.8.9
+ * Version: 1.9.0
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.9');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.9.0');
  */
 
 (function() {
@@ -2171,53 +2171,63 @@
      * Search EntitySchemas by label, description, or ID.
      */
     function searchEntitySchemas(term) {
-        logDebug("[Cradle] Searching EntitySchemas for:", term);
+        logDebug("[Cradle] Searching EntitySchemas in namespace 640 for:", term);
         return new Promise((resolve) => {
             let api = new mw.Api();
-            let userLang = mw.config.get('wgUserLanguage') || 'en';
             api.get({
-                action: 'wbsearchentities',
+                action: 'opensearch',
                 search: term,
-                language: userLang,
-                type: 'entityschema',
+                namespace: 640,
+                limit: 10,
                 format: 'json'
             }).done(function(res) {
-                if (res && res.search && res.search.length > 0) {
-                    logDebug("[Cradle] EntitySchema search results received via wbsearchentities:", res.search);
-                    resolve(res.search);
+                let suggestions = [];
+                if (res && res[1] && res[1].length > 0) {
+                    let titles = res[1];
+                    let descriptions = res[2] || [];
+                    for (let i = 0; i < titles.length; i++) {
+                        let title = titles[i];
+                        let match = title.match(/(E\d+)$/i);
+                        let schemaId = match ? match[1].toUpperCase() : title.replace(/^EntitySchema:/i, '').trim();
+                        suggestions.push({
+                            id: schemaId,
+                            label: title.replace(/^EntitySchema:/i, '').trim(),
+                            description: descriptions[i] || ''
+                        });
+                    }
+                    logDebug("[Cradle] EntitySchema opensearch results:", suggestions);
+                    resolve(suggestions);
                 } else {
-                    // Fallback to opensearch on namespace 640 (EntitySchema)
+                    // Fallback to fulltext search in namespace 640
                     api.get({
-                        action: 'opensearch',
-                        search: term,
-                        namespace: 640,
-                        limit: 10,
+                        action: 'query',
+                        list: 'search',
+                        srnamespace: 640,
+                        srsearch: term,
+                        srlimit: 10,
                         format: 'json'
-                    }).done(function(openRes) {
-                        let suggestions = [];
-                        if (openRes && openRes[1]) {
-                            let titles = openRes[1];
-                            let descriptions = openRes[2] || [];
-                            for (let i = 0; i < titles.length; i++) {
-                                let title = titles[i];
-                                let match = title.match(/(E\d+)$/i);
-                                if (match) {
-                                    suggestions.push({
-                                        id: match[1].toUpperCase(),
-                                        label: title.replace(/^EntitySchema:/i, ''),
-                                        description: descriptions[i] || ''
-                                    });
-                                }
-                            }
-                        }
-                        logDebug("[Cradle] EntitySchema search results received via opensearch fallback:", suggestions);
-                        resolve(suggestions);
-                    }).fail(function() {
+                    }).done(function(searchRes) {
+                        let searchList = (searchRes && searchRes.query && searchRes.query.search) || [];
+                        let listSuggestions = [];
+                        searchList.forEach(item => {
+                            let match = item.title.match(/(E\d+)$/i);
+                            let schemaId = match ? match[1].toUpperCase() : item.title.replace(/^EntitySchema:/i, '').trim();
+                            let snippetClean = item.snippet ? item.snippet.replace(/<[^>]+>/g, '') : '';
+                            listSuggestions.push({
+                                id: schemaId,
+                                label: item.title.replace(/^EntitySchema:/i, '').trim(),
+                                description: snippetClean
+                            });
+                        });
+                        logDebug("[Cradle] EntitySchema fulltext search results:", listSuggestions);
+                        resolve(listSuggestions);
+                    }).fail(function(err) {
+                        logError("[Cradle] Fulltext search fallback failed:", err);
                         resolve([]);
                     });
                 }
             }).fail(function(err) {
-                logError("[Cradle] EntitySchema search API request failed:", err);
+                logError("[Cradle] EntitySchema opensearch request failed:", err);
                 resolve([]);
             });
         });
