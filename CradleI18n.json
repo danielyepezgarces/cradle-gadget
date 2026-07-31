@@ -94,7 +94,9 @@
     "cradle-remove-reference": "Remove Reference",
     "cradle-auto-cite": "Auto-fill Date & URL (CiteTool)",
     "cradle-add-ref-property": "Add Property to Reference",
-    "cradle-ref-url-placeholder": "Paste reference URL (P854)..."
+    "cradle-ref-url-placeholder": "Paste reference URL (P854)...",
+    "cradle-citoid-loading": "\u23f3 Fetching metadata (Citoid)...",
+    "cradle-citoid-success": "\u2713 Metadata loaded!"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -191,6 +193,8 @@
     "cradle-remove-reference": "Eliminar referencia",
     "cradle-auto-cite": "Autocompletar Fecha y URL (CiteTool)",
     "cradle-add-ref-property": "A\u00f1adir propiedad a referencia",
-    "cradle-ref-url-placeholder": "Pegar URL de referencia (P854)..."
+    "cradle-ref-url-placeholder": "Pegar URL de referencia (P854)...",
+    "cradle-citoid-loading": "\u23f3 Obteniendo metadatos (Citoid)...",
+    "cradle-citoid-success": "\u2713 \u00a1Metadatos cargados!"
   }
 }
