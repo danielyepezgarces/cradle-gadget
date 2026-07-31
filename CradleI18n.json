@@ -92,9 +92,9 @@
     "cradle-references": "References",
     "cradle-add-reference": "Add Reference",
     "cradle-remove-reference": "Remove Reference",
-    "cradle-auto-cite": "Auto-fill Date & URL (CiteTool)",
+    "cradle-auto-cite": "Auto-fill via Citoid",
     "cradle-add-ref-property": "Add Property to Reference",
-    "cradle-ref-url-placeholder": "Paste reference URL (P854)...",
+    "cradle-ref-url-placeholder": "Enter URL, DOI, ISBN or PMID...",
     "cradle-citoid-loading": "\u23f3 Fetching metadata (Citoid)...",
     "cradle-citoid-success": "\u2713 Metadata loaded!"
   },
@@ -191,9 +191,9 @@
     "cradle-references": "Referencias",
     "cradle-add-reference": "A\u00f1adir referencia",
     "cradle-remove-reference": "Eliminar referencia",
-    "cradle-auto-cite": "Autocompletar Fecha y URL (CiteTool)",
+    "cradle-auto-cite": "Autocompletar v\u00eda Citoid",
     "cradle-add-ref-property": "A\u00f1adir propiedad a referencia",
-    "cradle-ref-url-placeholder": "Pegar URL de referencia (P854)...",
+    "cradle-ref-url-placeholder": "Ingresar URL, DOI, ISBN o PMID...",
     "cradle-citoid-loading": "\u23f3 Obteniendo metadatos (Citoid)...",
     "cradle-citoid-success": "\u2713 \u00a1Metadatos cargados!"
   }
