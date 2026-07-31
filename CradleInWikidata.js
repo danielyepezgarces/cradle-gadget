@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.10.0
+ * Version: 1.10.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.10.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.10.1');
  */
 
 (function() {
@@ -1933,7 +1933,38 @@
         /**
      * Builds a Wikibase Snak object for a reference property value.
      */
-    function buildSnakObject(pid, val) {
+        /**
+     * Fetches citation metadata from Wikimedia Citoid REST API.
+     */
+    function fetchCitoidCitation(url) {
+        logDebug("[Cradle] Fetching Citoid citation metadata for:", url);
+        let endpoint = 'https://en.wikipedia.org/api/rest_v1/data/citation/mediawiki/' + encodeURIComponent(url);
+        return new Promise((resolve) => {
+            $.ajax({
+                url: endpoint,
+                dataType: 'json',
+                headers: { 'Accept': 'application/json' }
+            }).done(function(data) {
+                if (data && data.length > 0) {
+                    let cite = data[0];
+                    logDebug("[Cradle] Citoid citation data received:", cite);
+                    resolve({
+                        url: cite.url || url,
+                        title: cite.title || '',
+                        publication: cite.publicationTitle || cite.publisher || cite.websiteTitle || cite.libraryCatalog || '',
+                        accessDate: cite.accessDate ? ('+' + cite.accessDate + 'T00:00:00Z') : null
+                    });
+                } else {
+                    resolve(null);
+                }
+            }).fail(function(err) {
+                logError("[Cradle] Citoid API request failed:", err);
+                resolve(null);
+            });
+        });
+    }
+
+function buildSnakObject(pid, val) {
         val = (val || '').toString().trim();
         if (val.startsWith('http://') || val.startsWith('https://')) {
             return {
