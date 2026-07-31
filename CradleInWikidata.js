@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.10.4
+ * Version: 1.11.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.10.4');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.11.0');
  */
 
 (function() {
@@ -2074,12 +2074,27 @@ function initializeFormState() {
                             });
                         }
 
+                        let claimQuals = {};
+                        if (claim.qualifiers) {
+                            Object.keys(claim.qualifiers).forEach(qPid => {
+                                claimQuals[qPid] = [];
+                                claim.qualifiers[qPid].forEach(snak => {
+                                    if (snak.snaktype === 'value' && snak.datavalue) {
+                                        let qVal = parseClaimValue(snak.datavalue);
+                                        claimQuals[qPid].push(qVal);
+                                    }
+                                });
+                            });
+                        }
+
                         formState[pid].push({
                             id: Math.random().toString(36).substring(2, 9),
                             guid: claim.id,
                             value: value,
                             datatype: meta.datatype,
                             isDeleted: false,
+                            rank: claim.rank || 'normal',
+                            qualifiers: claimQuals,
                             references: claimRefs
                         });
                     }
@@ -2144,7 +2159,10 @@ function initializeFormState() {
             guid: null,
             value: defaultValue,
             datatype: datatype,
-            isDeleted: false
+            isDeleted: false,
+            rank: 'normal',
+            qualifiers: {},
+            references: []
         };
     }
 
@@ -2545,8 +2563,24 @@ function initializeFormState() {
                 $row.addClass('deleted');
             }
 
+            if (!row.rank) row.rank = 'normal';
+            if (!row.qualifiers) row.qualifiers = {};
+            if (!row.references) row.references = [];
+
+            // Rank Selector Dropdown
+            let $rankSelect = $('<select>')
+                .addClass('cradle-input')
+                .css({'font-size': '0.8rem', 'padding': '2px 4px', 'width': 'auto', 'margin-right': '6px'})
+                .on('change', function() {
+                    row.rank = $(this).val();
+                });
+            $rankSelect.append($('<option>').val('normal').text('● ' + mw.msg('cradle-rank-normal')));
+            $rankSelect.append($('<option>').val('preferred').text('★ ' + mw.msg('cradle-rank-preferred')));
+            $rankSelect.append($('<option>').val('deprecated').text('▲ ' + mw.msg('cradle-rank-deprecated')));
+            $rankSelect.val(row.rank);
+
             let $inputElement = createInputForDatatype(pid, row);
-            $row.append($inputElement);
+            $row.append($rankSelect).append($inputElement);
 
             let $deleteBtn = $('<button>')
                 .addClass('cradle-btn-delete')
@@ -2559,19 +2593,105 @@ function initializeFormState() {
             $row.append($deleteBtn);
             $rowGroup.append($row);
 
-            // References section for this statement row
-            if (!row.references) row.references = [];
+            // Sub-bar for Qualifiers and References toggle buttons
+            let $subBar = $('<div>').css({'display': 'flex', 'gap': '8px', 'margin-top': '4px', 'margin-bottom': '6px', 'margin-left': '4px'});
+
+            let qualCount = Object.keys(row.qualifiers).length;
+            let $qualToggleBtn = $('<button>')
+                .addClass('cradle-btn-secondary')
+                .css({'font-size': '0.8rem', 'padding': '2px 8px'})
+                .html(ICONS.gear + ' <span>' + mw.msg('cradle-qualifiers') + ' (' + qualCount + ')</span>')
+                .on('click', function(e) {
+                    e.preventDefault();
+                    $qualContainer.slideToggle(150);
+                });
+            $subBar.append($qualToggleBtn);
 
             let $refToggleBtn = $('<button>')
                 .addClass('cradle-btn-secondary')
-                .css({'font-size': '0.8rem', 'padding': '2px 8px', 'margin-top': '4px', 'margin-bottom': '6px', 'margin-left': '4px'})
+                .css({'font-size': '0.8rem', 'padding': '2px 8px'})
                 .html(ICONS.info + ' <span>' + mw.msg('cradle-references') + ' (' + row.references.length + ')</span>')
                 .on('click', function(e) {
                     e.preventDefault();
                     $refContainer.slideToggle(150);
                 });
-            $rowGroup.append($refToggleBtn);
+            $subBar.append($refToggleBtn);
+            $rowGroup.append($subBar);
 
+            // Qualifiers Container
+            let $qualContainer = $('<div>')
+                .addClass('cradle-qualifiers-container')
+                .css({
+                    'display': qualCount > 0 ? 'block' : 'none',
+                    'background-color': 'var(--background-color-interactive-subtle, #f8f9fa)',
+                    'border': '1px solid var(--border-color-subtle, #eaecf0)',
+                    'border-radius': '4px',
+                    'padding': '10px',
+                    'margin-bottom': '8px',
+                    'margin-left': '8px'
+                });
+
+            function renderQualifiersUI() {
+                $qualContainer.empty();
+                let currentQualPids = Object.keys(row.qualifiers);
+                if (currentQualPids.length === 0) {
+                    $qualContainer.append($('<p>').css({'margin': '0 0 8px 0', 'font-size': '0.85rem', 'color': 'var(--color-subtle, #54595d)'}).text('No qualifiers added yet.'));
+                }
+
+                currentQualPids.forEach(qPid => {
+                    let $qRow = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'margin-bottom': '6px'});
+                    $qRow.append($('<span>').css({'font-size': '0.85rem', 'font-weight': 'bold', 'min-width': '55px'}).text(qPid + ':'));
+
+                    let $qInput = $('<input>')
+                        .addClass('cradle-input')
+                        .css({'font-size': '0.85rem', 'flex': '1'})
+                        .val(row.qualifiers[qPid][0] || '')
+                        .on('input', function() {
+                            row.qualifiers[qPid][0] = $(this).val();
+                        });
+
+                    let $delQBtn = $('<button>')
+                        .addClass('cradle-btn-secondary')
+                        .css({'font-size': '0.75rem', 'padding': '2px 6px', 'color': 'var(--color-destructive, #d33)'})
+                        .text('×')
+                        .on('click', function(e) {
+                            e.preventDefault();
+                            delete row.qualifiers[qPid];
+                            $qualToggleBtn.find('span').text(mw.msg('cradle-qualifiers') + ' (' + Object.keys(row.qualifiers).length + ')');
+                            renderQualifiersUI();
+                        });
+                    $qRow.append($qInput).append($delQBtn);
+                    $qualContainer.append($qRow);
+                });
+
+                let $addQualBar = $('<div>').css({'display': 'flex', 'gap': '6px', 'margin-top': '6px'});
+                let $newQPidInput = $('<input>')
+                    .addClass('cradle-input')
+                    .css({'font-size': '0.8rem', 'flex': '1'})
+                    .attr('placeholder', 'Property ID (e.g. P580, P582)...');
+
+                let $addQualBtn = $('<button>')
+                    .addClass('cradle-btn-secondary')
+                    .css({'font-size': '0.8rem', 'padding': '2px 8px'})
+                    .html(ICONS.plus + ' <span>' + mw.msg('cradle-add-qualifier') + '</span>')
+                    .on('click', function(e) {
+                        e.preventDefault();
+                        let newQPid = $newQPidInput.val().trim().toUpperCase();
+                        if (newQPid) {
+                            if (!newQPid.startsWith('P')) newQPid = 'P' + newQPid.replace(/\D/g, '');
+                            if (!row.qualifiers[newQPid]) row.qualifiers[newQPid] = [''];
+                            $qualToggleBtn.find('span').text(mw.msg('cradle-qualifiers') + ' (' + Object.keys(row.qualifiers).length + ')');
+                            renderQualifiersUI();
+                        }
+                    });
+                $addQualBar.append($newQPidInput).append($addQualBtn);
+                $qualContainer.append($addQualBar);
+            }
+
+            renderQualifiersUI();
+            $rowGroup.append($qualContainer);
+
+            // References Container
             let $refContainer = $('<div>')
                 .addClass('cradle-references-container')
                 .css({
