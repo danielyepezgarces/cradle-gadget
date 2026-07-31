@@ -8,7 +8,7 @@ Deploys local CradleInWikidata.js directly to Wikidata user space:
   - dev:    User:Danielyepezgarces/Gadget-cradle-dev.js (Development / Bleeding edge)
 
 Usage:
-  python3 deploy_to_wikidata.py [--target-env stable|beta|dev] [--upload-i18n]
+  python3 deploy_to_wikidata.py [--target-env stable|beta|dev] [--upload-i18n] [--update-commonjs]
 
 Prerequisites:
   1. Create a Bot Password at https://www.wikidata.org/wiki/Special:BotPasswords
@@ -94,8 +94,35 @@ def get_csrf_token(session):
     return res["query"]["tokens"]["csrftoken"]
 
 
+def get_remote_page_content(session, title):
+    """Fetches existing raw page content from Wikidata to avoid duplicate edits."""
+    params = {
+        "action": "query",
+        "prop": "revisions",
+        "titles": title,
+        "rvslots": "main",
+        "rvprop": "content",
+        "format": "json"
+    }
+    res = session.get(WIKIDATA_API_URL, params=params).json()
+    pages = res.get("query", {}).get("pages", {})
+    for page_id, page_data in pages.items():
+        if page_id == "-1" or "missing" in page_data:
+            return None
+        revisions = page_data.get("revisions", [])
+        if revisions:
+            slot = revisions[0].get("slots", {}).get("main", {})
+            return slot.get("*", "")
+    return None
+
+
 def update_wikidata_page(session, title, content, summary):
-    """Updates a page on Wikidata using action=edit."""
+    """Updates a page on Wikidata using action=edit, skipping if unchanged."""
+    remote_content = get_remote_page_content(session, title)
+    if remote_content is not None and remote_content.strip() == content.strip():
+        print(f"ℹ️ No changes detected in '{title}' — skipping deployment.")
+        return
+
     csrf_token = get_csrf_token(session)
     params = {
         "action": "edit",
@@ -113,13 +140,33 @@ def update_wikidata_page(session, title, content, summary):
         print(f"❌ Failed to edit page '{title}': {res}")
 
 
+def update_commonjs_loader_version(session, username, version_str):
+    """Updates version parameter in User:Danielyepezgarces/common.js to bypass browser cache."""
+    user_base = username.split('@')[0]
+    commonjs_title = f"User:{user_base}/common.js"
+    content = get_remote_page_content(session, commonjs_title)
+    if not content:
+        print(f"ℹ️ Could not fetch '{commonjs_title}' to update loader version.")
+        return
+
+    pattern = r"(Gadget-cradle(?:\w|-)*\.js&action=raw&ctype=text/javascript&version=)([0-9a-zA-Z.-]+)"
+    if re.search(pattern, content):
+        new_content = re.sub(pattern, rf"\g<1>{version_str}", content)
+        if new_content != content:
+            update_wikidata_page(session, commonjs_title, new_content, f"Bypass cache: update Cradle version parameter to {version_str}")
+            print(f"✓ Updated version parameter to {version_str} in '{commonjs_title}'.")
+        else:
+            print(f"ℹ️ Version in '{commonjs_title}' is already up-to-date.")
+
+
 def main():
     load_dotenv(".env")
 
     parser = argparse.ArgumentParser(description="Deploy Cradle gadget code to Wikidata.")
-    parser.add_argument("--target-env", choices=["stable", "beta", "dev"], default="dev", help="Target environment: stable, beta, or dev (default: dev)")
+    parser.add_argument("--target-env", choices=["stable", "beta", "dev"], default="stable", help="Target environment: stable, beta, or dev (default: stable)")
     parser.add_argument("--upload-i18n", action="store_true", help="Also upload CradleI18n.json to Wikidata")
-    parser.add_argument("--username", help="Wikidata username or bot account name (e.g. Danielyepezgarces@cradle_bot)")
+    parser.add_argument("--update-commonjs", action="store_true", help="Update version parameter in user common.js to bypass cache")
+    parser.add_argument("--username", help="Wikidata username or bot account name (e.g. Danielyepezgarces@cradle-deploy)")
     parser.add_argument("--password", help="Bot Password generated at Special:BotPasswords")
     parser.add_argument("--file", default="CradleInWikidata.js", help="Path to local JS file to upload")
 
@@ -128,8 +175,8 @@ def main():
     username = args.username or os.getenv("WIKIDATA_USERNAME")
     password = args.password or os.getenv("WIKIDATA_BOT_PASSWORD")
 
-    if not username or username == "Danielyepezgarces":
-        username = input("Enter your Wikidata Username or BotName (e.g. Danielyepezgarces@bot_name): ").strip()
+    if not username:
+        username = input("Enter your Wikidata Username or BotName (e.g. Danielyepezgarces@cradle-deploy): ").strip()
     if not password:
         import getpass
         password = getpass.getpass("Enter your Bot Password: ").strip()
@@ -141,7 +188,7 @@ def main():
     with open(args.file, "r", encoding="utf-8") as f:
         js_code = f.read()
 
-    ver_match = re.search(r"Version:\s*([0-9.]+)", js_code)
+    ver_match = re.search(r"Version:\s*([0-9a-zA-Z.-]+)", js_code)
     version_str = ver_match.group(1) if ver_match else "unknown"
 
     target_js_page = TARGET_PAGES[args.target_env]["js"]
@@ -169,6 +216,9 @@ def main():
             with open("CradleI18n.json", "r", encoding="utf-8") as f_i18n:
                 i18n_code = f_i18n.read()
             update_wikidata_page(session, target_i18n_page, i18n_code, edit_summary)
+
+        if args.update_commonjs:
+            update_commonjs_loader_version(session, username, version_str)
 
     except Exception as err:
         print(f"❌ Error during deployment: {err}")
