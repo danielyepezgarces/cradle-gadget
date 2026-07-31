@@ -96,7 +96,14 @@
     "cradle-add-ref-property": "Add Property to Reference",
     "cradle-ref-url-placeholder": "Enter URL, DOI, ISBN or PMID...",
     "cradle-citoid-loading": "\u23f3 Fetching metadata (Citoid)...",
-    "cradle-citoid-success": "\u2713 Metadata loaded!"
+    "cradle-citoid-success": "\u2713 Metadata loaded!",
+    "cradle-qualifiers": "Qualifiers",
+    "cradle-add-qualifier": "Add Qualifier",
+    "cradle-remove-qualifier": "Remove Qualifier",
+    "cradle-rank": "Rank",
+    "cradle-rank-preferred": "Preferred",
+    "cradle-rank-normal": "Normal",
+    "cradle-rank-deprecated": "Deprecated"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -195,6 +202,13 @@
     "cradle-add-ref-property": "A\u00f1adir propiedad a referencia",
     "cradle-ref-url-placeholder": "Ingresar URL, DOI, ISBN o PMID...",
     "cradle-citoid-loading": "\u23f3 Obteniendo metadatos (Citoid)...",
-    "cradle-citoid-success": "\u2713 \u00a1Metadatos cargados!"
+    "cradle-citoid-success": "\u2713 \u00a1Metadatos cargados!",
+    "cradle-qualifiers": "Cualificadores",
+    "cradle-add-qualifier": "A\u00f1adir cualificador",
+    "cradle-remove-qualifier": "Eliminar cualificador",
+    "cradle-rank": "Rango",
+    "cradle-rank-preferred": "Preferido",
+    "cradle-rank-normal": "Normal",
+    "cradle-rank-deprecated": "En desuso"
   }
 }
