@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.9.0
+ * Version: 1.9.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.9.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.9.1');
  */
 
 (function() {
@@ -2654,6 +2654,59 @@
         logDebug("[Cradle] Searching EntitySchemas in namespace 640 for:", term);
         return new Promise((resolve) => {
             let api = new mw.Api();
+            let userLang = mw.config.get('wgUserLanguage') || 'en';
+
+            function fetchLabelsForSchemas(schemaIds, rawDescriptionsMap) {
+                if (!schemaIds || schemaIds.length === 0) return Promise.resolve([]);
+                schemaIds = [...new Set(schemaIds)].slice(0, 10);
+
+                return new Promise((resResolve) => {
+                    api.get({
+                        action: 'wbgetentities',
+                        ids: schemaIds.join('|'),
+                        props: 'labels|descriptions',
+                        languages: userLang + '|en',
+                        format: 'json'
+                    }).done(function(entRes) {
+                        let finalResults = [];
+                        let entities = (entRes && entRes.entities) || {};
+
+                        schemaIds.forEach(id => {
+                            let ent = entities[id];
+                            let label = id;
+                            let desc = rawDescriptionsMap[id] || '';
+
+                            if (ent) {
+                                if (ent.labels) {
+                                    label = (ent.labels[userLang] && ent.labels[userLang].value) ||
+                                            (ent.labels['en'] && ent.labels['en'].value) ||
+                                            id;
+                                }
+                                if (ent.descriptions) {
+                                    desc = (ent.descriptions[userLang] && ent.descriptions[userLang].value) ||
+                                           (ent.descriptions['en'] && ent.descriptions['en'].value) ||
+                                           desc;
+                                }
+                            }
+
+                            finalResults.push({
+                                id: id,
+                                label: label,
+                                description: desc
+                            });
+                        });
+                        resResolve(finalResults);
+                    }).fail(function() {
+                        let fallbackResults = schemaIds.map(id => ({
+                            id: id,
+                            label: id,
+                            description: rawDescriptionsMap[id] || ''
+                        }));
+                        resResolve(fallbackResults);
+                    });
+                });
+            }
+
             api.get({
                 action: 'opensearch',
                 search: term,
@@ -2661,7 +2714,8 @@
                 limit: 10,
                 format: 'json'
             }).done(function(res) {
-                let suggestions = [];
+                let schemaIds = [];
+                let rawDescs = {};
                 if (res && res[1] && res[1].length > 0) {
                     let titles = res[1];
                     let descriptions = res[2] || [];
@@ -2669,14 +2723,10 @@
                         let title = titles[i];
                         let match = title.match(/(E\d+)$/i);
                         let schemaId = match ? match[1].toUpperCase() : title.replace(/^EntitySchema:/i, '').trim();
-                        suggestions.push({
-                            id: schemaId,
-                            label: title.replace(/^EntitySchema:/i, '').trim(),
-                            description: descriptions[i] || ''
-                        });
+                        schemaIds.push(schemaId);
+                        rawDescs[schemaId] = descriptions[i] || '';
                     }
-                    logDebug("[Cradle] EntitySchema opensearch results:", suggestions);
-                    resolve(suggestions);
+                    fetchLabelsForSchemas(schemaIds, rawDescs).then(resolve);
                 } else {
                     // Fallback to fulltext search in namespace 640
                     api.get({
@@ -2688,19 +2738,16 @@
                         format: 'json'
                     }).done(function(searchRes) {
                         let searchList = (searchRes && searchRes.query && searchRes.query.search) || [];
-                        let listSuggestions = [];
+                        let listIds = [];
+                        let listDescs = {};
                         searchList.forEach(item => {
                             let match = item.title.match(/(E\d+)$/i);
                             let schemaId = match ? match[1].toUpperCase() : item.title.replace(/^EntitySchema:/i, '').trim();
                             let snippetClean = item.snippet ? item.snippet.replace(/<[^>]+>/g, '') : '';
-                            listSuggestions.push({
-                                id: schemaId,
-                                label: item.title.replace(/^EntitySchema:/i, '').trim(),
-                                description: snippetClean
-                            });
+                            listIds.push(schemaId);
+                            listDescs[schemaId] = snippetClean;
                         });
-                        logDebug("[Cradle] EntitySchema fulltext search results:", listSuggestions);
-                        resolve(listSuggestions);
+                        fetchLabelsForSchemas(listIds, listDescs).then(resolve);
                     }).fail(function(err) {
                         logError("[Cradle] Fulltext search fallback failed:", err);
                         resolve([]);
@@ -2742,7 +2789,7 @@
 
                     results.forEach(res => {
                         let $row = $('<li>').addClass('cradle-autocomplete-row');
-                        let labelText = res.label ? `${res.label} (${res.id})` : res.id;
+                        let labelText = (res.label && res.label !== res.id) ? `${res.label} (${res.id})` : res.id;
                         $row.append($('<span>').addClass('cradle-autocomplete-row-label').text(labelText));
                         if (res.description) {
                             $row.append($('<span>').addClass('cradle-autocomplete-row-desc').text(res.description));
