@@ -1,0 +1,9 @@
+# Credentials and Environment files
+.env
+*.env
+.env.local
+
+# Cache and build artifacts
+__pycache__/
+*.pyc
+.DS_Store
