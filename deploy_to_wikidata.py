@@ -7,6 +7,9 @@ Deploys local CradleInWikidata.js directly to Wikidata user space:
   - beta:   User:Danielyepezgarces/Gadget-cradle-beta.js (Release candidate)
   - dev:    User:Danielyepezgarces/Gadget-cradle-dev.js (Development / Bleeding edge)
 
+Shared i18n Catalog:
+  - User:Danielyepezgarces/Gadget-cradle/i18n.json (Shared by all environments)
+
 Usage:
   python3 deploy_to_wikidata.py [--target-env stable|beta|dev] [--upload-i18n] [--update-commonjs] [--force]
 
@@ -47,19 +50,20 @@ def get_current_git_branch():
 
 
 WIKIDATA_API_URL = "https://www.wikidata.org/w/api.php"
+SHARED_I18N_PAGE = "User:Danielyepezgarces/Gadget-cradle/i18n.json"
 
 TARGET_PAGES = {
     "stable": {
         "js": "User:Danielyepezgarces/Gadget-cradle.js",
-        "i18n": "User:Danielyepezgarces/Gadget-cradle/i18n.json"
+        "i18n": SHARED_I18N_PAGE
     },
     "beta": {
         "js": "User:Danielyepezgarces/Gadget-cradle-beta.js",
-        "i18n": "User:Danielyepezgarces/Gadget-cradle-beta/i18n.json"
+        "i18n": SHARED_I18N_PAGE
     },
     "dev": {
         "js": "User:Danielyepezgarces/Gadget-cradle-dev.js",
-        "i18n": "User:Danielyepezgarces/Gadget-cradle-dev/i18n.json"
+        "i18n": SHARED_I18N_PAGE
     }
 }
 
@@ -242,6 +246,7 @@ def main():
     print(f"Preparing deployment to Wikidata [{args.target_env.upper()}] environment:")
     print(f"  Active Git Branch: {current_branch or 'unknown'}")
     print(f"  Target JS Page:   {target_js_page}")
+    print(f"  Shared i18n Page: {target_i18n_page}")
     print(f"  Version:          {version_str}")
     print(f"  Edit Summary:     '{edit_summary}'")
 
