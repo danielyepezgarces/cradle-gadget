@@ -10,8 +10,10 @@ Deploys local CradleInWikidata.js directly to Wikidata user space:
 Shared i18n Catalog:
   - User:Danielyepezgarces/Gadget-cradle/i18n.json (Shared by all environments)
 
+Automatically updates version parameter in User:Danielyepezgarces/common.js to bypass browser cache.
+
 Usage:
-  python3 deploy_to_wikidata.py [--target-env stable|beta|dev] [--upload-i18n] [--update-commonjs] [--force]
+  python3 deploy_to_wikidata.py [--target-env stable|beta|dev] [--upload-i18n] [--no-commonjs] [--force]
 
 Prerequisites:
   1. Create a Bot Password at https://www.wikidata.org/wiki/Special:BotPasswords
@@ -182,10 +184,12 @@ def update_commonjs_loader_version(session, username, target_env, version_str):
     if re.search(pattern, content):
         new_content = re.sub(pattern, rf"\g<1>{version_str}", content)
         if new_content != content:
-            update_wikidata_page(session, commonjs_title, new_content, f"Bypass cache: update {target_script_name} version to {version_str}")
+            update_wikidata_page(session, commonjs_title, new_content, f"Bypass cache: update {target_script_name} version parameter to {version_str}")
             print(f"✓ Updated version parameter to {version_str} in '{commonjs_title}'.")
         else:
-            print(f"ℹ️ Version in '{commonjs_title}' is already up-to-date.")
+            print(f"ℹ️ Version in '{commonjs_title}' is already up-to-date ({version_str}).")
+    else:
+        print(f"ℹ️ Pattern for '{target_script_name}' not found in '{commonjs_title}'.")
 
 
 def main():
@@ -201,7 +205,8 @@ def main():
     parser = argparse.ArgumentParser(description="Deploy Cradle gadget code to Wikidata.")
     parser.add_argument("--target-env", choices=["stable", "beta", "dev"], default=default_env, help=f"Target environment: stable, beta, or dev (auto-detected: {default_env})")
     parser.add_argument("--upload-i18n", action="store_true", help="Also upload CradleI18n.json to Wikidata")
-    parser.add_argument("--update-commonjs", action="store_true", help="Update version parameter in user common.js to bypass cache")
+    parser.add_argument("--no-commonjs", action="store_false", dest="update_commonjs", help="Skip updating version parameter in user common.js")
+    parser.set_defaults(update_commonjs=True)
     parser.add_argument("--force", action="store_true", help="Bypass git branch mismatch safety warnings")
     parser.add_argument("--username", help="Wikidata username or bot account name (e.g. Danielyepezgarces@cradle-deploy)")
     parser.add_argument("--password", help="Bot Password generated at Special:BotPasswords")
