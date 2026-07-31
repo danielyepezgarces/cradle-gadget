@@ -88,7 +88,13 @@
     "cradle-tab-custom": "Custom Schemas",
     "cradle-detected-schemas": "Detected schemas for this item:",
     "cradle-or-enter-schema": "Or enter another EntitySchema ID:",
-    "cradle-schema-search-placeholder": "Search EntitySchema by name or ID (e.g. E10, Human)..."
+    "cradle-schema-search-placeholder": "Search EntitySchema by name or ID (e.g. E10, Human)...",
+    "cradle-references": "References",
+    "cradle-add-reference": "Add Reference",
+    "cradle-remove-reference": "Remove Reference",
+    "cradle-auto-cite": "Auto-fill Date & URL (CiteTool)",
+    "cradle-add-ref-property": "Add Property to Reference",
+    "cradle-ref-url-placeholder": "Paste reference URL (P854)..."
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -179,6 +185,12 @@
     "cradle-tab-custom": "Esquemas Personalizados",
     "cradle-detected-schemas": "Esquemas detectados para este elemento:",
     "cradle-or-enter-schema": "O introduce otro ID de EntitySchema:",
-    "cradle-schema-search-placeholder": "Buscar EntitySchema por nombre o ID (ej. E10, Humano)..."
+    "cradle-schema-search-placeholder": "Buscar EntitySchema por nombre o ID (ej. E10, Humano)...",
+    "cradle-references": "Referencias",
+    "cradle-add-reference": "A\u00f1adir referencia",
+    "cradle-remove-reference": "Eliminar referencia",
+    "cradle-auto-cite": "Autocompletar Fecha y URL (CiteTool)",
+    "cradle-add-ref-property": "A\u00f1adir propiedad a referencia",
+    "cradle-ref-url-placeholder": "Pegar URL de referencia (P854)..."
   }
 }

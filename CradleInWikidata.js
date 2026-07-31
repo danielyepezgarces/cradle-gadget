@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.9.2
+ * Version: 1.10.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.9.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.10.0');
  */
 
 (function() {
@@ -1930,7 +1930,59 @@
     /**
      * Populates formState by mapping current entity claims to the parsed schema properties.
      */
-    function initializeFormState() {
+        /**
+     * Builds a Wikibase Snak object for a reference property value.
+     */
+    function buildSnakObject(pid, val) {
+        val = (val || '').toString().trim();
+        if (val.startsWith('http://') || val.startsWith('https://')) {
+            return {
+                snaktype: 'value',
+                property: pid,
+                datavalue: { type: 'string', value: val }
+            };
+        } else if (val.match(/^[+-]?\d{4}-\d{2}-\d{2}/)) {
+            let timeVal = val;
+            if (!timeVal.startsWith('+') && !timeVal.startsWith('-')) {
+                timeVal = '+' + timeVal;
+            }
+            if (!timeVal.includes('T')) {
+                timeVal += 'T00:00:00Z';
+            }
+            return {
+                snaktype: 'value',
+                property: pid,
+                datavalue: {
+                    type: 'time',
+                    value: {
+                        time: timeVal,
+                        timezone: 0,
+                        before: 0,
+                        after: 0,
+                        precision: 11,
+                        calendarmodel: 'http://www.wikidata.org/entity/Q1985727'
+                    }
+                }
+            };
+        } else if (val.match(/^Q\d+$/i)) {
+            return {
+                snaktype: 'value',
+                property: pid,
+                datavalue: {
+                    type: 'wikibase-entityid',
+                    value: { 'entity-type': 'item', id: val.toUpperCase() }
+                }
+            };
+        } else {
+            return {
+                snaktype: 'value',
+                property: pid,
+                datavalue: { type: 'string', value: val }
+            };
+        }
+    }
+
+function initializeFormState() {
         formState = {};
         
         Object.keys(schemaProperties).forEach(pid => {
