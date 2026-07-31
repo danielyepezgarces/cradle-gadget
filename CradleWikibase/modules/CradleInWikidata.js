@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.10.3
+ * Version: 1.10.4
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.10.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.10.4');
  */
 
 (function() {
@@ -1790,17 +1790,38 @@ function initializeFormState() {
             let meta = propertyMetadata[pid] || { datatype: 'string' };
             formState[pid] = [];
 
-            // Map existing claims on the entity (if in edit mode)
-            if (activeMode === 'edit' && entityData && entityData.claims && entityData.claims[pid]) {
+            // Map existing claims on the entity (if on an item page)
+            if (isItemPage && entityData && entityData.claims && entityData.claims[pid]) {
                 entityData.claims[pid].forEach(claim => {
                     if (claim.mainsnak && claim.mainsnak.snaktype === 'value' && claim.mainsnak.datavalue) {
                         let value = parseClaimValue(claim.mainsnak.datavalue);
+
+                        let claimRefs = [];
+                        if (claim.references && claim.references.length > 0) {
+                            claim.references.forEach(refBlock => {
+                                let refSnaks = {};
+                                if (refBlock.snaks) {
+                                    Object.keys(refBlock.snaks).forEach(refPid => {
+                                        refSnaks[refPid] = [];
+                                        refBlock.snaks[refPid].forEach(snak => {
+                                            if (snak.snaktype === 'value' && snak.datavalue) {
+                                                let sVal = parseClaimValue(snak.datavalue);
+                                                refSnaks[refPid].push(sVal);
+                                            }
+                                        });
+                                    });
+                                }
+                                claimRefs.push({ hash: refBlock.hash || null, snaks: refSnaks });
+                            });
+                        }
+
                         formState[pid].push({
                             id: Math.random().toString(36).substring(2, 9),
                             guid: claim.id,
                             value: value,
                             datatype: meta.datatype,
-                            isDeleted: false
+                            isDeleted: false,
+                            references: claimRefs
                         });
                     }
                 });
