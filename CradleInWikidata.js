@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.11.1
+ * Version: 1.11.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.11.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.11.2');
  */
 
 (function() {
@@ -683,7 +683,9 @@
         check: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m8.16 13.9 7.4-8.15 1.5 1.35-8.9 9.8L3.25 12l1.4-1.4z"/></svg>`,
         alert: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M11.53 2.3A1.85 1.85 0 0 0 10 1.25 1.85 1.85 0 0 0 8.47 2.3L1.31 14.73A1.82 1.82 0 0 0 1.3 16.5a1.76 1.76 0 0 0 1.54.85h14.32a1.76 1.76 0 0 0 1.54-.85 1.82 1.82 0 0 0 0-1.77ZM11 15H9v-2h2Zm0-4H9V6h2z"/></svg>`,
         info: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 0a10 10 0 1 0 10 10A10 10 0 0 0 10 0m1 15H9v-6h2Zm0-8H9V5h2z"/></svg>`,
-        external: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
+        external: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`,
+        gear: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 13a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7.2-2.11a7.1 7.1 0 0 0 0-1.78l1.71-1.33a.43.43 0 0 0 .1-.55l-1.62-2.8a.43.43 0 0 0-.52-.19l-2 1a7.07 7.07 0 0 0-1.54-.9l-.3-2.12a.43.43 0 0 0-.43-.37H9.4a.43.43 0 0 0-.43.37l-.3 2.12a7.07 7.07 0 0 0-1.54.9l-2-1a.43.43 0 0 0-.52.19l-1.62 2.8a.43.43 0 0 0 .1.55l1.71 1.33a7.1 7.1 0 0 0 0 1.78l-1.71 1.33a.43.43 0 0 0-.1.55l1.62 2.8a.43.43 0 0 0 .52.19l2-1a7.07 7.07 0 0 0 1.54.9l.3 2.12a.43.43 0 0 0 .43.37h3.24a.43.43 0 0 0 .43-.37l.3-2.12a7.07 7.07 0 0 0 1.54-.9l2 1a.43.43 0 0 0 .52-.19l1.62-2.8a.43.43 0 0 0-.1-.55z"/></svg>`,
+        reference: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M5 2h10a1 1 0 0 1 1 1v16l-6-4-6 4V3a1 1 0 0 1 1-1z"/></svg>`
     };
 
     /**
@@ -2611,7 +2613,7 @@ function initializeFormState() {
             let $refToggleBtn = $('<button>')
                 .addClass('cradle-btn-secondary')
                 .css({'font-size': '0.8rem', 'padding': '2px 8px'})
-                .html(ICONS.info + ' <span>' + mw.msg('cradle-references') + ' (' + row.references.length + ')</span>')
+                .html(ICONS.reference + ' <span>' + mw.msg('cradle-references') + ' (' + row.references.length + ')</span>')
                 .on('click', function(e) {
                     e.preventDefault();
                     $qualContainer.slideUp(150);
