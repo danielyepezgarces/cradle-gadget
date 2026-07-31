@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.8.8
+ * Version: 1.8.9
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.8');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.9');
  */
 
 (function() {
@@ -1220,8 +1220,14 @@
             });
 
         let $inputGroup = $('<div>').css({'display': 'flex', 'gap': '8px', 'margin-top': '8px'});
+        $manualInput.css({'flex': '1'});
         $inputGroup.append($manualInput).append($loadBtn);
         $box.append($inputGroup);
+
+        attachEntitySchemaAutocompleter($inputGroup, $manualInput, function(schemaId) {
+            userWantsToChangeSchema = false;
+            loadAndDisplaySchema(schemaId);
+        });
         $content.append($box);
     }
 
@@ -1420,8 +1426,13 @@
                     });
 
                 let $group = $('<div>').css({'display': 'flex', 'gap': '8px', 'margin-top': '8px'});
+                $schemaInput.css({'flex': '1'});
                 $group.append($schemaInput).append($schemaBtn);
                 $boxSchema.append($group);
+
+                attachEntitySchemaAutocompleter($group, $schemaInput, function(schemaId) {
+                    loadAndDisplaySchema(schemaId);
+                });
                 $content.append($boxSchema);
             }
         }).catch(err => {
@@ -2636,7 +2647,121 @@
     /**
      * Search wikidata items.
      */
-    function searchWikidataItems(term) {
+        /**
+     * Search EntitySchemas by label, description, or ID.
+     */
+    function searchEntitySchemas(term) {
+        logDebug("[Cradle] Searching EntitySchemas for:", term);
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            let userLang = mw.config.get('wgUserLanguage') || 'en';
+            api.get({
+                action: 'wbsearchentities',
+                search: term,
+                language: userLang,
+                type: 'entityschema',
+                format: 'json'
+            }).done(function(res) {
+                if (res && res.search && res.search.length > 0) {
+                    logDebug("[Cradle] EntitySchema search results received via wbsearchentities:", res.search);
+                    resolve(res.search);
+                } else {
+                    // Fallback to opensearch on namespace 640 (EntitySchema)
+                    api.get({
+                        action: 'opensearch',
+                        search: term,
+                        namespace: 640,
+                        limit: 10,
+                        format: 'json'
+                    }).done(function(openRes) {
+                        let suggestions = [];
+                        if (openRes && openRes[1]) {
+                            let titles = openRes[1];
+                            let descriptions = openRes[2] || [];
+                            for (let i = 0; i < titles.length; i++) {
+                                let title = titles[i];
+                                let match = title.match(/(E\d+)$/i);
+                                if (match) {
+                                    suggestions.push({
+                                        id: match[1].toUpperCase(),
+                                        label: title.replace(/^EntitySchema:/i, ''),
+                                        description: descriptions[i] || ''
+                                    });
+                                }
+                            }
+                        }
+                        logDebug("[Cradle] EntitySchema search results received via opensearch fallback:", suggestions);
+                        resolve(suggestions);
+                    }).fail(function() {
+                        resolve([]);
+                    });
+                }
+            }).fail(function(err) {
+                logError("[Cradle] EntitySchema search API request failed:", err);
+                resolve([]);
+            });
+        });
+    }
+
+    /**
+     * Attaches autocompletion dropdown for EntitySchema search inputs.
+     */
+    function attachEntitySchemaAutocompleter($wrapper, $input, onLoadCallback) {
+        $wrapper.css({'position': 'relative'});
+        let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
+        $wrapper.append($dropdown);
+
+        let searchTimeout = null;
+
+        $input.on('input', function() {
+            let query = $(this).val().trim();
+            if (searchTimeout) clearTimeout(searchTimeout);
+
+            if (query.length < 2) {
+                $dropdown.empty().hide();
+                return;
+            }
+
+            searchTimeout = setTimeout(function() {
+                searchEntitySchemas(query).then(results => {
+                    $dropdown.empty();
+                    if (results.length === 0) {
+                        $dropdown.hide();
+                        return;
+                    }
+
+                    results.forEach(res => {
+                        let $row = $('<li>').addClass('cradle-autocomplete-row');
+                        let labelText = res.label ? `${res.label} (${res.id})` : res.id;
+                        $row.append($('<span>').addClass('cradle-autocomplete-row-label').text(labelText));
+                        if (res.description) {
+                            $row.append($('<span>').addClass('cradle-autocomplete-row-desc').text(res.description));
+                        }
+
+                        $row.on('click', function(e) {
+                            e.stopPropagation();
+                            $input.val(`${res.id}`);
+                            $dropdown.hide();
+                            if (typeof onLoadCallback === 'function') {
+                                onLoadCallback(res.id);
+                            }
+                        });
+
+                        $dropdown.append($row);
+                    });
+                    $dropdown.show();
+                });
+            }, 300);
+        });
+
+        $(document).on('click.cradleSchemaAutocomplete', function(e) {
+            if (!$wrapper.is(e.target) && $wrapper.has(e.target).length === 0) {
+                $dropdown.hide();
+            }
+        });
+    }
+
+function searchWikidataItems(term) {
         logDebug("[Cradle] Searching Wikidata items for:", term);
         return new Promise((resolve) => {
             let api = new mw.Api();

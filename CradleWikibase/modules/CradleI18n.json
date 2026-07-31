@@ -17,7 +17,7 @@
     "cradle-select-predefined": "-- Select Predefined Form --",
     "cradle-method-predefined": "Method 1: Use a Predefined Cradle Form",
     "cradle-method-schema": "Method 2: Use an EntitySchema ID (ShEx)",
-    "cradle-schema-placeholder": "Enter EntitySchema ID (e.g. E10)",
+    "cradle-schema-placeholder": "Search EntitySchema by name or ID (e.g. E10, Human)...",
     "cradle-load-schema": "Load Schema",
     "cradle-validation-error": "Please fix the following validation errors:\n\n",
     "cradle-mandatory-error": "Property $1 ($2) is mandatory!",
@@ -87,7 +87,8 @@
     "cradle-tab-shex": "EntitySchema (ShEx)",
     "cradle-tab-custom": "Custom Schemas",
     "cradle-detected-schemas": "Detected schemas for this item:",
-    "cradle-or-enter-schema": "Or enter another EntitySchema ID:"
+    "cradle-or-enter-schema": "Or enter another EntitySchema ID:",
+    "cradle-schema-search-placeholder": "Search EntitySchema by name or ID (e.g. E10, Human)..."
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -107,7 +108,7 @@
     "cradle-select-predefined": "-- Selecciona un formulario predefinido --",
     "cradle-method-predefined": "M\u00e9todo 1: Usar un formulario predefinido de Cradle",
     "cradle-method-schema": "M\u00e9todo 2: Usar un ID de EntitySchema (ShEx)",
-    "cradle-schema-placeholder": "Introduce el ID del EntitySchema (ej. E10)",
+    "cradle-schema-placeholder": "Buscar EntitySchema por nombre o ID (ej. E10, Humano)...",
     "cradle-load-schema": "Cargar esquema",
     "cradle-validation-error": "Por favor, corrige los siguientes errores de validaci\u00f3n:\n\n",
     "cradle-mandatory-error": "\u00a1La propiedad $1 ($2) es obligatoria!",
@@ -177,6 +178,7 @@
     "cradle-tab-shex": "Esquema de Entidad (ShEx)",
     "cradle-tab-custom": "Esquemas Personalizados",
     "cradle-detected-schemas": "Esquemas detectados para este elemento:",
-    "cradle-or-enter-schema": "O introduce otro ID de EntitySchema:"
+    "cradle-or-enter-schema": "O introduce otro ID de EntitySchema:",
+    "cradle-schema-search-placeholder": "Buscar EntitySchema por nombre o ID (ej. E10, Humano)..."
   }
 }
