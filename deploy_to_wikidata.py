@@ -2,12 +2,13 @@
 """
 Wikidata Automatic Gadget Deployer Script
 -----------------------------------------
-Deploys local CradleInWikidata.js directly to Wikidata user space
-(e.g., User:Danielyepezgarces/Gadget-cradle.js for stable or
-User:Danielyepezgarces/Gadget-cradle-beta.js for beta) using MediaWiki API & BotPassword.
+Deploys local CradleInWikidata.js directly to Wikidata user space:
+  - stable: User:Danielyepezgarces/Gadget-cradle.js (Production release)
+  - beta:   User:Danielyepezgarces/Gadget-cradle-beta.js (Release candidate)
+  - dev:    User:Danielyepezgarces/Gadget-cradle-dev.js (Development / Bleeding edge)
 
 Usage:
-  python3 deploy_to_wikidata.py [--target-env stable|beta] [--upload-i18n]
+  python3 deploy_to_wikidata.py [--target-env stable|beta|dev] [--upload-i18n]
 
 Prerequisites:
   1. Create a Bot Password at https://www.wikidata.org/wiki/Special:BotPasswords
@@ -45,6 +46,10 @@ TARGET_PAGES = {
     "beta": {
         "js": "User:Danielyepezgarces/Gadget-cradle-beta.js",
         "i18n": "User:Danielyepezgarces/Gadget-cradle-beta/i18n.json"
+    },
+    "dev": {
+        "js": "User:Danielyepezgarces/Gadget-cradle-dev.js",
+        "i18n": "User:Danielyepezgarces/Gadget-cradle-dev/i18n.json"
     }
 }
 
@@ -112,7 +117,7 @@ def main():
     load_dotenv(".env")
 
     parser = argparse.ArgumentParser(description="Deploy Cradle gadget code to Wikidata.")
-    parser.add_argument("--target-env", choices=["stable", "beta"], default="stable", help="Target environment: stable or beta (default: stable)")
+    parser.add_argument("--target-env", choices=["stable", "beta", "dev"], default="dev", help="Target environment: stable, beta, or dev (default: dev)")
     parser.add_argument("--upload-i18n", action="store_true", help="Also upload CradleI18n.json to Wikidata")
     parser.add_argument("--username", help="Wikidata username or bot account name (e.g. Danielyepezgarces@cradle_bot)")
     parser.add_argument("--password", help="Bot Password generated at Special:BotPasswords")
@@ -143,8 +148,8 @@ def main():
     target_i18n_page = TARGET_PAGES[args.target_env]["i18n"]
 
     edit_summary = f"Bump version to {version_str}"
-    if args.target_env == "beta":
-        edit_summary += " (beta)"
+    if args.target_env != "stable":
+        edit_summary += f" ({args.target_env})"
 
     print(f"Preparing deployment to Wikidata [{args.target_env.upper()}] environment:")
     print(f"  Target JS Page:   {target_js_page}")
