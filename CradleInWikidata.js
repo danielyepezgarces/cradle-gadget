@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.9.1
+ * Version: 1.9.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.9.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.9.2');
  */
 
 (function() {
@@ -2659,32 +2659,48 @@
             function fetchLabelsForSchemas(schemaIds, rawDescriptionsMap) {
                 if (!schemaIds || schemaIds.length === 0) return Promise.resolve([]);
                 schemaIds = [...new Set(schemaIds)].slice(0, 10);
+                let titlesParam = schemaIds.map(id => 'EntitySchema:' + id).join('|');
 
                 return new Promise((resResolve) => {
                     api.get({
-                        action: 'wbgetentities',
-                        ids: schemaIds.join('|'),
-                        props: 'labels|descriptions',
-                        languages: userLang + '|en',
+                        action: 'query',
+                        prop: 'revisions',
+                        titles: titlesParam,
+                        rvslots: 'main',
+                        rvprop: 'content',
                         format: 'json'
-                    }).done(function(entRes) {
+                    }).done(function(queryRes) {
                         let finalResults = [];
-                        let entities = (entRes && entRes.entities) || {};
+                        let pages = (queryRes && queryRes.query && queryRes.query.pages) || {};
+
+                        let schemaMap = {};
+                        Object.keys(pages).forEach(pageId => {
+                            let p = pages[pageId];
+                            if (p.revisions && p.revisions[0] && p.revisions[0].slots && p.revisions[0].slots.main) {
+                                try {
+                                    let raw = p.revisions[0].slots.main['*'];
+                                    let parsed = JSON.parse(raw);
+                                    if (parsed && parsed.id) {
+                                        schemaMap[parsed.id.toUpperCase()] = parsed;
+                                    }
+                                } catch(e) {}
+                            }
+                        });
 
                         schemaIds.forEach(id => {
-                            let ent = entities[id];
+                            let parsed = schemaMap[id];
                             let label = id;
                             let desc = rawDescriptionsMap[id] || '';
 
-                            if (ent) {
-                                if (ent.labels) {
-                                    label = (ent.labels[userLang] && ent.labels[userLang].value) ||
-                                            (ent.labels['en'] && ent.labels['en'].value) ||
+                            if (parsed) {
+                                if (parsed.labels) {
+                                    label = (typeof parsed.labels[userLang] === 'string' && parsed.labels[userLang]) ||
+                                            (typeof parsed.labels['en'] === 'string' && parsed.labels['en']) ||
                                             id;
                                 }
-                                if (ent.descriptions) {
-                                    desc = (ent.descriptions[userLang] && ent.descriptions[userLang].value) ||
-                                           (ent.descriptions['en'] && ent.descriptions['en'].value) ||
+                                if (parsed.descriptions) {
+                                    desc = (typeof parsed.descriptions[userLang] === 'string' && parsed.descriptions[userLang]) ||
+                                           (typeof parsed.descriptions['en'] === 'string' && parsed.descriptions['en']) ||
                                            desc;
                                 }
                             }
