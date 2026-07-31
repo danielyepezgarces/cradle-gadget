@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.10.1
+ * Version: 1.10.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.10.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.10.2');
  */
 
 (function() {
@@ -1936,9 +1936,14 @@
         /**
      * Fetches citation metadata from Wikimedia Citoid REST API.
      */
-    function fetchCitoidCitation(url) {
-        logDebug("[Cradle] Fetching Citoid citation metadata for:", url);
-        let endpoint = 'https://en.wikipedia.org/api/rest_v1/data/citation/mediawiki/' + encodeURIComponent(url);
+    function fetchCitoidCitation(query) {
+        logDebug("[Cradle] Fetching Citoid advanced citation metadata for query:", query);
+        let cleanQuery = (query || '').trim();
+        if (cleanQuery.match(/^10\.\d{4,9}\/[-._;()/:A-Za-z0-9]+$/)) {
+            cleanQuery = 'doi:' + cleanQuery;
+        }
+
+        let endpoint = 'https://en.wikipedia.org/api/rest_v1/data/citation/mediawiki/' + encodeURIComponent(cleanQuery);
         return new Promise((resolve) => {
             $.ajax({
                 url: endpoint,
@@ -1947,11 +1952,34 @@
             }).done(function(data) {
                 if (data && data.length > 0) {
                     let cite = data[0];
-                    logDebug("[Cradle] Citoid citation data received:", cite);
+                    logDebug("[Cradle] Citoid advanced citation data received:", cite);
+
+                    let authorStr = '';
+                    if (Array.isArray(cite.author) && cite.author.length > 0) {
+                        authorStr = cite.author.map(a => Array.isArray(a) ? a.join(' ') : a).join(', ');
+                    }
+
+                    let pubDateStr = null;
+                    if (cite.date) {
+                        let m = cite.date.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?/);
+                        if (m) {
+                            let y = m[1], mm = m[2] || '00', dd = m[3] || '00';
+                            pubDateStr = `+${y}-${mm}-${dd}T00:00:00Z`;
+                        }
+                    }
+
                     resolve({
-                        url: cite.url || url,
+                        url: cite.url || (cleanQuery.startsWith('http') ? cleanQuery : ''),
                         title: cite.title || '',
                         publication: cite.publicationTitle || cite.publisher || cite.websiteTitle || cite.libraryCatalog || '',
+                        doi: cite.DOI || '',
+                        isbn: (Array.isArray(cite.ISBN) && cite.ISBN[0]) || cite.ISBN || '',
+                        pmid: cite.PMID || cite.PMCID || '',
+                        volume: cite.volume || '',
+                        issue: cite.issue || '',
+                        pages: cite.pages || '',
+                        author: authorStr,
+                        pubDate: pubDateStr,
                         accessDate: cite.accessDate ? ('+' + cite.accessDate + 'T00:00:00Z') : null
                     });
                 } else {
