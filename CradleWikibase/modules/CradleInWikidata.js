@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.11.0
+ * Version: 1.11.1
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.11.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.11.1');
  */
 
 (function() {
@@ -2115,8 +2115,8 @@ function initializeFormState() {
                     row.rank = $(this).val();
                 });
             $rankSelect.append($('<option>').val('normal').text('● ' + mw.msg('cradle-rank-normal')));
-            $rankSelect.append($('<option>').val('preferred').text('★ ' + mw.msg('cradle-rank-preferred')));
-            $rankSelect.append($('<option>').val('deprecated').text('▲ ' + mw.msg('cradle-rank-deprecated')));
+            $rankSelect.append($('<option>').val('preferred').text('▲ ' + mw.msg('cradle-rank-preferred')));
+            $rankSelect.append($('<option>').val('deprecated').text('▼ ' + mw.msg('cradle-rank-deprecated')));
             $rankSelect.val(row.rank);
 
             let $inputElement = createInputForDatatype(pid, row);
@@ -2143,6 +2143,7 @@ function initializeFormState() {
                 .html(ICONS.gear + ' <span>' + mw.msg('cradle-qualifiers') + ' (' + qualCount + ')</span>')
                 .on('click', function(e) {
                     e.preventDefault();
+                    $refContainer.slideUp(150);
                     $qualContainer.slideToggle(150);
                 });
             $subBar.append($qualToggleBtn);
@@ -2153,6 +2154,7 @@ function initializeFormState() {
                 .html(ICONS.info + ' <span>' + mw.msg('cradle-references') + ' (' + row.references.length + ')</span>')
                 .on('click', function(e) {
                     e.preventDefault();
+                    $qualContainer.slideUp(150);
                     $refContainer.slideToggle(150);
                 });
             $subBar.append($refToggleBtn);
