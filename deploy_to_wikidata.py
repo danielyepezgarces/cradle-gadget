@@ -3,10 +3,11 @@
 Wikidata Automatic Gadget Deployer Script
 -----------------------------------------
 Deploys local CradleInWikidata.js directly to Wikidata user space
-(e.g., User:Danielyepezgarces/Gadget-cradle.js) using MediaWiki API & BotPassword.
+(e.g., User:Danielyepezgarces/Gadget-cradle.js for stable or
+User:Danielyepezgarces/Gadget-cradle-beta.js for beta) using MediaWiki API & BotPassword.
 
 Usage:
-  python3 deploy_to_wikidata.py [--username YOUR_USER] [--password YOUR_BOT_PASSWORD]
+  python3 deploy_to_wikidata.py [--target-env stable|beta] [--upload-i18n]
 
 Prerequisites:
   1. Create a Bot Password at https://www.wikidata.org/wiki/Special:BotPasswords
@@ -15,6 +16,7 @@ Prerequisites:
 
 import os
 import sys
+import re
 import argparse
 import requests
 
@@ -34,7 +36,17 @@ def load_dotenv(env_path=".env"):
 
 
 WIKIDATA_API_URL = "https://www.wikidata.org/w/api.php"
-DEFAULT_TARGET_PAGE = "User:Danielyepezgarces/Gadget-cradle.js"
+
+TARGET_PAGES = {
+    "stable": {
+        "js": "User:Danielyepezgarces/Gadget-cradle.js",
+        "i18n": "User:Danielyepezgarces/Gadget-cradle/i18n.json"
+    },
+    "beta": {
+        "js": "User:Danielyepezgarces/Gadget-cradle-beta.js",
+        "i18n": "User:Danielyepezgarces/Gadget-cradle-beta/i18n.json"
+    }
+}
 
 
 def get_login_token(session):
@@ -93,16 +105,17 @@ def update_wikidata_page(session, title, content, summary):
         new_revid = res["edit"].get("newrevid", "no change")
         print(f"✓ Successfully updated '{title}' on Wikidata! (Revision ID: {new_revid})")
     else:
-        print(f"❌ Failed to edit page: {res}")
+        print(f"❌ Failed to edit page '{title}': {res}")
 
 
 def main():
     load_dotenv(".env")
 
     parser = argparse.ArgumentParser(description="Deploy Cradle gadget code to Wikidata.")
+    parser.add_argument("--target-env", choices=["stable", "beta"], default="stable", help="Target environment: stable or beta (default: stable)")
+    parser.add_argument("--upload-i18n", action="store_true", help="Also upload CradleI18n.json to Wikidata")
     parser.add_argument("--username", help="Wikidata username or bot account name (e.g. Danielyepezgarces@cradle_bot)")
     parser.add_argument("--password", help="Bot Password generated at Special:BotPasswords")
-    parser.add_argument("--page", default=DEFAULT_TARGET_PAGE, help=f"Target page on Wikidata (default: {DEFAULT_TARGET_PAGE})")
     parser.add_argument("--file", default="CradleInWikidata.js", help="Path to local JS file to upload")
 
     args = parser.parse_args()
@@ -123,13 +136,20 @@ def main():
     with open(args.file, "r", encoding="utf-8") as f:
         js_code = f.read()
 
-    import re
     ver_match = re.search(r"Version:\s*([0-9.]+)", js_code)
     version_str = ver_match.group(1) if ver_match else "unknown"
 
-    edit_summary = f"Update Cradle gadget to version {version_str} via automated deployer"
+    target_js_page = TARGET_PAGES[args.target_env]["js"]
+    target_i18n_page = TARGET_PAGES[args.target_env]["i18n"]
 
-    print(f"Preparing deployment of {args.file} (v{version_str}) to Wikidata page '{args.page}'...")
+    edit_summary = f"Bump version to {version_str}"
+    if args.target_env == "beta":
+        edit_summary += " (beta)"
+
+    print(f"Preparing deployment to Wikidata [{args.target_env.upper()}] environment:")
+    print(f"  Target JS Page:   {target_js_page}")
+    print(f"  Version:          {version_str}")
+    print(f"  Edit Summary:     '{edit_summary}'")
 
     session = requests.Session()
     session.headers.update({
@@ -138,7 +158,13 @@ def main():
 
     try:
         login_bot(session, username, password)
-        update_wikidata_page(session, args.page, js_code, edit_summary)
+        update_wikidata_page(session, target_js_page, js_code, edit_summary)
+
+        if args.upload_i18n and os.path.exists("CradleI18n.json"):
+            with open("CradleI18n.json", "r", encoding="utf-8") as f_i18n:
+                i18n_code = f_i18n.read()
+            update_wikidata_page(session, target_i18n_page, i18n_code, edit_summary)
+
     except Exception as err:
         print(f"❌ Error during deployment: {err}")
         sys.exit(1)
