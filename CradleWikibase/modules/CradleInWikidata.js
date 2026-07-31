@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.10.2
+ * Version: 1.10.3
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.10.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.10.3');
  */
 
 (function() {
@@ -2048,9 +2048,14 @@ function initializeFormState() {
      */
     function renderPropertyRows(pid) {
         let $container = $(`#cradle-rows-${pid}`).empty();
+        let $actionsContainer = $(`#cradle-actions-${pid}`).empty();
+        let propDef = schemaProperties[pid];
+
         let rows = formState[pid];
 
         rows.forEach((row, index) => {
+            let $rowGroup = $('<div>').css({'margin-bottom': '12px'});
+
             let $row = $('<div>')
                 .addClass('cradle-row')
                 .attr('id', `cradle-row-${row.id}`);
@@ -2071,8 +2076,204 @@ function initializeFormState() {
                 });
 
             $row.append($deleteBtn);
-            $container.append($row);
+            $rowGroup.append($row);
+
+            // References section for this statement row
+            if (!row.references) row.references = [];
+
+            let $refToggleBtn = $('<button>')
+                .addClass('cradle-btn-secondary')
+                .css({'font-size': '0.8rem', 'padding': '2px 8px', 'margin-top': '4px', 'margin-bottom': '6px', 'margin-left': '4px'})
+                .html(ICONS.info + ' <span>' + mw.msg('cradle-references') + ' (' + row.references.length + ')</span>')
+                .on('click', function(e) {
+                    e.preventDefault();
+                    $refContainer.slideToggle(150);
+                });
+            $rowGroup.append($refToggleBtn);
+
+            let $refContainer = $('<div>')
+                .addClass('cradle-references-container')
+                .css({
+                    'display': row.references.length > 0 ? 'block' : 'none',
+                    'background-color': 'var(--background-color-interactive-subtle, #f8f9fa)',
+                    'border': '1px solid var(--border-color-subtle, #eaecf0)',
+                    'border-radius': '4px',
+                    'padding': '10px',
+                    'margin-bottom': '12px',
+                    'margin-left': '8px'
+                });
+
+            function renderReferencesUI() {
+                $refContainer.empty();
+                if (row.references.length === 0) {
+                    $refContainer.append($('<p>').css({'margin': '0 0 8px 0', 'font-size': '0.85rem', 'color': 'var(--color-subtle, #54595d)'}).text('No references added yet.'));
+                }
+
+                row.references.forEach((refBlock, refIdx) => {
+                    let $refBox = $('<div>').css({
+                        'border': '1px dashed var(--border-color-base, #a2a9b1)',
+                        'padding': '8px',
+                        'margin-bottom': '8px',
+                        'border-radius': '3px',
+                        'background-color': '#fff'
+                    });
+
+                    let $refHeader = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '6px'});
+                    $refHeader.append($('<strong>').css({'font-size': '0.85rem'}).text('Reference #' + (refIdx + 1)));
+
+                    let $delRefBtn = $('<button>')
+                        .addClass('cradle-btn-secondary')
+                        .css({'font-size': '0.75rem', 'padding': '2px 6px', 'color': 'var(--color-destructive, #d33)'})
+                        .text(mw.msg('cradle-remove-reference'))
+                        .on('click', function(e) {
+                            e.preventDefault();
+                            row.references.splice(refIdx, 1);
+                            $refToggleBtn.find('span').text(mw.msg('cradle-references') + ' (' + row.references.length + ')');
+                            renderReferencesUI();
+                        });
+                    $refHeader.append($delRefBtn);
+                    $refBox.append($refHeader);
+
+                    // Citoid Auto-Fill Helper Bar
+                    let $autoCiteBar = $('<div>').css({'display': 'flex', 'gap': '6px', 'margin-bottom': '8px'});
+                    let $urlInput = $('<input>')
+                        .addClass('cradle-input')
+                        .css({'font-size': '0.8rem', 'flex': '1'})
+                        .attr('placeholder', mw.msg('cradle-ref-url-placeholder'));
+
+                    let $autoCiteBtn = $('<button>')
+                        .addClass('cradle-btn-secondary')
+                        .css({'font-size': '0.8rem', 'white-space': 'nowrap'})
+                        .text(mw.msg('cradle-auto-cite'))
+                        .on('click', function(e) {
+                            e.preventDefault();
+                            let urlVal = $urlInput.val().trim();
+                            let todayStr = '+' + new Date().toISOString().split('T')[0] + 'T00:00:00Z';
+
+                            if (!refBlock.snaks['P813']) refBlock.snaks['P813'] = [];
+                            refBlock.snaks['P813'][0] = todayStr;
+
+                            if (urlVal) {
+                                if (!refBlock.snaks['P854']) refBlock.snaks['P854'] = [];
+                                refBlock.snaks['P854'][0] = urlVal;
+
+                                $autoCiteBtn.prop('disabled', true).text(mw.msg('cradle-citoid-loading'));
+                                fetchCitoidCitation(urlVal).then(citeData => {
+                                    if (citeData) {
+                                        if (citeData.url) refBlock.snaks['P854'] = [citeData.url];
+                                        if (citeData.title) refBlock.snaks['P1476'] = [citeData.title];
+                                        if (citeData.publication && !refBlock.snaks['P248']) refBlock.snaks['P248'] = [citeData.publication];
+                                        if (citeData.doi) refBlock.snaks['P356'] = [citeData.doi];
+                                        if (citeData.isbn) refBlock.snaks['P212'] = [citeData.isbn];
+                                        if (citeData.pmid) refBlock.snaks['P698'] = [citeData.pmid];
+                                        if (citeData.author) refBlock.snaks['P2093'] = [citeData.author];
+                                        if (citeData.pubDate) refBlock.snaks['P577'] = [citeData.pubDate];
+                                        if (citeData.volume) refBlock.snaks['P478'] = [citeData.volume];
+                                        if (citeData.issue) refBlock.snaks['P433'] = [citeData.issue];
+                                        if (citeData.pages) refBlock.snaks['P304'] = [citeData.pages];
+                                        if (citeData.accessDate) refBlock.snaks['P813'] = [citeData.accessDate];
+                                    }
+                                    renderReferencesUI();
+                                });
+                            } else {
+                                renderReferencesUI();
+                            }
+                        });
+                    $autoCiteBar.append($urlInput).append($autoCiteBtn);
+                    $refBox.append($autoCiteBar);
+
+                    // Property snaks inside this reference
+                    Object.keys(refBlock.snaks).forEach(refPid => {
+                        let $snakRow = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'margin-bottom': '4px'});
+                        $snakRow.append($('<span>').css({'font-size': '0.8rem', 'font-weight': 'bold', 'min-width': '50px'}).text(refPid + ':'));
+
+                        let $snakValInput = $('<input>')
+                            .addClass('cradle-input')
+                            .css({'font-size': '0.8rem', 'flex': '1'})
+                            .val(refBlock.snaks[refPid][0] || '')
+                            .on('input', function() {
+                                refBlock.snaks[refPid][0] = $(this).val();
+                            });
+
+                        let $delSnakBtn = $('<button>')
+                            .addClass('cradle-btn-secondary')
+                            .css({'font-size': '0.75rem', 'padding': '1px 4px'})
+                            .text('×')
+                            .on('click', function(e) {
+                                e.preventDefault();
+                                delete refBlock.snaks[refPid];
+                                renderReferencesUI();
+                            });
+                        $snakRow.append($snakValInput).append($delSnakBtn);
+                        $refBox.append($snakRow);
+                    });
+
+                    // Add property to reference dropdown
+                    let $addPropSelect = $('<select>').addClass('cradle-input').css({'font-size': '0.8rem', 'margin-top': '4px'});
+                    $addPropSelect.append($('<option>').val('').text('+ ' + mw.msg('cradle-add-ref-property')));
+                    $addPropSelect.append($('<option>').val('P854').text('P854 (Reference URL)'));
+                    $addPropSelect.append($('<option>').val('P813').text('P813 (Retrieved Date)'));
+                    $addPropSelect.append($('<option>').val('P248').text('P248 (Stated In)'));
+                    $addPropSelect.append($('<option>').val('P1476').text('P1476 (Title)'));
+                    $addPropSelect.append($('<option>').val('P356').text('P356 (DOI)'));
+                    $addPropSelect.append($('<option>').val('P212').text('P212 (ISBN-13)'));
+                    $addPropSelect.append($('<option>').val('P698').text('P698 (PubMed ID)'));
+                    $addPropSelect.append($('<option>').val('P2093').text('P2093 (Author Name String)'));
+                    $addPropSelect.append($('<option>').val('P577').text('P577 (Publication Date)'));
+                    $addPropSelect.append($('<option>').val('P478').text('P478 (Volume)'));
+                    $addPropSelect.append($('<option>').val('P433').text('P433 (Issue)'));
+                    $addPropSelect.append($('<option>').val('P304').text('P304 (Pages)'));
+                    $addPropSelect.on('change', function() {
+                        let selPid = $(this).val();
+                        if (selPid) {
+                            if (!refBlock.snaks[selPid]) refBlock.snaks[selPid] = [''];
+                            renderReferencesUI();
+                        }
+                    });
+                    $refBox.append($addPropSelect);
+
+                    $refContainer.append($refBox);
+                });
+
+                let $addBlockBtn = $('<button>')
+                    .addClass('cradle-btn-secondary')
+                    .css({'font-size': '0.8rem', 'padding': '4px 8px', 'margin-top': '4px'})
+                    .html(ICONS.plus + ' <span>' + mw.msg('cradle-add-reference') + '</span>')
+                    .on('click', function(e) {
+                        e.preventDefault();
+                        let todayStr = '+' + new Date().toISOString().split('T')[0] + 'T00:00:00Z';
+                        row.references.push({
+                            hash: null,
+                            snaks: {
+                                'P854': [''],
+                                'P813': [todayStr]
+                            }
+                        });
+                        $refToggleBtn.find('span').text(mw.msg('cradle-references') + ' (' + row.references.length + ')');
+                        renderReferencesUI();
+                    });
+                $refContainer.append($addBlockBtn);
+            }
+
+            renderReferencesUI();
+            $rowGroup.append($refContainer);
+            $container.append($rowGroup);
         });
+
+        // Dynamic Action Bar rendering (Add row button)
+        let nonDeletedRows = rows.filter(r => !r.isDeleted);
+        let maxLimit = propDef.max;
+        let showAddButton = (maxLimit === '*' || maxLimit === Infinity || nonDeletedRows.length < maxLimit);
+
+        if (showAddButton) {
+            let $addBtn = $('<button>')
+                .addClass('cradle-btn-text')
+                .html(`${ICONS.plus} ${mw.msg('cradle-add-value')}`)
+                .on('click', function() {
+                    addRow(pid);
+                });
+            $actionsContainer.append($addBtn);
+        }
     }
 
     /**
