@@ -120,18 +120,19 @@
         .cradle-drawer {
             position: fixed;
             top: 0;
-            right: -480px;
-            width: 440px;
+            right: -700px;
+            width: 640px;
+            max-width: 90vw;
             height: 100vh;
-            background-color: var(--background-color-base, #ffffff);
-            border-left: 1px solid var(--border-color-base, #a2a9b1);
-            box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+            background-color: #ffffff;
+            border-left: 1px solid #c8ccd1;
+            box-shadow: -6px 0 24px rgba(0, 0, 0, 0.12);
             z-index: 10001;
             transition: right 0.25s cubic-bezier(0.2, 0.8, 0.4, 1);
             display: flex;
             flex-direction: column;
-            color: var(--color-base, #202122);
-            font-family: sans-serif;
+            color: #101418;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
             box-sizing: border-box;
         }
         .cradle-drawer * {
