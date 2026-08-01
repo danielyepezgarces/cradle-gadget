@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.12.0-dev
+ * Version: 1.13.0-dev
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.12.0-dev');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.13.0-dev');
  */
 
 (function() {
@@ -602,7 +602,141 @@
     /**
      * Initializes the gadget and loads i18n messages dynamically from a subpage.
      */
-    function init() {
+        /**
+     * Decorates Wikidata's native item page DOM with Green/Red/Yellow schema validation borders
+     * and renders placeholder cards for missing schema properties directly in the page body.
+     */
+    function decorateNativeWikidataDOM() {
+        if (!isItemPage || !activeSchema || Object.keys(schemaProperties).length === 0) return;
+        logDebug("[Cradle] Decorating native Wikidata DOM with schema borders for:", activeSchema.id);
+
+        let validationResults = validateFormState();
+        let $statementList = $('.wikibase-statementgrouplistview');
+        if ($statementList.length === 0) return;
+
+        // Clean up previous Cradle native decorations
+        $('.cradle-native-missing-card').remove();
+        $('.cradle-native-badge').remove();
+        $('[data-property-id]').css({
+            'border-left': '',
+            'padding-left': '',
+            'transition': 'all 0.2s ease'
+        });
+
+        // 1. Decorate EXISTING native property containers with color borders & badges
+        Object.keys(schemaProperties).forEach(pid => {
+            let res = validationResults.properties[pid];
+            if (!res) return;
+
+            let $nativeGroup = $(`[data-property-id="${pid}"]`);
+            if ($nativeGroup.length > 0) {
+                let borderColor = '#00af89'; // Green (valid)
+                let badgeText = '✓ ' + activeSchema.id;
+                let badgeClass = 'cradle-badge-success';
+
+                if (!res.isValid || (res.isRequired && !res.isPresent)) {
+                    borderColor = '#d33'; // Red (error)
+                    badgeText = '⚠️ ' + activeSchema.id;
+                    badgeClass = 'cradle-badge-error';
+                } else if (!res.isPresent) {
+                    borderColor = '#f5a623'; // Yellow (optional)
+                    badgeText = '• ' + activeSchema.id;
+                    badgeClass = 'cradle-badge-warning';
+                }
+
+                $nativeGroup.css({
+                    'border-left': `4px solid ${borderColor}`,
+                    'padding-left': '8px',
+                    'border-radius': '2px'
+                });
+
+                let $propHeader = $nativeGroup.find('.wikibase-statementgroupview-property-label').first();
+                if ($propHeader.length > 0 && $propHeader.find('.cradle-native-badge').length === 0) {
+                    let $badge = $('<span>')
+                        .addClass(`cradle-native-badge ${badgeClass}`)
+                        .css({
+                            'font-size': '0.75rem',
+                            'margin-left': '8px',
+                            'padding': '1px 6px',
+                            'border-radius': '10px',
+                            'font-weight': 'normal'
+                        })
+                        .text(badgeText);
+                    $propHeader.append($badge);
+                }
+            }
+        });
+
+        // 2. Render PLACEHOLDER CARDS for missing schema properties
+        let $missingContainer = $('<div>')
+            .addClass('cradle-native-missing-card')
+            .css({
+                'margin-top': '20px',
+                'padding': '16px',
+                'background-color': 'var(--background-color-interactive-subtle, #f8f9fa)',
+                'border': '1px solid var(--border-color-subtle, #eaecf0)',
+                'border-radius': '8px'
+            });
+
+        let $missingHeader = $('<div>').css({
+            'display': 'flex',
+            'justify-content': 'space-between',
+            'align-items': 'center',
+            'margin-bottom': '12px'
+        });
+        $missingHeader.append($('<h3>').css({'margin': '0', 'font-size': '1.05rem'}).text(`${mw.msg('cradle-native-schema-title')} (${activeSchema.id})`));
+        $missingContainer.append($missingHeader);
+
+        let missingCount = 0;
+        Object.keys(schemaProperties).forEach(pid => {
+            let $nativeGroup = $(`[data-property-id="${pid}"]`);
+            if ($nativeGroup.length === 0) {
+                missingCount++;
+                let propDef = schemaProperties[pid];
+                let meta = propertyMetadata[pid] || { label: pid, description: '' };
+                let isRequired = (propDef.min >= 1);
+
+                let $card = $('<div>')
+                    .addClass('cradle-native-missing-prop-card')
+                    .css({
+                        'border-left': isRequired ? '4px solid #d33' : '4px solid #f5a623',
+                        'background-color': '#fff',
+                        'border': '1px solid var(--border-color-subtle, #eaecf0)',
+                        'border-left-width': '4px',
+                        'border-left-color': isRequired ? '#d33' : '#f5a623',
+                        'padding': '10px 14px',
+                        'margin-bottom': '8px',
+                        'border-radius': '4px',
+                        'display': 'flex',
+                        'justify-content': 'space-between',
+                        'align-items': 'center'
+                    });
+
+                let $info = $('<div>');
+                $info.append($('<strong>').css({'font-size': '0.9rem'}).text(`${meta.label} (${pid})`));
+                let statusMsg = isRequired ? mw.msg('cradle-missing-required-prop') : mw.msg('cradle-missing-optional-prop');
+                $info.append($('<span>').css({'font-size': '0.8rem', 'color': isRequired ? '#d33' : '#72777d', 'margin-left': '10px'}).text(`— ${statusMsg}`));
+
+                let $addBtn = $('<button>')
+                    .addClass('cradle-btn-secondary')
+                    .css({'font-size': '0.8rem', 'padding': '4px 10px'})
+                    .html(`${ICONS.plus} ${mw.msg('cradle-add-value')}`)
+                    .on('click', function(e) {
+                        e.preventDefault();
+                        openEditor();
+                    });
+
+                $card.append($info).append($addBtn);
+                $missingContainer.append($card);
+            }
+        });
+
+        if (missingCount > 0) {
+            $statementList.append($missingContainer);
+        }
+    }
+
+function init() {
         let userLang = mw.config.get('wgUserLanguage') || 'en';
 
         // Local fallback messages to ensure script functionality even if network request fails
@@ -880,6 +1014,7 @@
         $('.cradle-drawer').addClass('open');
 
         renderActiveView();
+                    decorateNativeWikidataDOM();
     }
 
     /**
@@ -933,6 +1068,7 @@
             $drawer.find('.cradle-tab').removeClass('active');
             $(this).addClass('active');
             renderActiveView();
+                    decorateNativeWikidataDOM();
         });
 
         // Set initial active tab
@@ -2034,6 +2170,7 @@ function parseClaimValue(datavalue) {
         activeTemplate = null;
         userWantsToChangeSchema = true;
         renderActiveView();
+                    decorateNativeWikidataDOM();
     }
 
     function renderForm() {
