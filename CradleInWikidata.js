@@ -334,11 +334,12 @@
             margin-bottom: 16px !important;
         }
 
+        
         /* ==========================================================================
-           OFFICIAL WIKIBASE STYLES IMPORTED FROM MEDIAWIKI-EXTENSIONS-WIKIBASE
+           NAMESPACED CRADLE WIKIBASE EDITOR CLONE STYLES (NO DOM COLLISION)
            ========================================================================== */
         
-        .cradle-drawer .wikibase-statementgroupview {
+        .cradle-drawer .cradle-statementgroupview {
             background-color: #ffffff !important;
             border: 1px solid #a2a9b1 !important;
             border-radius: 4px !important;
@@ -348,7 +349,7 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
         }
 
-        .cradle-drawer .wikibase-statementgroupview-property {
+        .cradle-drawer .cradle-statementgroupview-property {
             display: flex !important;
             justify-content: space-between !important;
             align-items: center !important;
@@ -357,18 +358,18 @@
             margin-bottom: 14px !important;
         }
 
-        .cradle-drawer .wikibase-statementgroupview-property-label {
+        .cradle-drawer .cradle-statementgroupview-property-label {
             font-size: 1.1rem !important;
             font-weight: 700 !important;
             color: #101418 !important;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         }
 
-        .cradle-drawer .wikibase-statementlistview {
+        .cradle-drawer .cradle-statementlistview {
             width: 100% !important;
         }
 
-        .cradle-drawer .wikibase-statementview {
+        .cradle-drawer .cradle-statementview {
             background-color: #ffffff !important;
             border: 1px solid #a2a9b1 !important;
             border-radius: 4px !important;
@@ -380,13 +381,13 @@
             position: relative !important;
         }
 
-        .cradle-drawer .wikibase-statementview.deleted {
+        .cradle-drawer .cradle-statementview.deleted {
             opacity: 0.5 !important;
             background-color: #fff0f0 !important;
             text-decoration: line-through !important;
         }
 
-        .cradle-drawer .wikibase-statementview-rankselector {
+        .cradle-drawer .cradle-statementview-rankselector {
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -398,14 +399,14 @@
             cursor: pointer !important;
         }
 
-        .cradle-drawer .wikibase-statementview-mainsnak-container {
+        .cradle-drawer .cradle-statementview-mainsnak-container {
             display: flex !important;
             align-items: center !important;
             gap: 10px !important;
             width: 100% !important;
         }
 
-        .cradle-drawer .wikibase-statementview-qualifiers {
+        .cradle-drawer .cradle-statementview-qualifiers {
             background-color: #f8f9fa !important;
             border-left: 3px solid #a2a9b1 !important;
             border-radius: 0 4px 4px 0 !important;
@@ -413,7 +414,7 @@
             margin-top: 6px !important;
         }
 
-        .cradle-drawer .wikibase-statementview-references-container {
+        .cradle-drawer .cradle-statementview-references-container {
             background-color: #f4f6f9 !important;
             border-left: 3px solid #36c !important;
             border-radius: 0 4px 4px 0 !important;
@@ -421,12 +422,12 @@
             margin-top: 6px !important;
         }
 
-        .cradle-drawer .wikibase-addtoolbar {
+        .cradle-drawer .cradle-addtoolbar {
             margin-top: 12px !important;
             text-align: center !important;
         }
 
-        .cradle-drawer .wikibase-addtoolbar button {
+        .cradle-drawer .cradle-addtoolbar button {
             width: 100% !important;
             background-color: #f8f9fa !important;
             color: #36c !important;
@@ -439,7 +440,7 @@
             transition: all 0.15s ease !important;
         }
 
-        .cradle-drawer .wikibase-addtoolbar button:hover {
+        .cradle-drawer .cradle-addtoolbar button:hover {
             background-color: #eaf3ff !important;
             border-color: #36c !important;
             color: #2a4b8d !important;
@@ -3100,8 +3101,8 @@ function parseClaimValue(datavalue) {
             }
 
             // Header of card
-            let $cardHeader = $('<div>').addClass('cradle-field-header wikibase-statementgroupview-property');
-            let $label = $('<h3>').addClass('cradle-field-title wikibase-statementgroupview-property-label');
+            let $cardHeader = $('<div>').addClass('cradle-statementgroupview-property');
+            let $label = $('<h3>').addClass('cradle-statementgroupview-property-label');
             
             // Prepend validation badge span next to title
             let $badge = $('<span>').addClass('cradle-card-validation-badge').css({'margin-right': '6px', 'font-size': '1.1rem'});
@@ -3145,7 +3146,7 @@ function parseClaimValue(datavalue) {
      */
     function renderPropertyRows(pid) {
         let $container = $(`#cradle-rows-${pid}`).empty();
-        let $actionsContainer = $(`#cradle-actions-${pid}`).empty().addClass('wikibase-addtoolbar');
+        let $actionsContainer = $(`#cradle-actions-${pid}`).empty().addClass('cradle-addtoolbar');
         let propDef = schemaProperties[pid];
 
         let rows = formState[pid];
