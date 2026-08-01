@@ -170,7 +170,7 @@ def update_wikidata_page(session, title, content, summary):
 
 
 def update_commonjs_loader_version(session, username, target_env, version_str):
-    """Updates version parameter in User:Danielyepezgarces/common.js to bypass browser cache."""
+    """Updates loader line in User:Danielyepezgarces/common.js to point to target_env and version_str."""
     user_base = username.split('@')[0]
     commonjs_title = f"User:{user_base}/common.js"
     content = get_remote_page_content(session, commonjs_title)
@@ -179,17 +179,22 @@ def update_commonjs_loader_version(session, username, target_env, version_str):
         return
 
     target_script_name = TARGET_PAGES[target_env]["js"].split("/")[-1]
-    pattern = rf"({re.escape(target_script_name)}&action=raw&ctype=text/javascript&version=)([0-9a-zA-Z.-]+)"
+    new_loader_line = f'mw.loader.load("https://www.wikidata.org/w/index.php?title=User:{user_base}/{target_script_name}&action=raw&ctype=text/javascript&version={version_str}");'
+
+    pattern = r'mw\.loader\.load\(["\']https://www\.wikidata\.org/w/index\.php\?title=User:[^/]+/Gadget-cradle(?:\w|-)*\.js&action=raw&ctype=text/javascript(?:&version=[^"\']*)?["\']\);?'
 
     if re.search(pattern, content):
-        new_content = re.sub(pattern, rf"\g<1>{version_str}", content)
+        new_content = re.sub(pattern, new_loader_line, content)
         if new_content != content:
-            update_wikidata_page(session, commonjs_title, new_content, f"Bypass cache: update {target_script_name} version parameter to {version_str}")
-            print(f"✓ Updated version parameter to {version_str} in '{commonjs_title}'.")
+            update_wikidata_page(session, commonjs_title, new_content, f"Switch loader to {target_script_name} version {version_str}")
+            print(f"✓ Updated loader in '{commonjs_title}' to target '{target_script_name}' (version {version_str}).")
         else:
-            print(f"ℹ️ Version in '{commonjs_title}' is already up-to-date ({version_str}).")
+            print(f"ℹ️ Loader in '{commonjs_title}' is already pointing to '{target_script_name}' ({version_str}).")
     else:
-        print(f"ℹ️ Pattern for '{target_script_name}' not found in '{commonjs_title}'.")
+        # Append loader line if not present
+        new_content = content.rstrip() + "\n\n" + new_loader_line + "\n"
+        update_wikidata_page(session, commonjs_title, new_content, f"Add {target_script_name} loader ({version_str})")
+        print(f"✓ Added loader line for '{target_script_name}' ({version_str}) to '{commonjs_title}'.")
 
 
 def main():
