@@ -550,35 +550,115 @@
             margin-bottom: 16px;
         }
         
-        /* Form fields cards - Flat Wikimedia styling */
-        .cradle-field-card {
-            background-color: var(--background-color-base, #ffffff);
-            border: 1px solid var(--border-color-base, #a2a9b1);
+        /* Property group cards — using Wikibase statementgroupview structure */
+        .cradle-drawer .wikibase-statementgroupview {
+            background-color: #ffffff;
+            border: 1px solid #c8ccd1;
             border-radius: 2px;
-            padding: 16px;
             margin-bottom: 16px;
-            transition: border-color 0.2s ease;
             position: relative;
+            transition: border-color 0.2s ease;
         }
-        .cradle-field-card:hover {
-            border-color: var(--border-color-progressive, #36c);
+        .cradle-drawer .wikibase-statementgroupview:hover {
+            border-color: #36c;
         }
-        .cradle-field-card.mandatory {
-            border-left: 3px solid var(--border-color-progressive, #36c);
+        .cradle-drawer .wikibase-statementgroupview.valid {
+            border-left: 4px solid #00af89 !important;
         }
-        .cradle-field-card.valid {
-            border-left: 4px solid var(--color-success, #00af89) !important;
-        }
-        .cradle-field-card.invalid {
-            border-left: 4px solid var(--color-destructive, #d33) !important;
+        .cradle-drawer .wikibase-statementgroupview.invalid {
+            border-left: 4px solid #d33 !important;
             background-color: rgba(211, 51, 51, 0.01);
         }
-        .cradle-field-card.optional-present {
-            border-left: 4px solid var(--color-progressive, #36c) !important;
+        .cradle-drawer .wikibase-statementgroupview.optional-present {
+            border-left: 4px solid #36c !important;
         }
-        .cradle-field-card.optional-missing {
-            border-left: 4px solid var(--color-warning, #fc3) !important;
-            background-color: var(--background-color-warning-subtle, #fef8ee);
+        .cradle-drawer .wikibase-statementgroupview.optional-missing {
+            border-left: 4px solid #fc3 !important;
+            background-color: #fef8ee;
+        }
+
+        /* Property label column */
+        .cradle-drawer .wikibase-statementgroupview-property {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #c8ccd1;
+            padding: 10px 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        .cradle-drawer .wikibase-statementgroupview-property-label {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #101418;
+            word-break: break-word;
+        }
+        .cradle-drawer .wikibase-statementgroupview-property-label a {
+            color: #36c;
+        }
+
+        /* Statement list */
+        .cradle-drawer .wikibase-statementlistview {
+            padding: 0;
+        }
+        .cradle-drawer .wikibase-statementlistview-listview {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Each statement row (listview-item) */
+        .cradle-drawer .wikibase-statementview.listview-item {
+            border-top: 1px solid #eaecf0;
+            padding: 10px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .cradle-drawer .wikibase-statementview.listview-item.wb-removed {
+            opacity: 0.5;
+            text-decoration: line-through;
+            background-color: #fff0f0;
+        }
+
+        /* Rank selector */
+        .cradle-drawer .wikibase-statementview-rankselector {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .cradle-drawer .cradle-rank-select {
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border: 1px solid #c8ccd1;
+            border-radius: 2px;
+            background: #f8f9fa;
+            color: #202122;
+        }
+
+        /* Mainsnak container */
+        .cradle-drawer .wikibase-statementview-mainsnak-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+        .cradle-drawer .wikibase-statementview-mainsnak {
+            width: 100%;
+        }
+        .cradle-drawer .wikibase-snakview-value-container {
+            width: 100%;
+        }
+        .cradle-drawer .wikibase-snakview-body {
+            width: 100%;
+        }
+        .cradle-drawer .wikibase-snakview-value {
+            width: 100%;
+        }
+
+        /* Toolbar wrapper (delete / restore) */
+        .cradle-drawer .wikibase-toolbar-wrapper {
+            display: flex;
+            gap: 6px;
+            align-items: center;
         }
 
         .cradle-field-title {
@@ -928,17 +1008,17 @@
             height: 18px;
             fill: currentColor;
         }
-        .cradle-field-card.valid .cradle-card-validation-badge {
-            color: var(--color-success, #00af89);
+        .wikibase-statementgroupview.valid .cradle-card-validation-badge {
+            color: #00af89;
         }
-        .cradle-field-card.invalid .cradle-card-validation-badge {
-            color: var(--color-destructive, #d33);
+        .wikibase-statementgroupview.invalid .cradle-card-validation-badge {
+            color: #d33;
         }
-        .cradle-field-card.optional-present .cradle-card-validation-badge {
-            color: var(--color-progressive, #36c);
+        .wikibase-statementgroupview.optional-present .cradle-card-validation-badge {
+            color: #36c;
         }
-        .cradle-field-card.optional-missing .cradle-card-validation-badge {
-            color: var(--color-warning, #e69138);
+        .wikibase-statementgroupview.optional-missing .cradle-card-validation-badge {
+            color: #e69138;
         }
         .cradle-validation-label {
             flex-grow: 1;
@@ -2936,53 +3016,47 @@ function parseClaimValue(datavalue) {
             $content.append($metaCard);
         }
 
-        // Render properties
+        // Render properties using exact Wikibase templates.php DOM structure
         propIds.forEach(pid => {
             let propDef = schemaProperties[pid];
             let meta = propertyMetadata[pid] || { label: pid, description: '', datatype: 'string' };
-            
+
+            // wikibase-statementgroupview (templates.php line 52)
             let $card = $('<div>')
-                .addClass('cradle-field-card')
-                .attr('id', `cradle-card-${pid}`);
-                
-            if (propDef.mandatory) {
-                $card.addClass('mandatory');
-            }
+                .addClass('wikibase-statementgroupview')
+                .attr('id', `cradle-card-${pid}`)
+                .attr('data-property-id', pid);
 
-            // Header of card
-            let $cardHeader = $('<div>').addClass('cradle-statementgroupview-property');
-            let $label = $('<h3>').addClass('cradle-statementgroupview-property-label');
-            
-            // Prepend validation badge span next to title
-            let $badge = $('<span>').addClass('cradle-card-validation-badge').css({'margin-right': '6px', 'font-size': '1.1rem'});
-            $label.append($badge);
+            // wikibase-statementgroupview-property (templates.php line 53)
+            let $cardHeader = $('<div>').addClass('wikibase-statementgroupview-property');
 
-            $label.append($('<a>').attr({
-                href: `/wiki/Property:${pid}`,
-                target: '_blank'
-            }).text(meta.label));
-            $label.append($('<span>').css({'font-size': '0.75rem', 'font-weight': 'normal', 'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${pid})`));
-            
+            // wikibase-statementgroupview-property-label (templates.php line 54)
+            let $labelContainer = $('<div>').addClass('wikibase-statementgroupview-property-label').attr('dir', 'auto');
+
+            // Validation badge (Cradle-specific, not from Wikibase)
+            let $badge = $('<span>').addClass('cradle-card-validation-badge').css({'margin-right': '6px'});
+            $labelContainer.append($badge);
+            $labelContainer.append($('<a>').attr({ href: `/wiki/Property:${pid}`, target: '_blank' }).text(meta.label));
+            $labelContainer.append($('<span>').css({ 'font-size': '0.8rem', 'color': '#54595d', 'margin-left': '6px' }).text(`(${pid})`));
             if (propDef.mandatory) {
-                $label.append($('<span>').addClass('cradle-field-required-marker').text('*'));
+                $labelContainer.append($('<span>').css({ 'color': '#d33', 'margin-left': '4px' }).text('*'));
             }
-            
-            $cardHeader.append($label);
+            $cardHeader.append($labelContainer);
             if (meta.description) {
-                $cardHeader.append($('<p>').addClass('cradle-field-description').text(meta.description));
+                $cardHeader.append($('<div>').css({ 'font-size': '0.8rem', 'color': '#54595d', 'margin-top': '4px', 'padding': '0 10px 10px' }).text(meta.description));
             }
             $card.append($cardHeader);
 
-            // Container for statement input rows
-            let $rowsContainer = $('<div>').addClass('wikibase-statementlistview').append($('<div>').addClass('wikibase-statementlistview-listview').attr('id', `cradle-rows-${pid}`));
-            $card.append($rowsContainer);
-
-            // Container for action bar
-            let $actionsContainer = $('<div>').attr('id', `cradle-actions-${pid}`);
-            $card.append($actionsContainer);
+            // wikibase-statementlistview (templates.php line 62)
+            let $statementListView = $('<div>').addClass('wikibase-statementlistview');
+            // wikibase-statementlistview-listview (templates.php line 63)
+            let $listViewInner = $('<div>').addClass('wikibase-statementlistview-listview').attr('id', `cradle-rows-${pid}`);
+            // wikibase toolbar slot (templates.php line 66)
+            let $addToolbar = $('<div>').addClass('wikibase-toolbar-wrapper').attr('id', `cradle-actions-${pid}`);
+            $statementListView.append($listViewInner).append($addToolbar);
+            $card.append($statementListView);
 
             $content.append($card);
-            
             renderPropertyRows(pid);
         });
 
@@ -3001,48 +3075,61 @@ function parseClaimValue(datavalue) {
         let rows = formState[pid];
 
         rows.forEach((row, index) => {
-            let $rowGroup = $('<div>').css({'margin-bottom': '12px'});
-
-            let $row = $('<div>')
-                .addClass('cradle-row')
-                .attr('id', `cradle-row-${row.id}`);
-
-            if (row.isDeleted) {
-                $row.addClass('deleted');
-            }
-
             if (!row.rank) row.rank = 'normal';
             if (!row.qualifiers) row.qualifiers = {};
             if (!row.references) row.references = [];
 
-            // Rank Selector Dropdown
+            // wikibase-statementview listview-item (templates.php line 88)
+            let $row = $('<div>')
+                .addClass('wikibase-statementview listview-item')
+                .attr('id', `cradle-row-${row.id}`);
+            if (row.isDeleted) $row.addClass('wb-removed');
+
+            // wikibase-statementview-rankselector (templates.php line 89)
+            let $rankWrapper = $('<div>').addClass('wikibase-statementview-rankselector');
             let $rankSelect = $('<select>')
-                .addClass('cradle-input')
-                .css({'font-size': '0.8rem', 'padding': '2px 4px', 'width': 'auto', 'margin-right': '6px'})
-                .on('change', function() {
-                    row.rank = $(this).val();
-                });
+                .addClass('cdx-select cradle-rank-select')
+                .on('change', function() { row.rank = $(this).val(); });
             $rankSelect.append($('<option>').val('normal').text('● ' + mw.msg('cradle-rank-normal')));
-            $rankSelect.append($('<option>').val('preferred').text('▲ ' + mw.msg('cradle-rank-preferred')));
+            $rankSelect.append($('<option>').val('preferred').text('★ ' + mw.msg('cradle-rank-preferred')));
             $rankSelect.append($('<option>').val('deprecated').text('▼ ' + mw.msg('cradle-rank-deprecated')));
             $rankSelect.val(row.rank);
+            $rankWrapper.append($rankSelect);
+            $row.append($rankWrapper);
 
+            // wikibase-statementview-mainsnak-container (templates.php line 90)
+            let $mainsnakContainer = $('<div>').addClass('wikibase-statementview-mainsnak-container');
+
+            // wikibase-statementview-mainsnak → wikibase-snakview (templates.php line 91)
+            let $mainsnak = $('<div>').addClass('wikibase-statementview-mainsnak').attr('dir', 'auto');
+            let $snakview = $('<div>').addClass('wikibase-snakview wikibase-snakview-value');
+            let $snakValueContainer = $('<div>').addClass('wikibase-snakview-value-container').attr('dir', 'auto');
+            let $snakBody = $('<div>').addClass('wikibase-snakview-body');
+            let $snakValue = $('<div>').addClass('wikibase-snakview-value');
             let $inputElement = createInputForDatatype(pid, row);
-            $row.append($rankSelect).append($inputElement);
+            $snakValue.append($inputElement);
+            $snakBody.append($snakValue);
+            $snakValueContainer.append($snakBody);
+            $snakview.append($snakValueContainer);
+            $mainsnak.append($snakview);
+            $mainsnakContainer.append($mainsnak);
+            $row.append($mainsnakContainer);
 
+            // Delete / Restore button (Cradle-specific toolbar)
+            let $toolbarWrapper = $('<div>').addClass('wikibase-toolbar-wrapper').css({'margin-top': '6px'});
             let $deleteBtn = $('<button>')
-                .addClass('cradle-btn-delete')
+                .addClass('cdx-button cdx-button--action-destructive cdx-button--weight-quiet')
                 .html(row.isDeleted ? ICONS.undo : ICONS.trash)
-                .attr('title', row.isDeleted ? 'Restore Claim' : 'Delete Claim')
-                .on('click', function() {
-                    toggleDeleteRow(pid, row.id);
-                });
+                .attr('title', row.isDeleted ? mw.msg('cradle-restore') : mw.msg('cradle-delete'))
+                .on('click', function() { toggleDeleteRow(pid, row.id); });
+            $toolbarWrapper.append($deleteBtn);
+            $row.append($toolbarWrapper);
 
-            $row.append($deleteBtn);
+            let $rowGroup = $('<div>');
             $rowGroup.append($row);
 
             // Sub-bar for Qualifiers and References toggle buttons
-            let $subBar = $('<div>').css({'display': 'flex', 'gap': '8px', 'margin-top': '4px', 'margin-bottom': '6px', 'margin-left': '4px'});
+            let $subBar = $('<div>').css({'display': 'flex', 'gap': '8px', 'margin-top': '6px', 'padding-left': '4px'});
 
             let qualCount = Object.keys(row.qualifiers).length;
             let $qualToggleBtn = $('<button>')
