@@ -456,6 +456,25 @@
             margin-top: 20px !important;
             margin-bottom: 16px !important;
         }
+
+        /* Wikibase listview-item hierarchy inside Cradle Drawer */
+        .cradle-drawer .wikibase-statementlistview-listview {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+            width: 100% !important;
+        }
+        .cradle-drawer .listview-item {
+            border: 1px solid #c8ccd1 !important;
+            border-radius: 4px !important;
+            padding: 12px 14px !important;
+            background-color: #ffffff !important;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+        }
+        .cradle-drawer .listview-item:hover {
+            border-color: #36c !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+        }
 /* Select/Community Tab Menu responsive styling */
         .cradle-select-tabs {
             display: flex;
@@ -2955,7 +2974,7 @@ function parseClaimValue(datavalue) {
             $card.append($cardHeader);
 
             // Container for statement input rows
-            let $rowsContainer = $('<div>').attr('id', `cradle-rows-${pid}`);
+            let $rowsContainer = $('<div>').addClass('wikibase-statementlistview').append($('<div>').addClass('wikibase-statementlistview-listview').attr('id', `cradle-rows-${pid}`));
             $card.append($rowsContainer);
 
             // Container for action bar
