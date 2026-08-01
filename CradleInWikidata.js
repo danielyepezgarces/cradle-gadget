@@ -320,6 +320,19 @@
             border-color: #36c !important;
             color: #2a4b8d !important;
         }
+
+        /* MediaWiki Native Section Heading Styling (wb-section-heading section-heading wikibase-statements) */
+        .cradle-drawer h2.wb-section-heading,
+        .cradle-drawer .wikibase-statements-heading {
+            font-family: 'Linux Libertine', 'Georgia', 'Times', serif !important;
+            font-size: 1.3rem !important;
+            font-weight: normal !important;
+            color: #000000 !important;
+            border-bottom: 1px solid #a2a9b1 !important;
+            padding-bottom: 4px !important;
+            margin-top: 20px !important;
+            margin-bottom: 16px !important;
+        }
 /* Select/Community Tab Menu responsive styling */
         .cradle-select-tabs {
             display: flex;
@@ -2896,15 +2909,9 @@ function parseClaimValue(datavalue) {
         if (activeTitle) {
             let $formHeader = $('<div>')
                 .css({
-                    'margin-bottom': '20px',
-                    'padding-bottom': '8px'
+                    'margin-bottom': '16px'
                 })
-                .append($('<h2>').css({
-                    'font-size': '1.25rem',
-                    'margin': '0',
-                    'font-weight': 'bold',
-                    'color': 'var(--color-base, #202122)'
-                }).text(activeTitle));
+                .append($('<h2>').addClass('wb-section-heading section-heading wikibase-statements').text(activeTitle));
             $content.append($formHeader);
         }
 
