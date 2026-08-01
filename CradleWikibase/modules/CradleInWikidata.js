@@ -1,15 +1,16 @@
 /**
  * Cradle - A Wikidata User Gadget
- *
+ * 
  * This script provides a Cradle-like form editor directly within Wikidata item pages.
  * It automatically detects EntitySchemas associated with the item's classes (via Property P12861
  * on the item itself or its P31 "instance of" / P279 "subclass of" classes), parses the ShEx schema,
  * and displays a premium, modern drawer interface to add, modify, or delete claims in-place.
- *
+ * 
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
+ * License: MIT (https://opensource.org/licenses/MIT)
  * Version: 1.13.0-dev
- *
+ * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
  * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.13.0-dev');
@@ -45,17 +46,27 @@
 
     let pageName = mw.config.get('wgPageName');
     let isSpecialCradle = (pageName === 'Special:Cradle' || pageName === 'Special:BlankPage/Cradle');
+    
+    // Inject early hide CSS rules to prevent any default content from flashing before script loads
+    if (isSpecialCradle) {
+        let style = document.createElement('style');
+        style.id = 'cradle-early-hide-style';
+        style.innerHTML = '#mw-content-text > *:not(.cradle-fullpage-container) { display: none !important; } #firstHeading { visibility: hidden !important; }';
+        document.head.appendChild(style);
+    }
+    
     let isItemPage = (mw.config.get('wgNamespaceNumber') === 0 && mw.config.get('wbEntityId'));
     let entityId = isItemPage ? mw.config.get('wbEntityId') : null;
-
+    
     // State
     let entityData = null;
+    let entityDataPromise = null;
     let detectedSchemas = [];
     let cradleTemplates = {};
     let activeSchema = null;
     let activeTemplate = null;
     let activeMode = isItemPage ? 'edit' : 'create'; // 'edit' or 'create'
-
+    
     let schemaProperties = {};
     let propertyMetadata = {};
     let softselectLabels = {};
@@ -65,41 +76,26 @@
 
     // Stylesheet aligned with Wikimedia design guidelines & Vector light/dark mode
     const customCSS = `
-        /* Floating Action Button (FAB) matching Wikimedia style with high contrast */
-        .cradle-fab {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background-color: var(--background-color-interactive, #36c);
-            color: #ffffff !important; /* Explicit white color for maximum contrast */
-            border: 1px solid var(--border-color-interactive, #36c);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* Heading edit button styled to sit nicely at the right of #firstHeading */
+        .cradle-edit-heading-btn {
+            float: right;
+            font-size: 0.85rem;
+            font-weight: normal;
+            padding: 4px 12px;
+            margin-left: 12px;
+            margin-right: 4px;
+            background-color: var(--background-color-progressive, #36c);
+            color: #ffffff !important;
+            border: 1px solid var(--border-color-progressive, #36c);
+            border-radius: 2px;
             cursor: pointer;
-            z-index: 9999;
-            transition: background-color 0.2s, box-shadow 0.2s;
-            outline: none;
+            transition: background-color 0.1s;
+            height: 28px;
+            line-height: 18px;
         }
-        .cradle-fab:hover {
-            background-color: var(--background-color-interactive-hover, #447ff5);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-        }
-        .cradle-fab:active {
-            background-color: var(--background-color-interactive-active, #2a4b8d);
-        }
-        .cradle-fab svg {
-            width: 20px;
-            height: 20px;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
+        .cradle-edit-heading-btn:hover {
+            background-color: var(--background-color-progressive-hover, #447ff5);
+            border-color: var(--border-color-progressive-hover, #447ff5);
         }
 
         /* Drawer Overlay */
@@ -169,7 +165,7 @@
             font-size: 0.8rem;
             color: var(--color-subtle, #54595d);
         }
-
+        
         .cradle-close-btn {
             background: none;
             border: none;
@@ -271,7 +267,7 @@
             padding: 16px;
             margin-bottom: 16px;
         }
-
+        
         /* Form fields cards - Flat Wikimedia styling */
         .cradle-field-card {
             background-color: var(--background-color-base, #ffffff);
@@ -287,6 +283,20 @@
         }
         .cradle-field-card.mandatory {
             border-left: 3px solid var(--border-color-progressive, #36c);
+        }
+        .cradle-field-card.valid {
+            border-left: 4px solid var(--color-success, #00af89) !important;
+        }
+        .cradle-field-card.invalid {
+            border-left: 4px solid var(--color-destructive, #d33) !important;
+            background-color: rgba(211, 51, 51, 0.01);
+        }
+        .cradle-field-card.optional-present {
+            border-left: 4px solid var(--color-progressive, #36c) !important;
+        }
+        .cradle-field-card.optional-missing {
+            border-left: 4px solid var(--color-warning, #fc3) !important;
+            background-color: var(--background-color-warning-subtle, #fef8ee);
         }
 
         .cradle-field-title {
@@ -327,12 +337,12 @@
         .cradle-row.deleted {
             opacity: 0.4;
         }
-        .cradle-row.deleted .cradle-input,
+        .cradle-row.deleted .cradle-input, 
         .cradle-row.deleted .cradle-select {
             text-decoration: line-through;
             pointer-events: none;
         }
-
+        
         .cradle-input {
             flex: 1;
             display: block;
@@ -372,7 +382,7 @@
         .cradle-select:focus {
             border-color: var(--border-color-progressive-focus, #36c);
         }
-
+        
         .cradle-lang-input {
             width: 60px !important;
             flex-grow: 0 !important;
@@ -384,7 +394,7 @@
             justify-content: flex-end;
             margin-top: 4px;
         }
-
+        
         .cradle-btn-text {
             background: none;
             border: none;
@@ -403,7 +413,7 @@
             background-color: rgba(51, 102, 204, 0.05);
             color: var(--color-link-hover, #447ff5);
         }
-
+        
         .cradle-btn-delete {
             background: none;
             border: 1px solid transparent;
@@ -438,7 +448,7 @@
             display: flex;
             flex-direction: column;
         }
-
+        
         .cradle-autocomplete-dropdown {
             position: absolute;
             top: 100%;
@@ -455,7 +465,7 @@
             margin: 4px 0 0 0;
             list-style: none;
         }
-
+        
         .cradle-autocomplete-row {
             padding: 6px 12px;
             cursor: pointer;
@@ -483,13 +493,14 @@
 
         /* Footer buttons styling with explicit high contrast color */
         .cradle-footer {
-            padding: 16px 20px;
+            padding: 12px 20px;
             border-top: 1px solid var(--border-color-base, #a2a9b1);
             display: flex;
-            gap: 12px;
+            flex-direction: column;
+            gap: 8px;
             background-color: var(--background-color-neutral-subtle, #f8f9fa);
         }
-
+        
         .cradle-btn-primary {
             flex: 1;
             background-color: var(--background-color-progressive, #36c);
@@ -509,17 +520,18 @@
             box-sizing: border-box;
         }
         .cradle-btn-primary:hover {
-            background-color: var(--background-color-interactive-hover, #447ff5);
-            border-color: var(--border-color-interactive-hover, #447ff5);
+            background-color: var(--background-color-progressive-hover, #447ff5);
+            border-color: var(--border-color-progressive-hover, #447ff5);
         }
         .cradle-btn-primary:active {
-            background-color: var(--background-color-interactive-active, #2a4b8d);
+            background-color: var(--background-color-progressive-active, #2a4b8d);
+            border-color: var(--border-color-progressive-active, #2a4b8d);
         }
         .cradle-btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-
+        
         .cradle-btn-secondary {
             display: inline-flex;
             align-items: center;
@@ -580,6 +592,83 @@
             font-weight: normal;
             border-bottom: 1px solid var(--border-color-base, #a2a9b1);
             padding-bottom: 8px;
+        }
+
+        /* Validation UI styling */
+        .cradle-validation-title {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: var(--color-base, #202122);
+        }
+        .cradle-validation-desc {
+            font-size: 0.85rem;
+            color: var(--color-subtle, #54595d);
+            margin-bottom: 16px;
+        }
+        .cradle-validation-list {
+            margin-top: 12px;
+            padding-left: 0;
+            list-style: none;
+        }
+        .cradle-validation-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color-base, #a2a9b1);
+            border-radius: 2px;
+            margin-bottom: 8px;
+            background-color: var(--background-color-base, #ffffff);
+            font-size: 0.85rem;
+        }
+        .cradle-validation-item.valid {
+            border-left: 4px solid var(--color-success, #00af89);
+        }
+        .cradle-validation-item.invalid {
+            border-left: 4px solid var(--color-destructive, #d33);
+            background-color: rgba(211, 51, 51, 0.02);
+        }
+        .cradle-validation-item.optional-present {
+            border-left: 4px solid var(--color-progressive, #36c);
+        }
+        .cradle-validation-item.optional-missing {
+            border-left: 4px solid var(--color-warning, #fc3);
+            background-color: var(--background-color-warning-subtle, #fef8ee);
+        }
+        .cradle-validation-badge {
+            font-weight: bold;
+            margin-right: 12px;
+            font-size: 1.2rem;
+        }
+        .cradle-card-validation-badge svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+        .cradle-field-card.valid .cradle-card-validation-badge {
+            color: var(--color-success, #00af89);
+        }
+        .cradle-field-card.invalid .cradle-card-validation-badge {
+            color: var(--color-destructive, #d33);
+        }
+        .cradle-field-card.optional-present .cradle-card-validation-badge {
+            color: var(--color-progressive, #36c);
+        }
+        .cradle-field-card.optional-missing .cradle-card-validation-badge {
+            color: var(--color-warning, #e69138);
+        }
+        .cradle-validation-label {
+            flex-grow: 1;
+            font-weight: bold;
+        }
+        .cradle-validation-status {
+            font-size: 0.8rem;
+            color: var(--color-subtle, #54595d);
+            padding: 2px 6px;
+            border-radius: 2px;
+            background-color: var(--background-color-neutral-subtle, #f8f9fa);
+            border: 1px solid var(--border-color-base, #a2a9b1);
         }
     `;
 
@@ -815,7 +904,63 @@
             'cradle-edit-summary': 'Updated statements using Cradle Wikidata Gadget (EntitySchema:$1)',
             'cradle-create-summary': 'Created new item using Cradle Wikidata Gadget (Template: $1)',
             'cradle-search-placeholder': 'Search item...',
-            'cradle-credits': 'Created by $1 & $2. Based on $3 by Magnus Manske.'
+            'cradle-credits': 'Created by $1 & $2. Based on $3 by $4.',
+            'cradle-hardselect-placeholder': 'hardselect QIDs (comma-separated, e.g. Q5,Q6)',
+            'cradle-softselect-placeholder': 'softselect QIDs (comma-separated, e.g. Q5,Q6)',
+            'cradle-schema-title-required': 'Schema title is required!',
+            'cradle-schema-prop-required': 'You must add at least one property to the schema!',
+            'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
+            'cradle-schema-not-found': 'Could not find the schema on the page!',
+            'cradle-schema-saved': 'Schema saved successfully.',
+            'cradle-schema-deleted': 'Schema deleted successfully.',
+            'cradle-searching': ''+mw.msg('cradle-searching')+'',
+            'cradle-hardselect-label': 'Fixed options (Hardselect)',
+            'cradle-softselect-label': 'Free suggestions (Softselect)',
+            'cradle-login-required-schema': 'Log in to create custom schemas.',
+            'cradle-prop-search-placeholder': 'Search property by name or PID (e.g. P17, country)',
+            'cradle-preset-none': 'No predefined values',
+            'cradle-tab-predefined': 'Predefined Forms',
+            'cradle-tab-shex': 'EntitySchema (ShEx)',
+            'cradle-tab-custom': 'Custom Schemas',
+            'cradle-detected-schemas': 'Detected schemas for this item:',
+            'cradle-or-enter-schema': 'Or enter another EntitySchema ID:',
+            'cradle-search-value-placeholder': 'Search QID to add...',
+            'cradle-btn-edit-with-cradle': 'Edit with Cradle',
+            'cradle-validation-tab': 'Validation',
+            'cradle-validation-title': 'Schema Validation Status',
+            'cradle-validation-summary': 'Validation result for $1: $2 of $3 required, and $4 of $5 optional properties present.',
+            'cradle-val-present': 'Present',
+            'cradle-val-missing': 'Missing!',
+            'cradle-val-optional-present': 'Optional (Present)',
+            'cradle-val-optional-missing': 'Optional (Not set)',
+            'cradle-val-err-min': 'Needs at least $1 value(s)',
+            'cradle-val-err-max': 'Max $1 value(s) allowed',
+            'cradle-val-err-qid': 'Invalid QID: $1',
+            'cradle-val-err-num': 'Invalid number: $1',
+            'cradle-custom-schemas': 'My Custom Schemas (stored in User Space)',
+            'cradle-create-schema': 'Design New Schema',
+            'cradle-search-community': 'Search Community Schemas',
+            'cradle-save-schema': 'Save Schema',
+            'cradle-delete-schema-confirm': 'Are you sure you want to delete the schema "$1"?',
+            'cradle-schema-designer': 'Cradle Schema Designer',
+            'cradle-add-property': 'Add Property',
+            'cradle-save-changes': 'Save Changes',
+            'cradle-back': 'Back',
+            'cradle-schema-title': 'Schema Title',
+            'cradle-schema-desc': 'Description',
+            'cradle-btn-delete': 'Delete',
+            'cradle-btn-edit': 'Edit',
+            'cradle-btn-load': 'Load',
+            'cradle-no-custom-schemas': 'You have no custom schemas yet.',
+            'cradle-search-results': 'Search Results:',
+            'cradle-no-results': 'No schemas found.',
+            'cradle-search-btn': 'Search',
+            'cradle-search-placeholder-community': 'Search user schemas...',
+            'cradle-properties-list': 'Form Properties list:',
+            'cradle-add-prop-btn': 'Add',
+            'cradle-prop-placeholder': 'e.g. P17',
+            'cradle-default-val-placeholder': 'default QID/string',
+            'cradle-required-checkbox': 'Required'
         };
 
         // Load local English fallbacks first
@@ -823,7 +968,7 @@
 
         // Fetch translations dynamically from Wikidata User subpage
         let i18nUrl = mw.util.wikiScript('index') + '?title=User:Danielyepezgarces/Gadget-cradle/i18n.json&action=raw&ctype=application/json';
-
+        
         $.getJSON(i18nUrl).then(function(data) {
             if (data) {
                 // Load English translations first
@@ -869,7 +1014,19 @@
                     'cradle-edit-summary': 'Declaraciones actualizadas con el gadget Cradle de Wikidata (EntitySchema:$1)',
                     'cradle-create-summary': 'Nuevo elemento creado con el gadget Cradle de Wikidata (Plantilla: $1)',
                     'cradle-search-placeholder': 'Buscar elemento...',
-                    'cradle-credits': 'Creado por $1 e $2. Basado en $3 por Magnus Manske.'
+                    'cradle-credits': 'Creado por $1 e $2. Basado en $3 por Magnus Manske.',
+                    'cradle-btn-edit-with-cradle': 'Editar con Cradle',
+                    'cradle-validation-tab': 'Validación',
+                    'cradle-validation-title': 'Estado de validación de esquema',
+                    'cradle-validation-summary': 'Resultado de la validación para $1: $2 de $3 obligatorias, y $4 de $5 opcionales presentes.',
+                    'cradle-val-present': 'Presente',
+                    'cradle-val-missing': '¡Falta!',
+                    'cradle-val-optional-present': 'Opcional (Presente)',
+                    'cradle-val-optional-missing': 'Opcional (Sin establecer)',
+                    'cradle-val-err-min': 'Requiere al menos $1 valor(es)',
+                    'cradle-val-err-max': 'Máximo $1 valor(es) permitidos',
+                    'cradle-val-err-qid': 'QID no válido: $1',
+                    'cradle-val-err-num': 'Número no válido: $1'
                 });
             }
             proceedInit();
@@ -881,7 +1038,7 @@
      */
     function proceedInit() {
         mw.util.addCSS(customCSS);
-
+        
         // Add Toolbox portlet link in the sidebar on all pages
         mw.util.addPortletLink(
             'p-tb',
@@ -894,12 +1051,11 @@
         if (isSpecialCradle) {
             setupSpecialPage();
         } else if (isItemPage) {
-            createFAB();
-
-            // Scan for schemas if on an item page
-            schemasLoadedPromise = loadEntityData(entityId).then(data => {
-                entityData = data;
-                return findAssociatedSchemas(entityData);
+            createHeadingButton();
+            
+            // Scan for schemas if on an item page (uses caching/on-demand loader)
+            schemasLoadedPromise = getEntityData().then(data => {
+                return findAssociatedSchemas(data);
             }).then(schemas => {
                 detectedSchemas = schemas;
                 logDebug("[Cradle] Detected EntitySchemas:", detectedSchemas);
@@ -916,10 +1072,10 @@
      */
     function setupSpecialPage() {
         activeMode = 'create';
-
+        
         // Update browser document title
         document.title = "Cradle - Wikidata Form Editor";
-
+        
         // Set main heading
         let $heading = $('#firstHeading');
         if ($heading.length) {
@@ -933,7 +1089,7 @@
 
         // Add structural HTML container
         let $container = $('<div>').addClass('cradle-fullpage-container');
-
+        
         let $content = $('<div>').attr('id', 'cradle-content-area');
         let $footer = $('<div>').addClass('cradle-footer').attr('id', 'cradle-footer-area').css({
             'margin-top': '20px',
@@ -944,20 +1100,44 @@
         $container.append($content).append($footer);
         $contentArea.append($container);
 
+        // Remove early hiding styles so the newly rendered content and heading are displayed cleanly
+        let $earlyStyle = $('#cradle-early-hide-style');
+        if ($earlyStyle.length) {
+            $earlyStyle.remove();
+        }
+
         renderCreateOptionsSelector();
     }
 
     /**
-     * Creates the Floating Action Button.
+     * Creates the "Editar con Cradle" button inside the main heading.
      */
-    function createFAB() {
-        let $fab = $('<button>')
-            .addClass('cradle-fab')
-            .attr('title', 'Cradle Schema Editor')
-            .html(ICONS.cradle);
+    function createHeadingButton() {
+        let $heading = $('#firstHeading');
+        if (!$heading.length) return;
 
-        $fab.on('click', openEditor);
-        $('body').append($fab);
+        // Prevent adding duplicate buttons
+        if ($('#cradle-heading-edit-btn').length) return;
+
+        let $editBtn = $('<button>')
+            .attr('id', 'cradle-heading-edit-btn')
+            .addClass('cradle-edit-heading-btn')
+            .text(mw.msg('cradle-btn-edit-with-cradle'))
+            .on('click', openEditor);
+
+        // Adjust margin-right dynamically if mw-indicators is present and populated
+        let $indicators = $('.mw-indicators');
+        if ($indicators.length && $indicators.children().length > 0) {
+            let indicatorsWidth = $indicators.outerWidth() || 0;
+            if (indicatorsWidth > 0) {
+                $editBtn.css('margin-right', (indicatorsWidth + 16) + 'px');
+            } else {
+                // Fallback margin if width not yet computed
+                $editBtn.css('margin-right', '48px');
+            }
+        }
+
+        $heading.append($editBtn);
     }
 
     /**
@@ -987,7 +1167,7 @@
      */
     function findAssociatedSchemas(data) {
         let schemas = [];
-
+        
         // Direct schema on this item
         if (data.claims && data.claims[P12861]) {
             data.claims[P12861].forEach(claim => {
@@ -1016,30 +1196,34 @@
             return Promise.resolve(schemas);
         }
 
-        // Query the classes to see if they have P12861
-        let api = new mw.Api();
-        return api.get({
-            action: 'wbgetentities',
-            ids: classesToCheck.join('|'),
-            props: 'claims',
-            format: 'json'
-        }).then(res => {
-            if (res && res.entities) {
-                Object.keys(res.entities).forEach(qid => {
-                    let cls = res.entities[qid];
-                    if (cls.claims && cls.claims[P12861]) {
-                        cls.claims[P12861].forEach(claim => {
-                            if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value) {
-                                let schemaId = claim.mainsnak.datavalue.value.id;
-                                if (schemaId && !schemas.includes(schemaId)) {
-                                    schemas.push(schemaId);
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            api.get({
+                action: 'wbgetentities',
+                ids: classesToCheck.join('|'),
+                props: 'claims',
+                format: 'json'
+            }).done(function(res) {
+                if (res && res.entities) {
+                    Object.keys(res.entities).forEach(qid => {
+                        let cls = res.entities[qid];
+                        if (cls.claims && cls.claims[P12861]) {
+                            cls.claims[P12861].forEach(claim => {
+                                if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value) {
+                                    let schemaId = claim.mainsnak.datavalue.value.id;
+                                    if (schemaId && !schemas.includes(schemaId)) {
+                                        schemas.push(schemaId);
+                                    }
                                 }
-                            }
-                        });
-                    }
-                });
-            }
-            return schemas;
+                            });
+                        }
+                    });
+                }
+                resolve(schemas);
+            }).fail(function(err) {
+                logError("[Cradle] findAssociatedSchemas request failed:", err);
+                resolve(schemas);
+            });
         });
     }
 
@@ -1065,6 +1249,14 @@
     function closeEditor() {
         $('.cradle-drawer').removeClass('open');
         $('.cradle-drawer-overlay').removeClass('open');
+        
+        // Reset state so that next open reloads clean data
+        schemaProperties = {};
+        propertyMetadata = {};
+        softselectLabels = {};
+        formState = {};
+        activeSchema = null;
+        activeTemplate = null;
     }
 
     /**
@@ -1077,7 +1269,7 @@
         let $header = $('<div>').addClass('cradle-header');
         let $titleArea = $('<div>').addClass('cradle-title-area');
         $titleArea.append($('<h2>').addClass('cradle-title').text(mw.msg('cradle-editor')));
-
+        
         // Render tabs
         let $tabs = $('<div>').addClass('cradle-tabs');
         if (isItemPage) {
@@ -1085,19 +1277,19 @@
         }
         $tabs.append($('<div>').addClass('cradle-tab').attr('data-mode', 'create').text(mw.msg('cradle-create-tab')));
         $titleArea.append($tabs);
-
+        
         let $closeBtn = $('<button>')
             .addClass('cradle-close-btn')
             .html(ICONS.close)
             .on('click', closeEditor);
 
         $header.append($titleArea).append($closeBtn);
-
+        
         let $content = $('<div>').addClass('cradle-content').attr('id', 'cradle-content-area');
         let $footer = $('<div>').addClass('cradle-footer').attr('id', 'cradle-footer-area');
 
         $drawer.append($header).append($content).append($footer);
-
+        
         $overlay.on('click', closeEditor);
         $drawer.on('click', function(e) { e.stopPropagation(); });
 
@@ -1106,13 +1298,18 @@
         // Bind tab events
         $drawer.find('.cradle-tab').on('click', function() {
             let mode = $(this).attr('data-mode');
+            if (mode === 'create') {
+                // Redirect directly to Special:Cradle instead of rendering inside drawer
+                location.href = mw.util.getUrl('Special:Cradle');
+                return;
+            }
             activeMode = mode;
             $drawer.find('.cradle-tab').removeClass('active');
             $(this).addClass('active');
             renderActiveView();
                     scheduleNativeDecoration();
         });
-
+        
         // Set initial active tab
         $drawer.find(`.cradle-tab[data-mode="${activeMode}"]`).addClass('active');
     }
@@ -1434,11 +1631,11 @@
         let forms = {};
         let lines = wikitext.split('\n');
         let currentForm = null;
-
+        
         lines.forEach(line => {
             line = line.trim();
             if (!line) return;
-
+            
             // Match == Form Title ==
             let titleMatch = line.match(/^==\s*(.+?)\s*==$/);
             if (titleMatch) {
@@ -1451,22 +1648,22 @@
                 forms[title.toLowerCase().replace(/ /g, '_')] = currentForm;
                 return;
             }
-
+            
             if (!currentForm) return;
-
+            
             // Match language label translations: :de:Antike Töpfer...
             let langMatch = line.match(/^:([a-z-]+):(.+)$/);
             if (langMatch) {
                 currentForm.labels[langMatch[1]] = langMatch[2].trim();
                 return;
             }
-
+            
             // Match property line: ;P31:hardselect:Q5|mandatory
             let propMatch = line.match(/^;\s*(P\d+)(?::(.*))?$/);
             if (propMatch) {
                 let pid = propMatch[1];
                 let rest = propMatch[2] || '';
-
+                
                 let propConfig = {
                     id: pid,
                     mandatory: false,
@@ -1474,12 +1671,12 @@
                     softselect: [],
                     defaultValue: ''
                 };
-
+                
                 let parts = rest.split('|');
                 parts.forEach(part => {
                     part = part.trim();
                     if (!part) return;
-
+                    
                     if (part === 'mandatory') {
                         propConfig.mandatory = true;
                     } else {
@@ -1497,11 +1694,11 @@
                         }
                     }
                 });
-
+                
                 currentForm.props[pid] = propConfig;
             }
         });
-
+        
         return forms;
     }
 
@@ -1536,11 +1733,11 @@
             .append($('<div>').addClass('cradle-spinner').css({'border-top-color': 'var(--border-color-progressive, #36c)'}))
             .append($('<p>').text(`Loading form template...`))
         );
-        $('#cradle-footer-area').empty();
+        updateDrawerFooter(false);
 
         let t = cradleTemplates[key];
         activeTemplate = t;
-
+        
         let propIds = Object.keys(t.props);
         let softselectQids = [];
         propIds.forEach(pid => {
@@ -1551,13 +1748,15 @@
             }
         });
 
-        Promise.all([
-            loadPropertiesMetadata(propIds),
-            loadItemLabels(softselectQids)
-        ]).then(results => {
+        getEntityData().then(() => {
+            return Promise.all([
+                loadPropertiesMetadata(propIds),
+                loadItemLabels(softselectQids)
+            ]);
+        }).then(results => {
             propertyMetadata = results[0];
             softselectLabels = results[1];
-
+            
             // Map cradle format to parser properties
             schemaProperties = {};
             propIds.forEach(pid => {
@@ -1584,26 +1783,45 @@
     }
 
     /**
+     * Retrieves or fetches entity data on-demand, resolving race conditions.
+     */
+    function getEntityData() {
+        if (!isItemPage) return Promise.resolve(null);
+        if (entityData) return Promise.resolve(entityData);
+        if (entityDataPromise) return entityDataPromise;
+        
+        entityDataPromise = loadEntityData(entityId).then(data => {
+            entityData = data;
+            return entityData;
+        });
+        return entityDataPromise;
+    }
+
+    /**
      * Loads the EntitySchema page content, parses it, fetches metadata and renders the form.
      */
     function loadAndDisplaySchema(schemaId) {
+        activeSchema = { id: schemaId, label: schemaId };
+        
         let $content = $('#cradle-content-area').empty();
+        updateDrawerFooter(false);
         $content.append($('<div>').css({'text-align': 'center', 'margin-top': '40px'})
             .append($('<div>').addClass('cradle-spinner').css({'border-top-color': 'var(--border-color-progressive, #36c)', 'width': '30px', 'height': '30px'}))
             .append($('<p>').text(mw.msg('cradle-loading-schema', schemaId)))
         );
-        $('#cradle-footer-area').empty();
 
-        fetchSchema(schemaId).then(schema => {
+        getEntityData().then(() => {
+            return fetchSchema(schemaId);
+        }).then(schema => {
             activeSchema = schema;
             if (true) {
                 $('.cradle-subtitle').text(`Schema: ${schema.label} (${schema.id})`);
             }
-
+            
             // Parse properties in the ShEx schema
             schemaProperties = parseShEx(schema.schemaText);
             let propIds = Object.keys(schemaProperties);
-
+            
             if (propIds.length === 0) {
                 throw new Error("No properties found in this schema");
             }
@@ -1624,7 +1842,7 @@
         }).then(results => {
             propertyMetadata = results[0];
             softselectLabels = results[1];
-
+            
             initializeFormState();
             renderForm();
         }).catch(err => {
@@ -1679,11 +1897,11 @@
     function parseShEx(shexText) {
         // Remove comments
         shexText = shexText.replace(/(?<!\<)#.*(\n|$)/mg, "\n");
-
+        
         // Find start shape
         let startMatch = shexText.match(/start\s*=\s*@<\s*(.+?)\s*>/i);
         let startShape = startMatch ? startMatch[1] : null;
-
+        
         // Find shape contents
         let shapes = {};
         let shapeRegex = /<([^>]+)>\s*(?:EXTRA\s+[^{]+)?\s*\{([\s\S]*?)\}/gi;
@@ -1696,7 +1914,7 @@
                 startShape = shapeName;
             }
         }
-
+        
         let targetText = shexText;
         if (startShape && shapes[startShape]) {
             targetText = shapes[startShape];
@@ -1707,18 +1925,18 @@
         parts.forEach(part => {
             part = part.trim();
             if (!part) return;
-
+            
             // Match wdt:P123 or ps:P123
             let m = part.match(/(?:wdt|p|ps|pxt):(P\d+)\s*(.*)/);
             if (!m) return;
-
+            
             let propId = m[1];
             let rest = m[2].trim();
-
+            
             let min = 0;
             let max = Infinity;
             let mandatory = false;
-
+            
             // Cardinality checks
             if (rest.endsWith('+')) {
                 min = 1;
@@ -1746,7 +1964,7 @@
                 }
             }
             if (min > 0) mandatory = true;
-
+            
             // Extract softselect [wd:Q1 wd:Q2]
             let softselect = [];
             let allowedMatch = rest.match(/\[\s*([^\]]+)\s*\]/);
@@ -1755,7 +1973,7 @@
                 let qids = itemsText.match(/Q\d+/g) || [];
                 softselect = qids;
             }
-
+            
             props[propId] = {
                 id: propId,
                 min: min,
@@ -1764,7 +1982,7 @@
                 softselect: softselect
             };
         });
-
+        
         return props;
     }
 
@@ -1772,40 +1990,81 @@
      * Fetches property metadata.
      */
     function loadPropertiesMetadata(propIds) {
-        let api = new mw.Api();
-        let userLang = mw.config.get('wgUserLanguage') || 'en';
-        return api.get({
-            action: 'wbgetentities',
-            ids: propIds.join('|'),
-            props: 'info|labels|descriptions|datatype',
-            languages: userLang + '|en',
-            format: 'json'
-        }).then(res => {
-            let metadata = {};
-            if (res && res.entities) {
-                Object.keys(res.entities).forEach(pid => {
-                    let ent = res.entities[pid];
-                    let label = pid;
-                    if (ent.labels) {
-                        label = (ent.labels[userLang] && ent.labels[userLang].value) ||
-                                (ent.labels['en'] && ent.labels['en'].value) ||
-                                pid;
-                    }
-                    let desc = "";
-                    if (ent.descriptions) {
-                        desc = (ent.descriptions[userLang] && ent.descriptions[userLang].value) ||
-                               (ent.descriptions['en'] && ent.descriptions['en'].value) ||
-                               "";
-                    }
-                    metadata[pid] = {
-                        id: pid,
-                        label: label,
-                        description: desc,
-                        datatype: ent.datatype
-                    };
-                });
-            }
-            return metadata;
+        logDebug("[Cradle] Loading properties metadata for:", propIds);
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            let userLang = mw.config.get('wgUserLanguage') || 'en';
+            api.get({
+                action: 'wbgetentities',
+                ids: propIds.join('|'),
+                props: 'info|labels|descriptions|datatype|claims',
+                languages: userLang + '|en',
+                format: 'json'
+            }).done(function(res) {
+                let metadata = {};
+                if (res && res.entities) {
+                    Object.keys(res.entities).forEach(pid => {
+                        let ent = res.entities[pid];
+                        let label = pid;
+                        if (ent.labels) {
+                            label = (ent.labels[userLang] && ent.labels[userLang].value) ||
+                                    (ent.labels['en'] && ent.labels['en'].value) ||
+                                    pid;
+                        }
+                        
+                        let desc = "";
+                        let p2559Texts = [];
+                        if (ent.claims && ent.claims.P2559) {
+                            ent.claims.P2559.forEach(claim => {
+                                if (claim.mainsnak && 
+                                    claim.mainsnak.snaktype === 'value' && 
+                                    claim.mainsnak.datavalue && 
+                                    claim.mainsnak.datavalue.value) {
+                                    let val = claim.mainsnak.datavalue.value;
+                                    if (val.text && val.language) {
+                                        p2559Texts.push({
+                                            text: val.text,
+                                            language: val.language
+                                        });
+                                    }
+                                }
+                            });
+                        }
+
+                        // 1. Try P2559 in user interface language
+                        let targetUsage = p2559Texts.find(t => t.language === userLang);
+                        if (targetUsage) {
+                            desc = targetUsage.text;
+                        } else {
+                            // 2. Try P2559 in English
+                            let enUsage = p2559Texts.find(t => t.language === 'en');
+                            if (enUsage) {
+                                desc = enUsage.text;
+                            } else {
+                                // 3. Try standard description in user interface language
+                                if (ent.descriptions && ent.descriptions[userLang]) {
+                                    desc = ent.descriptions[userLang].value;
+                                } else if (ent.descriptions && ent.descriptions['en']) {
+                                    // 4. Try standard description in English
+                                    desc = ent.descriptions['en'].value;
+                                }
+                            }
+                        }
+
+                        metadata[pid] = {
+                            id: pid,
+                            label: label,
+                            description: desc,
+                            datatype: ent.datatype
+                        };
+                    });
+                }
+                logDebug("[Cradle] Loaded properties metadata:", metadata);
+                resolve(metadata);
+            }).fail(function(err) {
+                logError("[Cradle] loadPropertiesMetadata request failed:", err);
+                resolve({});
+            });
         });
     }
 
@@ -2201,7 +2460,234 @@ function parseClaimValue(datavalue) {
     }
 
     /**
-     * Renders the complete form fields.
+     * Renders the schema validation results view.
+     */
+    /**
+     * Runs schema validation on the current formState.
+     */
+    function validateFormState() {
+        let results = {
+            properties: {},
+            totalRequired: 0,
+            presentRequired: 0,
+            totalOptional: 0,
+            presentOptional: 0
+        };
+
+        Object.keys(schemaProperties).forEach(pid => {
+            let propDef = schemaProperties[pid];
+            let meta = propertyMetadata[pid] || { datatype: 'string' };
+            let datatype = meta.datatype || 'string';
+            
+            let min = propDef.min !== undefined ? propDef.min : 0;
+            let max = propDef.max !== undefined ? propDef.max : '*';
+            
+            // Get active claims
+            let claims = formState[pid] || [];
+            let activeClaims = claims.filter(c => !c.isDeleted && c.value !== '' && (typeof c.value !== 'object' || c.value.text !== ''));
+            let isPresent = (activeClaims.length > 0);
+
+            // Validation checks
+            let errors = [];
+            
+            // 1. Cardinality checks
+            if (activeClaims.length < min) {
+                errors.push(mw.msg('cradle-val-err-min', min));
+            }
+            if (max !== '*' && activeClaims.length > max) {
+                errors.push(mw.msg('cradle-val-err-max', max));
+            }
+            
+            // 2. Format checks
+            activeClaims.forEach(claim => {
+                let val = claim.value;
+                if (datatype === 'wikibase-item') {
+                    if (typeof val === 'string' && !/^[qQ]\d+$/.test(val.trim())) {
+                        errors.push(mw.msg('cradle-val-err-qid', val));
+                    }
+                } else if (datatype === 'quantity') {
+                    if (typeof val === 'string' && isNaN(Number(val.trim()))) {
+                        errors.push(mw.msg('cradle-val-err-num', val));
+                    }
+                }
+            });
+
+            let isValid = (errors.length === 0);
+            let isRequired = (min >= 1);
+
+            if (isRequired) {
+                results.totalRequired++;
+                if (isValid && isPresent) {
+                    results.presentRequired++;
+                }
+            } else {
+                results.totalOptional++;
+                if (isValid && isPresent) {
+                    results.presentOptional++;
+                }
+            }
+
+            let itemClass = "";
+            let badgeText = "";
+            let statusText = "";
+            
+            let badgeHtml = "";
+            if (isRequired) {
+                if (isPresent && isValid) {
+                    itemClass = "valid";
+                    badgeHtml = ICONS.check;
+                    statusText = mw.msg('cradle-val-present');
+                } else {
+                    itemClass = "invalid";
+                    badgeHtml = ICONS.close;
+                    statusText = errors.length > 0 ? errors.join(', ') : mw.msg('cradle-val-missing');
+                }
+            } else {
+                if (isPresent) {
+                    if (isValid) {
+                        itemClass = "optional-present";
+                        badgeHtml = ICONS.info;
+                        statusText = mw.msg('cradle-val-optional-present');
+                    } else {
+                        itemClass = "invalid";
+                        badgeHtml = ICONS.close;
+                        statusText = errors.join(', ');
+                    }
+                } else {
+                    itemClass = "optional-missing";
+                    badgeHtml = ICONS.alert;
+                    statusText = mw.msg('cradle-val-optional-missing');
+                }
+            }
+
+            results.properties[pid] = {
+                isValid: isValid,
+                isPresent: isPresent,
+                isRequired: isRequired,
+                errors: errors,
+                itemClass: itemClass,
+                badgeHtml: badgeHtml,
+                statusText: statusText
+            };
+        });
+
+        return results;
+    }
+
+    /**
+     * Updates card borders, badges, and validation summary in real-time.
+     */
+    function liveUpdateValidation() {
+        let val = validateFormState();
+        if (Object.keys(schemaProperties).length === 0) return;
+
+        // 1. Update summary box
+        let summaryText = mw.msg('cradle-validation-summary', 
+            activeSchema ? activeSchema.id : 'Template', 
+            val.presentRequired, 
+            val.totalRequired, 
+            val.presentOptional, 
+            val.totalOptional
+        );
+        let allRequiredSatisfied = (val.presentRequired === val.totalRequired);
+        
+        $('#cradle-validation-summary-box')
+            .css({
+                'background-color': allRequiredSatisfied ? 'rgba(0, 175, 137, 0.08)' : 'rgba(211, 51, 51, 0.05)',
+                'border-color': allRequiredSatisfied ? 'var(--color-success, #00af89)' : 'var(--color-destructive, #d33)',
+                'color': allRequiredSatisfied ? 'var(--color-success, #00af89)' : 'var(--color-destructive, #d33)'
+            })
+            .text(summaryText);
+
+        // 2. Update each card
+        Object.keys(val.properties).forEach(pid => {
+            let propVal = val.properties[pid];
+            let $card = $(`#cradle-card-${pid}`);
+            if (!$card.length) return;
+
+            // Update card border classes
+            $card.removeClass('valid invalid optional-present optional-missing')
+                 .addClass(propVal.itemClass);
+
+            // Update badge icon next to title
+            $card.find('.cradle-card-validation-badge').html(propVal.badgeHtml);
+
+            // Update card error text list
+            $card.find('.cradle-field-errors').remove();
+            if (propVal.errors.length > 0) {
+                let $errList = $('<div>').addClass('cradle-field-errors').css({
+                    'color': 'var(--color-destructive, #d33)',
+                    'font-size': '0.75rem',
+                    'margin-top': '8px',
+                    'font-weight': 'bold',
+                    'line-height': '1.3'
+                });
+                propVal.errors.forEach(err => {
+                    $errList.append($('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '4px'}).html(ICONS.alert + ' <span>' + err + '</span>'));
+                });
+                $(`#cradle-rows-${pid}`).after($errList);
+            }
+        });
+    }
+
+    /**
+     * Updates the drawer footer area (credits and buttons).
+     */
+    function updateDrawerFooter(showButtons) {
+        let $footer = $('#cradle-footer-area').empty();
+        if (!$footer.length) return;
+ 
+        if (showButtons) {
+            let $btnContainer = $('<div>').css({
+                'display': 'flex',
+                'gap': '12px',
+                'width': '100%',
+                'margin-bottom': '8px'
+            });
+            
+            let $saveBtn = $('<button>')
+                .addClass('cradle-btn-primary')
+                .text(activeMode === 'edit' ? mw.msg('cradle-save-changes') : mw.msg('cradle-create-item'))
+                .on('click', saveForm);
+                
+            let $cancelBtn = $('<button>')
+                .addClass('cradle-btn-secondary')
+                .text(mw.msg('cradle-cancel'))
+                .on('click', function() {
+                    if (isSpecialCradle) {
+                        renderCreateOptionsSelector();
+                    } else {
+                        closeEditor();
+                    }
+                });
+ 
+            $btnContainer.append($cancelBtn).append($saveBtn);
+            $footer.append($btnContainer);
+        }
+ 
+        if (true) {
+            let danielLink = '<a href="' + mw.util.getUrl('User:Danielyepezgarces') + '" target="_blank">Daniel Yepez Garces</a>';
+            let ismaelLink = '<a href="' + mw.util.getUrl('User:Olea') + '" target="_blank">Ismael Olea</a>';
+            let cradleLink = '<a href="https://cradle.toolforge.org/" target="_blank">Cradle</a>';
+            let magnusLink = '<a href="https://meta.wikimedia.org/wiki/User:Magnus_Manske" target="_blank">Magnus Manske</a>';
+ 
+            let $credits = $('<p>')
+                .css({
+                    'font-size': '0.72rem',
+                    'color': 'var(--color-subtle, #54595d)',
+                    'margin': '4px auto 0 auto',
+                    'text-align': 'center',
+                    'width': '100%',
+                    'line-height': '1.3'
+                })
+                .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink, magnusLink));
+ 
+            $footer.append($credits);
+        }
+    }
+
+    /**
+     * Resets active state and goes back to selection menu.
      */
     function changeActiveForm() {
         schemaProperties = {};
@@ -2247,12 +2733,26 @@ function parseClaimValue(datavalue) {
             $content.append($formHeader);
         }
 
+        // Live validation summary banner at the top of the form
+        let $summaryBox = $('<div>')
+            .attr('id', 'cradle-validation-summary-box')
+            .css({
+                'padding': '12px 16px',
+                'border-radius': '2px',
+                'margin-bottom': '16px',
+                'font-size': '0.9rem',
+                'font-weight': 'bold',
+                'border': '1px solid transparent',
+                'transition': 'all 0.2s ease'
+            });
+        $content.append($summaryBox);
+
         // For Create Mode: Ingest Label and Description inputs
         if (activeMode === 'create') {
             let $metaCard = $('<div>').addClass('cradle-field-card').addClass('mandatory');
             $metaCard.append($('<h3>').addClass('cradle-field-title').text(mw.msg('cradle-new-item-identity')));
             $metaCard.append($('<p>').addClass('cradle-field-description').text(mw.msg('cradle-new-item-identity-desc')));
-
+            
             // Lang & Label input
             let $labelRow = $('<div>').addClass('cradle-row');
             let $langInput = $('<input>')
@@ -2261,7 +2761,7 @@ function parseClaimValue(datavalue) {
                 .attr('type', 'text')
                 .attr('id', 'cradle-new-item-lang')
                 .val(mw.config.get('wgUserLanguage') || 'en');
-
+                
             let $labelInput = $('<input>')
                 .addClass('cradle-input')
                 .attr('type', 'text')
@@ -2277,7 +2777,7 @@ function parseClaimValue(datavalue) {
                 .attr('type', 'text')
                 .attr('id', 'cradle-new-item-desc')
                 .attr('placeholder', mw.msg('cradle-new-item-desc'));
-
+                
             $metaCard.append($('<div>').addClass('cradle-row').append($descInput));
             $content.append($metaCard);
         }
@@ -2286,11 +2786,11 @@ function parseClaimValue(datavalue) {
         propIds.forEach(pid => {
             let propDef = schemaProperties[pid];
             let meta = propertyMetadata[pid] || { label: pid, description: '', datatype: 'string' };
-
+            
             let $card = $('<div>')
                 .addClass('cradle-field-card')
                 .attr('id', `cradle-card-${pid}`);
-
+                
             if (propDef.mandatory) {
                 $card.addClass('mandatory');
             }
@@ -2298,16 +2798,21 @@ function parseClaimValue(datavalue) {
             // Header of card
             let $cardHeader = $('<div>').addClass('cradle-field-header');
             let $label = $('<h3>').addClass('cradle-field-title');
+            
+            // Prepend validation badge span next to title
+            let $badge = $('<span>').addClass('cradle-card-validation-badge').css({'margin-right': '6px', 'font-size': '1.1rem'});
+            $label.append($badge);
+
             $label.append($('<a>').attr({
                 href: `/wiki/Property:${pid}`,
                 target: '_blank'
             }).text(meta.label));
             $label.append($('<span>').css({'font-size': '0.75rem', 'font-weight': 'normal', 'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${pid})`));
-
+            
             if (propDef.mandatory) {
                 $label.append($('<span>').addClass('cradle-field-required-marker').text('*'));
             }
-
+            
             $cardHeader.append($label);
             if (meta.description) {
                 $cardHeader.append($('<p>').addClass('cradle-field-description').text(meta.description));
@@ -2318,62 +2823,17 @@ function parseClaimValue(datavalue) {
             let $rowsContainer = $('<div>').attr('id', `cradle-rows-${pid}`);
             $card.append($rowsContainer);
 
-            // Action bar (Add row button)
-            if (propDef.max > 1) {
-                let $actions = $('<div>').addClass('cradle-card-action-bar');
-                let $addBtn = $('<button>')
-                    .addClass('cradle-btn-text')
-                    .html(`${ICONS.plus} ${mw.msg('cradle-add-value')}`)
-                    .on('click', function() {
-                        addRow(pid);
-                    });
-                $actions.append($addBtn);
-                $card.append($actions);
-            }
+            // Container for action bar
+            let $actionsContainer = $('<div>').attr('id', `cradle-actions-${pid}`);
+            $card.append($actionsContainer);
 
             $content.append($card);
-
+            
             renderPropertyRows(pid);
         });
 
-        // Render Footer Save/Cancel buttons
-        let $footer = $('#cradle-footer-area').empty();
-        let $saveBtn = $('<button>')
-            .addClass('cradle-btn-primary')
-            .text(activeMode === 'edit' ? mw.msg('cradle-save-changes') : mw.msg('cradle-create-item'))
-            .on('click', saveForm);
-
-        let $cancelBtn = $('<button>')
-            .addClass('cradle-btn-secondary')
-            .text(mw.msg('cradle-cancel'))
-            .on('click', function() {
-                if (isSpecialCradle) {
-                    renderCreateOptionsSelector();
-                } else {
-                    closeEditor();
-                }
-            });
-
-        $footer.append($cancelBtn).append($saveBtn);
-
-        // Render Credits in the extension too
-        let danielLink = '<a href="' + mw.util.getUrl('User:Danielyepezgarces') + '" target="_blank">Daniel Yepez Garces</a>';
-        let ismaelLink = '<a href="' + mw.util.getUrl('User:Olea') + '" target="_blank">Ismael Olea</a>';
-        let cradleLink = '<a href="https://cradle.toolforge.org/" target="_blank">Cradle</a>';
-        let magnusLink = '<a href="https://meta.wikimedia.org/wiki/User:Magnus_Manske" target="_blank">Magnus Manske</a>';
-
-        let $credits = $('<p>')
-            .css({
-                'font-size': '0.72rem',
-                'color': 'var(--color-subtle, #54595d)',
-                'margin': '4px auto 0 auto',
-                'text-align': 'center',
-                'width': '100%',
-                'line-height': '1.3'
-            })
-            .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink, magnusLink));
-
-        $footer.append($credits);
+        updateDrawerFooter(true);
+        liveUpdateValidation();
     }
 
     /**
@@ -2718,7 +3178,7 @@ function parseClaimValue(datavalue) {
      */
     function createInputForDatatype(pid, row) {
         let propDef = schemaProperties[pid];
-
+        
         // 1. wikibase-item datatype
         if (row.datatype === 'wikibase-item') {
             if (propDef.softselect && propDef.softselect.length > 0) {
@@ -2728,7 +3188,7 @@ function parseClaimValue(datavalue) {
                     let label = softselectLabels[qid] || qid;
                     $select.append($('<option>').val(qid).text(`${label} (${qid})`));
                 });
-
+                
                 $select.val(row.value);
                 $select.on('change', function() {
                     row.value = $select.val();
@@ -2758,7 +3218,7 @@ function parseClaimValue(datavalue) {
             let searchTimeout = null;
             $input.on('input', function() {
                 let query = $input.val().trim();
-
+                
                 // If they typed a valid QID directly, update row value immediately
                 if (/^[qQ]\d+$/.test(query)) {
                     row.value = query.toUpperCase();
@@ -2766,7 +3226,7 @@ function parseClaimValue(datavalue) {
                     row.value = '';
                 }
                 liveUpdateValidation();
-
+                
                 clearTimeout(searchTimeout);
                 if (query.length < 2) {
                     $dropdown.hide();
@@ -2780,21 +3240,21 @@ function parseClaimValue(datavalue) {
                             $dropdown.hide();
                             return;
                         }
-
+                        
                         results.forEach(res => {
                             let $row = $('<li>').addClass('cradle-autocomplete-row');
                             $row.append($('<span>').addClass('cradle-autocomplete-row-label').text(`${res.label} (${res.id})`));
                             if (res.description) {
                                 $row.append($('<span>').addClass('cradle-autocomplete-row-desc').text(res.description));
                             }
-
+                            
                             $row.on('click', function() {
                                 row.value = res.id;
                                 $input.val(`${res.label} (${res.id})`);
                                 $dropdown.hide();
                                 liveUpdateValidation();
                             });
-
+                            
                             $dropdown.append($row);
                         });
                         $dropdown.show();
@@ -2815,14 +3275,14 @@ function parseClaimValue(datavalue) {
         if (row.datatype === 'monolingualtext') {
             let $group = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex': '1'});
             let valObj = row.value || { text: '', language: 'en' };
-
+            
             let $langInput = $('<input>')
                 .addClass('cradle-input')
                 .addClass('cradle-lang-input')
                 .attr('type', 'text')
                 .attr('placeholder', 'Lang')
                 .val(valObj.language);
-
+                
             let $textInput = $('<input>')
                 .addClass('cradle-input')
                 .attr('type', 'text')
@@ -2851,7 +3311,7 @@ function parseClaimValue(datavalue) {
                 .attr('type', 'number')
                 .attr('placeholder', 'Number value')
                 .val(row.value);
-
+                
             $input.on('input', function() {
                 row.value = $input.val();
                 liveUpdateValidation();
@@ -2866,7 +3326,7 @@ function parseClaimValue(datavalue) {
                 .attr('type', 'text')
                 .attr('placeholder', 'e.g. 08 ago 2023, 08/08/2003, YYYY-MM-DD')
                 .val(row.value);
-
+                
             $input.on('input', function() {
                 row.value = $input.val();
                 liveUpdateValidation();
@@ -2895,6 +3355,7 @@ function parseClaimValue(datavalue) {
         let meta = propertyMetadata[pid] || { datatype: 'string' };
         formState[pid].push(createNewRowState(meta.datatype));
         renderPropertyRows(pid);
+        liveUpdateValidation();
     }
 
     /**
@@ -2911,6 +3372,7 @@ function parseClaimValue(datavalue) {
             row.isDeleted = !row.isDeleted;
         }
         renderPropertyRows(pid);
+        liveUpdateValidation();
     }
 
     /**
@@ -3138,7 +3600,7 @@ function searchWikidataItems(term) {
             langCode = $('#cradle-new-item-lang').val().trim();
             labelVal = $('#cradle-new-item-label').val().trim();
             descVal = $('#cradle-new-item-desc').val().trim();
-
+            
             if (!labelVal) {
                 mandatoryErrors.push(mw.msg('cradle-label-required'));
             }
@@ -3149,9 +3611,9 @@ function searchWikidataItems(term) {
             let propDef = schemaProperties[pid];
             let rows = formState[pid];
             let meta = propertyMetadata[pid] || { label: pid };
-
+            
             let activeClaimsCount = rows.filter(r => !r.isDeleted && !isEmptyValue(r.value, r.datatype)).length;
-
+            
             if (propDef.mandatory && activeClaimsCount === 0) {
                 mandatoryErrors.push(mw.msg('cradle-mandatory-error', meta.label, pid));
             }
@@ -3352,7 +3814,7 @@ function searchWikidataItems(term) {
             } else if (timeStr.length === 11) {
                 timeStr += 'T00:00:00Z';
             }
-
+            
             let precision = 9; // Year
             if (timeStr.includes('-00-00')) {
                 precision = 9;
@@ -3384,9 +3846,9 @@ function searchWikidataItems(term) {
         if (!origClaim.mainsnak || !origClaim.mainsnak.datavalue) return true;
         let origVal = origClaim.mainsnak.datavalue.value;
         let newVal = datavalue.value;
-
+        
         if (datavalue.type !== origClaim.mainsnak.datavalue.type) return true;
-
+        
         if (datavalue.type === 'wikibase-entityid') {
             return origVal.id !== newVal.id;
         }
@@ -4120,3 +4582,4 @@ function searchWikidataItems(term) {
     });
 
 })();
+
