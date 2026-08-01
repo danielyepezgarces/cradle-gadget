@@ -606,21 +606,28 @@
      * Decorates Wikidata's native item page DOM with Green/Red/Yellow schema validation borders
      * and renders placeholder cards for missing schema properties directly in the page body.
      */
+    /**
+     * Decorates Wikidata's native item page DOM with Green/Red/Yellow schema validation borders
+     * and renders placeholder cards for missing schema properties directly in the page body.
+     * Uses fallback selectors and retry loops for maximum compatibility with Wikibase DOM.
+     */
     function decorateNativeWikidataDOM() {
         if (!isItemPage || !activeSchema || Object.keys(schemaProperties).length === 0) return;
-        logDebug("[Cradle] Decorating native Wikidata DOM with schema borders for:", activeSchema.id);
 
         let validationResults = validateFormState();
-        let $statementList = $('.wikibase-statementgrouplistview');
+        let $statementList = $('.wikibase-statementgrouplistview, #claims, .wikibase-entityview-main, #mw-content-text').first();
         if ($statementList.length === 0) return;
+
+        logDebug("[Cradle] Executing decorateNativeWikidataDOM for schema:", activeSchema.id);
 
         // Clean up previous Cradle native decorations
         $('.cradle-native-missing-card').remove();
         $('.cradle-native-badge').remove();
-        $('[data-property-id]').css({
+        $('[data-property-id], .wikibase-statementgroupview').css({
             'border-left': '',
+            'background-color': '',
             'padding-left': '',
-            'transition': 'all 0.2s ease'
+            'transition': 'all 0.25s ease'
         });
 
         // 1. Decorate EXISTING native property containers with color borders & badges
@@ -628,39 +635,47 @@
             let res = validationResults.properties[pid];
             if (!res) return;
 
-            let $nativeGroup = $(`[data-property-id="${pid}"]`);
+            // Multi-selector lookup for property container in Wikibase DOM
+            let $nativeGroup = $(`[data-property-id="${pid}"], .wikibase-statementgroupview-${pid.toLowerCase()}`);
+            if ($nativeGroup.length === 0) {
+                // Fallback: search for link containing property ID e.g. /wiki/Property:P31
+                $nativeGroup = $('.wikibase-statementgroupview').filter(function() {
+                    let href = $(this).find('.wikibase-statementgroupview-property-label a').attr('href') || '';
+                    return href.includes('Property:' + pid) || $(this).text().includes(`(${pid})`);
+                });
+            }
+
             if ($nativeGroup.length > 0) {
                 let borderColor = '#00af89'; // Green (valid)
+                let bgColor = 'rgba(0, 175, 137, 0.04)';
                 let badgeText = '✓ ' + activeSchema.id;
-                let badgeClass = 'cradle-badge-success';
+                let badgeStyle = 'background-color: #00af89; color: #fff;';
 
                 if (!res.isValid || (res.isRequired && !res.isPresent)) {
                     borderColor = '#d33'; // Red (error)
-                    badgeText = '⚠️ ' + activeSchema.id;
-                    badgeClass = 'cradle-badge-error';
+                    bgColor = 'rgba(211, 51, 51, 0.04)';
+                    badgeText = '⚠️ ' + activeSchema.id + ' (Requerido)';
+                    badgeStyle = 'background-color: #d33; color: #fff;';
                 } else if (!res.isPresent) {
                     borderColor = '#f5a623'; // Yellow (optional)
+                    bgColor = 'rgba(245, 166, 35, 0.04)';
                     badgeText = '• ' + activeSchema.id;
-                    badgeClass = 'cradle-badge-warning';
+                    badgeStyle = 'background-color: #f5a623; color: #101418;';
                 }
 
                 $nativeGroup.css({
-                    'border-left': `4px solid ${borderColor}`,
-                    'padding-left': '8px',
-                    'border-radius': '2px'
+                    'border-left': `5px solid ${borderColor}`,
+                    'background-color': bgColor,
+                    'padding-left': '10px',
+                    'border-radius': '4px',
+                    'margin-bottom': '12px'
                 });
 
                 let $propHeader = $nativeGroup.find('.wikibase-statementgroupview-property-label').first();
                 if ($propHeader.length > 0 && $propHeader.find('.cradle-native-badge').length === 0) {
                     let $badge = $('<span>')
-                        .addClass(`cradle-native-badge ${badgeClass}`)
-                        .css({
-                            'font-size': '0.75rem',
-                            'margin-left': '8px',
-                            'padding': '1px 6px',
-                            'border-radius': '10px',
-                            'font-weight': 'normal'
-                        })
+                        .addClass('cradle-native-badge')
+                        .attr('style', `font-size: 0.75rem; margin-left: 10px; padding: 2px 8px; border-radius: 12px; font-weight: bold; ${badgeStyle}`)
                         .text(badgeText);
                     $propHeader.append($badge);
                 }
@@ -671,25 +686,35 @@
         let $missingContainer = $('<div>')
             .addClass('cradle-native-missing-card')
             .css({
-                'margin-top': '20px',
-                'padding': '16px',
-                'background-color': 'var(--background-color-interactive-subtle, #f8f9fa)',
-                'border': '1px solid var(--border-color-subtle, #eaecf0)',
-                'border-radius': '8px'
+                'margin': '24px 0',
+                'padding': '18px',
+                'background-color': '#ffffff',
+                'border': '2px solid var(--border-color-subtle, #36c)',
+                'border-radius': '10px',
+                'box-shadow': '0 4px 12px rgba(0, 0, 0, 0.05)'
             });
 
         let $missingHeader = $('<div>').css({
             'display': 'flex',
             'justify-content': 'space-between',
             'align-items': 'center',
-            'margin-bottom': '12px'
+            'margin-bottom': '14px',
+            'border-bottom': '1px solid #eaecf0',
+            'padding-bottom': '8px'
         });
-        $missingHeader.append($('<h3>').css({'margin': '0', 'font-size': '1.05rem'}).text(`${mw.msg('cradle-native-schema-title')} (${activeSchema.id})`));
+        $missingHeader.append($('<h3>').css({'margin': '0', 'font-size': '1.1rem', 'color': '#202124'}).text(`📜 ${mw.msg('cradle-native-schema-title')} — ${activeSchema.id}`));
         $missingContainer.append($missingHeader);
 
         let missingCount = 0;
         Object.keys(schemaProperties).forEach(pid => {
-            let $nativeGroup = $(`[data-property-id="${pid}"]`);
+            let $nativeGroup = $(`[data-property-id="${pid}"], .wikibase-statementgroupview-${pid.toLowerCase()}`);
+            if ($nativeGroup.length === 0) {
+                $nativeGroup = $('.wikibase-statementgroupview').filter(function() {
+                    let href = $(this).find('.wikibase-statementgroupview-property-label a').attr('href') || '';
+                    return href.includes('Property:' + pid) || $(this).text().includes(`(${pid})`);
+                });
+            }
+
             if ($nativeGroup.length === 0) {
                 missingCount++;
                 let propDef = schemaProperties[pid];
@@ -699,27 +724,31 @@
                 let $card = $('<div>')
                     .addClass('cradle-native-missing-prop-card')
                     .css({
-                        'border-left': isRequired ? '4px solid #d33' : '4px solid #f5a623',
-                        'background-color': '#fff',
+                        'background-color': isRequired ? '#fff8f8' : '#fffdf5',
                         'border': '1px solid var(--border-color-subtle, #eaecf0)',
-                        'border-left-width': '4px',
+                        'border-left-width': '5px',
                         'border-left-color': isRequired ? '#d33' : '#f5a623',
-                        'padding': '10px 14px',
-                        'margin-bottom': '8px',
-                        'border-radius': '4px',
+                        'padding': '12px 16px',
+                        'margin-bottom': '10px',
+                        'border-radius': '6px',
                         'display': 'flex',
                         'justify-content': 'space-between',
                         'align-items': 'center'
                     });
 
                 let $info = $('<div>');
-                $info.append($('<strong>').css({'font-size': '0.9rem'}).text(`${meta.label} (${pid})`));
+                $info.append($('<strong>').css({'font-size': '0.95rem', 'color': '#101418'}).text(`${meta.label} (${pid})`));
                 let statusMsg = isRequired ? mw.msg('cradle-missing-required-prop') : mw.msg('cradle-missing-optional-prop');
-                $info.append($('<span>').css({'font-size': '0.8rem', 'color': isRequired ? '#d33' : '#72777d', 'margin-left': '10px'}).text(`— ${statusMsg}`));
+                $info.append($('<span>').css({
+                    'font-size': '0.85rem',
+                    'font-weight': '600',
+                    'color': isRequired ? '#d33' : '#b57a00',
+                    'margin-left': '12px'
+                }).text(`— ${statusMsg}`));
 
                 let $addBtn = $('<button>')
-                    .addClass('cradle-btn-secondary')
-                    .css({'font-size': '0.8rem', 'padding': '4px 10px'})
+                    .addClass('cradle-btn-primary')
+                    .css({'font-size': '0.85rem', 'padding': '6px 14px', 'cursor': 'pointer'})
                     .html(`${ICONS.plus} ${mw.msg('cradle-add-value')}`)
                     .on('click', function(e) {
                         e.preventDefault();
@@ -736,7 +765,20 @@
         }
     }
 
-function init() {
+    /**
+     * Schedules retries for decorateNativeWikidataDOM to handle async Wikibase DOM rendering.
+     */
+    function scheduleNativeDecoration() {
+        scheduleNativeDecoration();
+        setTimeout(decorateNativeWikidataDOM, 400);
+        setTimeout(decorateNativeWikidataDOM, 1000);
+        setTimeout(decorateNativeWikidataDOM, 2200);
+    }
+
+    function init() {
+        mw.hook('wikibase.entityView.rendered').add(function() {
+            scheduleNativeDecoration();
+        });
         let userLang = mw.config.get('wgUserLanguage') || 'en';
 
         // Local fallback messages to ensure script functionality even if network request fails
@@ -1014,7 +1056,7 @@ function init() {
         $('.cradle-drawer').addClass('open');
 
         renderActiveView();
-                    decorateNativeWikidataDOM();
+                    scheduleNativeDecoration();
     }
 
     /**
@@ -1068,7 +1110,7 @@ function init() {
             $drawer.find('.cradle-tab').removeClass('active');
             $(this).addClass('active');
             renderActiveView();
-                    decorateNativeWikidataDOM();
+                    scheduleNativeDecoration();
         });
 
         // Set initial active tab
@@ -2170,7 +2212,7 @@ function parseClaimValue(datavalue) {
         activeTemplate = null;
         userWantsToChangeSchema = true;
         renderActiveView();
-                    decorateNativeWikidataDOM();
+                    scheduleNativeDecoration();
     }
 
     function renderForm() {
