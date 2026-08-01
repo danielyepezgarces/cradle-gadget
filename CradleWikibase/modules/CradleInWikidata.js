@@ -8,11 +8,11 @@
  *
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
- * Version: 1.9.3
+ * Version: 1.12.0-dev
  *
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.9.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.12.0-dev');
  */
 
 (function() {
@@ -594,7 +594,9 @@
         check: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m8.16 13.9 7.4-8.15 1.5 1.35-8.9 9.8L3.25 12l1.4-1.4z"/></svg>`,
         alert: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M11.53 2.3A1.85 1.85 0 0 0 10 1.25 1.85 1.85 0 0 0 8.47 2.3L1.31 14.73A1.82 1.82 0 0 0 1.3 16.5a1.76 1.76 0 0 0 1.54.85h14.32a1.76 1.76 0 0 0 1.54-.85 1.82 1.82 0 0 0 0-1.77ZM11 15H9v-2h2Zm0-4H9V6h2z"/></svg>`,
         info: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 0a10 10 0 1 0 10 10A10 10 0 0 0 10 0m1 15H9v-6h2Zm0-8H9V5h2z"/></svg>`,
-        external: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
+        external: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`,
+        gear: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 13a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7.2-2.11a7.1 7.1 0 0 0 0-1.78l1.71-1.33a.43.43 0 0 0 .1-.55l-1.62-2.8a.43.43 0 0 0-.52-.19l-2 1a7.07 7.07 0 0 0-1.54-.9l-.3-2.12a.43.43 0 0 0-.43-.37H9.4a.43.43 0 0 0-.43.37l-.3 2.12a7.07 7.07 0 0 0-1.54.9l-2-1a.43.43 0 0 0-.52.19l-1.62 2.8a.43.43 0 0 0 .1.55l1.71 1.33a7.1 7.1 0 0 0 0 1.78l-1.71 1.33a.43.43 0 0 0-.1.55l1.62 2.8a.43.43 0 0 0 .52.19l2-1a7.07 7.07 0 0 0 1.54.9l.3 2.12a.43.43 0 0 0 .43.37h3.24a.43.43 0 0 0 .43-.37l.3-2.12a7.07 7.07 0 0 0 1.54-.9l2 1a.43.43 0 0 0 .52-.19l1.62-2.8a.43.43 0 0 0-.1-.55z"/></svg>`,
+        reference: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M5 2h10a1 1 0 0 1 1 1v16l-6-4-6 4V3a1 1 0 0 1 1-1z"/></svg>`
     };
 
     /**
@@ -1671,7 +1673,148 @@
     /**
      * Populates formState by mapping current entity claims to the parsed schema properties.
      */
-    function initializeFormState() {
+        /**
+     * Builds a Wikibase Snak object for a reference property value.
+     */
+        /**
+     * Fetches citation metadata from Wikimedia Citoid REST API.
+     */
+    function fetchCitoidCitation(query) {
+        logDebug("[Cradle] Fetching Citoid advanced citation metadata for query:", query);
+        let cleanQuery = (query || '').trim();
+        if (cleanQuery.match(/^10\.\d{4,9}\/[-._;()/:A-Za-z0-9]+$/)) {
+            cleanQuery = 'doi:' + cleanQuery;
+        }
+
+        let endpoint = 'https://en.wikipedia.org/api/rest_v1/data/citation/mediawiki/' + encodeURIComponent(cleanQuery);
+        return new Promise((resolve) => {
+            $.ajax({
+                url: endpoint,
+                dataType: 'json',
+                headers: { 'Accept': 'application/json' }
+            }).done(function(data) {
+                if (data && data.length > 0) {
+                    let cite = data[0];
+                    logDebug("[Cradle] Citoid advanced citation data received:", cite);
+
+                    let authorStr = '';
+                    if (Array.isArray(cite.author) && cite.author.length > 0) {
+                        authorStr = cite.author.map(a => Array.isArray(a) ? a.join(' ') : a).join(', ');
+                    }
+
+                    let pubDateStr = null;
+                    if (cite.date) {
+                        let m = cite.date.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?/);
+                        if (m) {
+                            let y = m[1], mm = m[2] || '00', dd = m[3] || '00';
+                            pubDateStr = `+${y}-${mm}-${dd}T00:00:00Z`;
+                        }
+                    }
+
+                    resolve({
+                        url: cite.url || (cleanQuery.startsWith('http') ? cleanQuery : ''),
+                        title: cite.title || '',
+                        publication: cite.publicationTitle || cite.publisher || cite.websiteTitle || cite.libraryCatalog || '',
+                        doi: cite.DOI || '',
+                        isbn: (Array.isArray(cite.ISBN) && cite.ISBN[0]) || cite.ISBN || '',
+                        pmid: cite.PMID || cite.PMCID || '',
+                        volume: cite.volume || '',
+                        issue: cite.issue || '',
+                        pages: cite.pages || '',
+                        author: authorStr,
+                        pubDate: pubDateStr,
+                        accessDate: cite.accessDate ? ('+' + cite.accessDate + 'T00:00:00Z') : null
+                    });
+                } else {
+                    resolve(null);
+                }
+            }).fail(function(err) {
+                logError("[Cradle] Citoid API request failed:", err);
+                resolve(null);
+            });
+        });
+    }
+
+    /**
+     * Formats a snak value (string, monolingualtext object, entityid object, etc.) for UI display input.
+     */
+    function formatSnakValueForDisplay(val) {
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'object') {
+            if (val.text !== undefined) return val.text;
+            if (val.id !== undefined) return val.id;
+            if (val.time !== undefined) return val.time;
+            if (val.amount !== undefined) return val.amount;
+            return JSON.stringify(val);
+        }
+        return String(val);
+    }
+
+function buildSnakObject(pid, val) {
+        if (pid === 'P1476') {
+            let textVal = typeof val === 'object' ? (val.text || '') : String(val || '');
+            let langVal = typeof val === 'object' ? (val.language || mw.config.get('wgUserLanguage') || 'en') : (mw.config.get('wgUserLanguage') || 'en');
+            return {
+                snaktype: 'value',
+                property: pid,
+                datavalue: {
+                    type: 'monolingualtext',
+                    value: { text: textVal.trim(), language: langVal }
+                }
+            };
+        }
+
+        let rawStr = typeof val === 'object' ? (val.text || val.id || val.time || val.amount || JSON.stringify(val)) : String(val || '');
+        rawStr = rawStr.trim();
+
+        if (rawStr.startsWith('http://') || rawStr.startsWith('https://')) {
+            return {
+                snaktype: 'value',
+                property: pid,
+                datavalue: { type: 'string', value: rawStr }
+            };
+        } else if (rawStr.match(/^[+-]?\d{4}-\d{2}-\d{2}/)) {
+            let timeVal = rawStr;
+            if (!timeVal.startsWith('+') && !timeVal.startsWith('-')) {
+                timeVal = '+' + timeVal;
+            }
+            if (!timeVal.includes('T')) {
+                timeVal += 'T00:00:00Z';
+            }
+            return {
+                snaktype: 'value',
+                property: pid,
+                datavalue: {
+                    type: 'time',
+                    value: {
+                        time: timeVal,
+                        timezone: 0,
+                        before: 0,
+                        after: 0,
+                        precision: 11,
+                        calendarmodel: 'http://www.wikidata.org/entity/Q1985727'
+                    }
+                }
+            };
+        } else if (rawStr.match(/^Q\d+$/i)) {
+            return {
+                snaktype: 'value',
+                property: pid,
+                datavalue: {
+                    type: 'wikibase-entityid',
+                    value: { 'entity-type': 'item', id: rawStr.toUpperCase() }
+                }
+            };
+        } else {
+            return {
+                snaktype: 'value',
+                property: pid,
+                datavalue: { type: 'string', value: rawStr }
+            };
+        }
+    }
+
+function initializeFormState() {
         formState = {};
 
         Object.keys(schemaProperties).forEach(pid => {
@@ -1679,17 +1822,53 @@
             let meta = propertyMetadata[pid] || { datatype: 'string' };
             formState[pid] = [];
 
-            // Map existing claims on the entity (if in edit mode)
-            if (activeMode === 'edit' && entityData && entityData.claims && entityData.claims[pid]) {
+            // Map existing claims on the entity (if on an item page)
+            if (isItemPage && entityData && entityData.claims && entityData.claims[pid]) {
                 entityData.claims[pid].forEach(claim => {
                     if (claim.mainsnak && claim.mainsnak.snaktype === 'value' && claim.mainsnak.datavalue) {
                         let value = parseClaimValue(claim.mainsnak.datavalue);
+
+                        let claimRefs = [];
+                        if (claim.references && claim.references.length > 0) {
+                            claim.references.forEach(refBlock => {
+                                let refSnaks = {};
+                                if (refBlock.snaks) {
+                                    Object.keys(refBlock.snaks).forEach(refPid => {
+                                        refSnaks[refPid] = [];
+                                        refBlock.snaks[refPid].forEach(snak => {
+                                            if (snak.snaktype === 'value' && snak.datavalue) {
+                                                let sVal = parseClaimValue(snak.datavalue);
+                                                refSnaks[refPid].push(sVal);
+                                            }
+                                        });
+                                    });
+                                }
+                                claimRefs.push({ hash: refBlock.hash || null, snaks: refSnaks });
+                            });
+                        }
+
+                        let claimQuals = {};
+                        if (claim.qualifiers) {
+                            Object.keys(claim.qualifiers).forEach(qPid => {
+                                claimQuals[qPid] = [];
+                                claim.qualifiers[qPid].forEach(snak => {
+                                    if (snak.snaktype === 'value' && snak.datavalue) {
+                                        let qVal = parseClaimValue(snak.datavalue);
+                                        claimQuals[qPid].push(qVal);
+                                    }
+                                });
+                            });
+                        }
+
                         formState[pid].push({
                             id: Math.random().toString(36).substring(2, 9),
                             guid: claim.id,
                             value: value,
                             datatype: meta.datatype,
-                            isDeleted: false
+                            isDeleted: false,
+                            rank: claim.rank || 'normal',
+                            qualifiers: claimQuals,
+                            references: claimRefs
                         });
                     }
                 });
@@ -1714,12 +1893,93 @@
     /**
      * Extracts values from Wikibase datavalue object based on type.
      */
-    function parseClaimValue(datavalue) {
+        /**
+     * Flexible multi-language date/time parser for human inputs (e.g. "08 ago 2023", "08/08/2003", "2023-08-08", "august 2023", "2023").
+     * Converts to Wikibase time object structure.
+     */
+    function parseFlexibleTimeInput(inputStr) {
+        if (!inputStr) return null;
+        let str = String(inputStr).trim().toLowerCase();
+        if (str === '') return null;
+
+        // If already ISO format "+2023-08-08T00:00:00Z"
+        if (str.startsWith('+') || str.startsWith('-')) {
+            let m = str.match(/^([+-]\d{4}-\d{2}-\d{2})(T\d{2}:\d{2}:\d{2}Z)?$/i);
+            if (m) {
+                let timeVal = m[1] + (m[2] || 'T00:00:00Z');
+                return { time: timeVal, precision: 11, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+            }
+        }
+
+        // Standard ISO date YYYY-MM-DD
+        let isoMatch = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+        if (isoMatch) {
+            let y = isoMatch[1], mm = isoMatch[2].padStart(2, '0'), dd = isoMatch[3].padStart(2, '0');
+            return { time: `+${y}-${mm}-${dd}T00:00:00Z`, precision: 11, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+        }
+
+        // DD/MM/YYYY or DD-MM-YYYY
+        let dmyMatch = str.match(/^(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})$/);
+        if (dmyMatch) {
+            let dd = dmyMatch[1].padStart(2, '0'), mm = dmyMatch[2].padStart(2, '0'), y = dmyMatch[3];
+            return { time: `+${y}-${mm}-${dd}T00:00:00Z`, precision: 11, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+        }
+
+        // Just Year YYYY
+        let yearMatch = str.match(/^(\d{4})$/);
+        if (yearMatch) {
+            return { time: `+${yearMatch[1]}-00-00T00:00:00Z`, precision: 9, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+        }
+
+        // Multi-language month map (es, en, fr, de, pt, it, ca)
+        const monthMap = {
+            'ene': '01', 'enero': '01', 'jan': '01', 'january': '01', 'janvier': '01', 'januar': '01', 'janeiro': '01', 'gennaio': '01', 'gener': '01',
+            'feb': '02', 'febrero': '02', 'february': '02', 'février': '02', 'fevereiro': '02', 'febbraio': '02',
+            'mar': '03', 'marzo': '03', 'march': '03', 'mars': '03', 'março': '03',
+            'abr': '04', 'abril': '04', 'apr': '04', 'april': '04', 'avril': '04', 'aprile': '04',
+            'may': '05', 'mayo': '05', 'mai': '05', 'maggio': '05',
+            'jun': '06', 'junio': '06', 'june': '06', 'juin': '06', 'junho': '06', 'giugno': '06',
+            'jul': '07', 'julio': '07', 'july': '07', 'juillet': '07', 'julho': '07', 'luglio': '07',
+            'ago': '08', 'agosto': '08', 'aug': '08', 'august': '08', 'août': '08',
+            'sep': '09', 'sept': '09', 'septiembre': '09', 'september': '09', 'septembre': '09', 'setembro': '09', 'settembre': '09',
+            'oct': '10', 'octubre': '10', 'october': '10', 'octobre': '10', 'outubro': '10', 'ottobre': '10',
+            'nov': '11', 'noviembre': '11', 'november': '11', 'novembre': '11', 'novembro': '11',
+            'dic': '12', 'diciembre': '12', 'dec': '12', 'december': '12', 'décembre': '12', 'dezembro': '12', 'dicembre': '12'
+        };
+
+        // Textual dates e.g. "08 ago 2023", "8 de agosto de 2023", "august 2023"
+        let tokens = str.replace(/de/g, ' ').replace(/,/g, ' ').split(/\s+/).filter(t => t.length > 0);
+        let day = null, month = null, year = null;
+
+        tokens.forEach(tok => {
+            if (/^\d{4}$/.test(tok)) {
+                year = tok;
+            } else if (/^\d{1,2}$/.test(tok) && parseInt(tok) <= 31) {
+                if (!day) day = tok.padStart(2, '0');
+            } else if (monthMap[tok]) {
+                month = monthMap[tok];
+            }
+        });
+
+        if (year) {
+            if (month && day) {
+                return { time: `+${year}-${month}-${day}T00:00:00Z`, precision: 11, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+            } else if (month) {
+                return { time: `+${year}-${month}-00T00:00:00Z`, precision: 10, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+            } else {
+                return { time: `+${year}-00-00T00:00:00Z`, precision: 9, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+            }
+        }
+
+        return null;
+    }
+
+function parseClaimValue(datavalue) {
         if (!datavalue || !datavalue.type) return '';
         let t = datavalue.type;
         let val = datavalue.value;
         if (t === 'wikibase-entityid') {
-            return val ? val.id : '';
+            return val ? (val.id || (val['numeric-id'] ? 'Q' + val['numeric-id'] : '')) : '';
         } else if (t === 'string') {
             return val || '';
         } else if (t === 'monolingualtext') {
@@ -1739,13 +1999,12 @@
             return timeStr || '';
         } else if (t === 'globecoordinate') {
             return val ? `${val.latitude}, ${val.longitude}` : '';
+        } else if (t === 'boolean') {
+            return val === true || val === 'true';
         }
-        return (typeof val === 'object' && val !== null) ? (val.text || val.id || JSON.stringify(val)) : String(val || '');
+        return (typeof val === 'object' && val !== null) ? (val.text || val.id || val.amount || JSON.stringify(val)) : String(val || '');
     }
 
-    /**
-     * Creates standard structure for a new input row.
-     */
     function createNewRowState(datatype) {
         let defaultValue = '';
         if (datatype === 'monolingualtext') {
@@ -1756,7 +2015,10 @@
             guid: null,
             value: defaultValue,
             datatype: datatype,
-            isDeleted: false
+            isDeleted: false,
+            rank: 'normal',
+            qualifiers: {},
+            references: []
         };
     }
 
@@ -1940,9 +2202,14 @@
      */
     function renderPropertyRows(pid) {
         let $container = $(`#cradle-rows-${pid}`).empty();
+        let $actionsContainer = $(`#cradle-actions-${pid}`).empty();
+        let propDef = schemaProperties[pid];
+
         let rows = formState[pid];
 
         rows.forEach((row, index) => {
+            let $rowGroup = $('<div>').css({'margin-bottom': '12px'});
+
             let $row = $('<div>')
                 .addClass('cradle-row')
                 .attr('id', `cradle-row-${row.id}`);
@@ -1951,8 +2218,24 @@
                 $row.addClass('deleted');
             }
 
+            if (!row.rank) row.rank = 'normal';
+            if (!row.qualifiers) row.qualifiers = {};
+            if (!row.references) row.references = [];
+
+            // Rank Selector Dropdown
+            let $rankSelect = $('<select>')
+                .addClass('cradle-input')
+                .css({'font-size': '0.8rem', 'padding': '2px 4px', 'width': 'auto', 'margin-right': '6px'})
+                .on('change', function() {
+                    row.rank = $(this).val();
+                });
+            $rankSelect.append($('<option>').val('normal').text('● ' + mw.msg('cradle-rank-normal')));
+            $rankSelect.append($('<option>').val('preferred').text('▲ ' + mw.msg('cradle-rank-preferred')));
+            $rankSelect.append($('<option>').val('deprecated').text('▼ ' + mw.msg('cradle-rank-deprecated')));
+            $rankSelect.val(row.rank);
+
             let $inputElement = createInputForDatatype(pid, row);
-            $row.append($inputElement);
+            $row.append($rankSelect).append($inputElement);
 
             let $deleteBtn = $('<button>')
                 .addClass('cradle-btn-delete')
@@ -1963,8 +2246,292 @@
                 });
 
             $row.append($deleteBtn);
-            $container.append($row);
+            $rowGroup.append($row);
+
+            // Sub-bar for Qualifiers and References toggle buttons
+            let $subBar = $('<div>').css({'display': 'flex', 'gap': '8px', 'margin-top': '4px', 'margin-bottom': '6px', 'margin-left': '4px'});
+
+            let qualCount = Object.keys(row.qualifiers).length;
+            let $qualToggleBtn = $('<button>')
+                .addClass('cradle-btn-secondary')
+                .css({'font-size': '0.8rem', 'padding': '2px 8px'})
+                .html(ICONS.gear + ' <span>' + mw.msg('cradle-qualifiers') + ' (' + qualCount + ')</span>')
+                .on('click', function(e) {
+                    e.preventDefault();
+                    $refContainer.slideUp(150);
+                    $qualContainer.slideToggle(150);
+                });
+            $subBar.append($qualToggleBtn);
+
+            let $refToggleBtn = $('<button>')
+                .addClass('cradle-btn-secondary')
+                .css({'font-size': '0.8rem', 'padding': '2px 8px'})
+                .html(ICONS.reference + ' <span>' + mw.msg('cradle-references') + ' (' + row.references.length + ')</span>')
+                .on('click', function(e) {
+                    e.preventDefault();
+                    $qualContainer.slideUp(150);
+                    $refContainer.slideToggle(150);
+                });
+            $subBar.append($refToggleBtn);
+            $rowGroup.append($subBar);
+
+            // Qualifiers Container
+            let $qualContainer = $('<div>')
+                .addClass('cradle-qualifiers-container')
+                .css({
+                    'display': qualCount > 0 ? 'block' : 'none',
+                    'background-color': 'var(--background-color-interactive-subtle, #f8f9fa)',
+                    'border': '1px solid var(--border-color-subtle, #eaecf0)',
+                    'border-radius': '4px',
+                    'padding': '10px',
+                    'margin-bottom': '8px',
+                    'margin-left': '8px'
+                });
+
+            function renderQualifiersUI() {
+                $qualContainer.empty();
+                let currentQualPids = Object.keys(row.qualifiers);
+                if (currentQualPids.length === 0) {
+                    $qualContainer.append($('<p>').css({'margin': '0 0 8px 0', 'font-size': '0.85rem', 'color': 'var(--color-subtle, #54595d)'}).text('No qualifiers added yet.'));
+                }
+
+                currentQualPids.forEach(qPid => {
+                    let $qRow = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'margin-bottom': '6px'});
+                    $qRow.append($('<span>').css({'font-size': '0.85rem', 'font-weight': 'bold', 'min-width': '55px'}).text(qPid + ':'));
+
+                    let $qInput = $('<input>')
+                        .addClass('cradle-input')
+                        .css({'font-size': '0.85rem', 'flex': '1'})
+                        .val(formatSnakValueForDisplay(row.qualifiers[qPid][0]))
+                        .on('input', function() {
+                            row.qualifiers[qPid][0] = $(this).val();
+                        });
+
+                    let $delQBtn = $('<button>')
+                        .addClass('cradle-btn-secondary')
+                        .css({'font-size': '0.75rem', 'padding': '2px 6px', 'color': 'var(--color-destructive, #d33)'})
+                        .text('×')
+                        .on('click', function(e) {
+                            e.preventDefault();
+                            delete row.qualifiers[qPid];
+                            $qualToggleBtn.find('span').text(mw.msg('cradle-qualifiers') + ' (' + Object.keys(row.qualifiers).length + ')');
+                            renderQualifiersUI();
+                        });
+                    $qRow.append($qInput).append($delQBtn);
+                    $qualContainer.append($qRow);
+                });
+
+                let $addQualBar = $('<div>').css({'display': 'flex', 'gap': '6px', 'margin-top': '6px'});
+                let $newQPidInput = $('<input>')
+                    .addClass('cradle-input')
+                    .css({'font-size': '0.8rem', 'flex': '1'})
+                    .attr('placeholder', 'Property ID (e.g. P580, P582)...');
+
+                let $addQualBtn = $('<button>')
+                    .addClass('cradle-btn-secondary')
+                    .css({'font-size': '0.8rem', 'padding': '2px 8px'})
+                    .html(ICONS.plus + ' <span>' + mw.msg('cradle-add-qualifier') + '</span>')
+                    .on('click', function(e) {
+                        e.preventDefault();
+                        let newQPid = $newQPidInput.val().trim().toUpperCase();
+                        if (newQPid) {
+                            if (!newQPid.startsWith('P')) newQPid = 'P' + newQPid.replace(/\D/g, '');
+                            if (!row.qualifiers[newQPid]) row.qualifiers[newQPid] = [''];
+                            $qualToggleBtn.find('span').text(mw.msg('cradle-qualifiers') + ' (' + Object.keys(row.qualifiers).length + ')');
+                            renderQualifiersUI();
+                        }
+                    });
+                $addQualBar.append($newQPidInput).append($addQualBtn);
+                $qualContainer.append($addQualBar);
+            }
+
+            renderQualifiersUI();
+            $rowGroup.append($qualContainer);
+
+            // References Container
+            let $refContainer = $('<div>')
+                .addClass('cradle-references-container')
+                .css({
+                    'display': row.references.length > 0 ? 'block' : 'none',
+                    'background-color': 'var(--background-color-interactive-subtle, #f8f9fa)',
+                    'border': '1px solid var(--border-color-subtle, #eaecf0)',
+                    'border-radius': '4px',
+                    'padding': '10px',
+                    'margin-bottom': '12px',
+                    'margin-left': '8px'
+                });
+
+            function renderReferencesUI() {
+                $refContainer.empty();
+                if (row.references.length === 0) {
+                    $refContainer.append($('<p>').css({'margin': '0 0 8px 0', 'font-size': '0.85rem', 'color': 'var(--color-subtle, #54595d)'}).text('No references added yet.'));
+                }
+
+                row.references.forEach((refBlock, refIdx) => {
+                    let $refBox = $('<div>').css({
+                        'border': '1px dashed var(--border-color-base, #a2a9b1)',
+                        'padding': '8px',
+                        'margin-bottom': '8px',
+                        'border-radius': '3px',
+                        'background-color': '#fff'
+                    });
+
+                    let $refHeader = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '6px'});
+                    $refHeader.append($('<strong>').css({'font-size': '0.85rem'}).text('Reference #' + (refIdx + 1)));
+
+                    let $delRefBtn = $('<button>')
+                        .addClass('cradle-btn-secondary')
+                        .css({'font-size': '0.75rem', 'padding': '2px 6px', 'color': 'var(--color-destructive, #d33)'})
+                        .text(mw.msg('cradle-remove-reference'))
+                        .on('click', function(e) {
+                            e.preventDefault();
+                            row.references.splice(refIdx, 1);
+                            $refToggleBtn.find('span').text(mw.msg('cradle-references') + ' (' + row.references.length + ')');
+                            renderReferencesUI();
+                        });
+                    $refHeader.append($delRefBtn);
+                    $refBox.append($refHeader);
+
+                    // Citoid Auto-Fill Helper Bar
+                    let $autoCiteBar = $('<div>').css({'display': 'flex', 'gap': '6px', 'margin-bottom': '8px'});
+                    let $urlInput = $('<input>')
+                        .addClass('cradle-input')
+                        .css({'font-size': '0.8rem', 'flex': '1'})
+                        .attr('placeholder', mw.msg('cradle-ref-url-placeholder'));
+
+                    let $autoCiteBtn = $('<button>')
+                        .addClass('cradle-btn-secondary')
+                        .css({'font-size': '0.8rem', 'white-space': 'nowrap'})
+                        .text(mw.msg('cradle-auto-cite'))
+                        .on('click', function(e) {
+                            e.preventDefault();
+                            let urlVal = $urlInput.val().trim();
+                            let todayStr = '+' + new Date().toISOString().split('T')[0] + 'T00:00:00Z';
+
+                            if (!refBlock.snaks['P813']) refBlock.snaks['P813'] = [];
+                            refBlock.snaks['P813'][0] = todayStr;
+
+                            if (urlVal) {
+                                if (!refBlock.snaks['P854']) refBlock.snaks['P854'] = [];
+                                refBlock.snaks['P854'][0] = urlVal;
+
+                                $autoCiteBtn.prop('disabled', true).text(mw.msg('cradle-citoid-loading'));
+                                fetchCitoidCitation(urlVal).then(citeData => {
+                                    if (citeData) {
+                                        if (citeData.url) refBlock.snaks['P854'] = [citeData.url];
+                                        if (citeData.title) refBlock.snaks['P1476'] = [citeData.title];
+                                        if (citeData.publication && !refBlock.snaks['P248']) refBlock.snaks['P248'] = [citeData.publication];
+                                        if (citeData.doi) refBlock.snaks['P356'] = [citeData.doi];
+                                        if (citeData.isbn) refBlock.snaks['P212'] = [citeData.isbn];
+                                        if (citeData.pmid) refBlock.snaks['P698'] = [citeData.pmid];
+                                        if (citeData.author) refBlock.snaks['P2093'] = [citeData.author];
+                                        if (citeData.pubDate) refBlock.snaks['P577'] = [citeData.pubDate];
+                                        if (citeData.volume) refBlock.snaks['P478'] = [citeData.volume];
+                                        if (citeData.issue) refBlock.snaks['P433'] = [citeData.issue];
+                                        if (citeData.pages) refBlock.snaks['P304'] = [citeData.pages];
+                                        if (citeData.accessDate) refBlock.snaks['P813'] = [citeData.accessDate];
+                                    }
+                                    renderReferencesUI();
+                                });
+                            } else {
+                                renderReferencesUI();
+                            }
+                        });
+                    $autoCiteBar.append($urlInput).append($autoCiteBtn);
+                    $refBox.append($autoCiteBar);
+
+                    // Property snaks inside this reference
+                    Object.keys(refBlock.snaks).forEach(refPid => {
+                        let $snakRow = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'margin-bottom': '4px'});
+                        $snakRow.append($('<span>').css({'font-size': '0.8rem', 'font-weight': 'bold', 'min-width': '50px'}).text(refPid + ':'));
+
+                        let $snakValInput = $('<input>')
+                            .addClass('cradle-input')
+                            .css({'font-size': '0.8rem', 'flex': '1'})
+                            .val(formatSnakValueForDisplay(refBlock.snaks[refPid][0]))
+                            .on('input', function() {
+                                refBlock.snaks[refPid][0] = $(this).val();
+                            });
+
+                        let $delSnakBtn = $('<button>')
+                            .addClass('cradle-btn-secondary')
+                            .css({'font-size': '0.75rem', 'padding': '1px 4px'})
+                            .text('×')
+                            .on('click', function(e) {
+                                e.preventDefault();
+                                delete refBlock.snaks[refPid];
+                                renderReferencesUI();
+                            });
+                        $snakRow.append($snakValInput).append($delSnakBtn);
+                        $refBox.append($snakRow);
+                    });
+
+                    // Add property to reference dropdown
+                    let $addPropSelect = $('<select>').addClass('cradle-input').css({'font-size': '0.8rem', 'margin-top': '4px'});
+                    $addPropSelect.append($('<option>').val('').text('+ ' + mw.msg('cradle-add-ref-property')));
+                    $addPropSelect.append($('<option>').val('P854').text('P854 (Reference URL)'));
+                    $addPropSelect.append($('<option>').val('P813').text('P813 (Retrieved Date)'));
+                    $addPropSelect.append($('<option>').val('P248').text('P248 (Stated In)'));
+                    $addPropSelect.append($('<option>').val('P1476').text('P1476 (Title)'));
+                    $addPropSelect.append($('<option>').val('P356').text('P356 (DOI)'));
+                    $addPropSelect.append($('<option>').val('P212').text('P212 (ISBN-13)'));
+                    $addPropSelect.append($('<option>').val('P698').text('P698 (PubMed ID)'));
+                    $addPropSelect.append($('<option>').val('P2093').text('P2093 (Author Name String)'));
+                    $addPropSelect.append($('<option>').val('P577').text('P577 (Publication Date)'));
+                    $addPropSelect.append($('<option>').val('P478').text('P478 (Volume)'));
+                    $addPropSelect.append($('<option>').val('P433').text('P433 (Issue)'));
+                    $addPropSelect.append($('<option>').val('P304').text('P304 (Pages)'));
+                    $addPropSelect.on('change', function() {
+                        let selPid = $(this).val();
+                        if (selPid) {
+                            if (!refBlock.snaks[selPid]) refBlock.snaks[selPid] = [''];
+                            renderReferencesUI();
+                        }
+                    });
+                    $refBox.append($addPropSelect);
+
+                    $refContainer.append($refBox);
+                });
+
+                let $addBlockBtn = $('<button>')
+                    .addClass('cradle-btn-secondary')
+                    .css({'font-size': '0.8rem', 'padding': '4px 8px', 'margin-top': '4px'})
+                    .html(ICONS.plus + ' <span>' + mw.msg('cradle-add-reference') + '</span>')
+                    .on('click', function(e) {
+                        e.preventDefault();
+                        let todayStr = '+' + new Date().toISOString().split('T')[0] + 'T00:00:00Z';
+                        row.references.push({
+                            hash: null,
+                            snaks: {
+                                'P854': [''],
+                                'P813': [todayStr]
+                            }
+                        });
+                        $refToggleBtn.find('span').text(mw.msg('cradle-references') + ' (' + row.references.length + ')');
+                        renderReferencesUI();
+                    });
+                $refContainer.append($addBlockBtn);
+            }
+
+            renderReferencesUI();
+            $rowGroup.append($refContainer);
+            $container.append($rowGroup);
         });
+
+        // Dynamic Action Bar rendering (Add row button)
+        let nonDeletedRows = rows.filter(r => !r.isDeleted);
+        let maxLimit = propDef.max;
+        let showAddButton = (maxLimit === '*' || maxLimit === Infinity || nonDeletedRows.length < maxLimit);
+
+        if (showAddButton) {
+            let $addBtn = $('<button>')
+                .addClass('cradle-btn-text')
+                .html(`${ICONS.plus} ${mw.msg('cradle-add-value')}`)
+                .on('click', function() {
+                    addRow(pid);
+                });
+            $actionsContainer.append($addBtn);
+        }
     }
 
     /**
@@ -2068,11 +2635,7 @@
         // 2. monolingualtext datatype
         if (row.datatype === 'monolingualtext') {
             let $group = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex': '1'});
-            let valObj = (typeof row.value === 'object' && row.value !== null) ? 
-                row.value : 
-                { text: String(row.value || ''), language: mw.config.get('wgUserLanguage') || 'en' };
-            if (!valObj.language) valObj.language = mw.config.get('wgUserLanguage') || 'en';
-            if (valObj.text === undefined) valObj.text = '';
+            let valObj = row.value || { text: '', language: 'en' };
 
             let $langInput = $('<input>')
                 .addClass('cradle-input')
@@ -2122,7 +2685,7 @@
             let $input = $('<input>')
                 .addClass('cradle-input')
                 .attr('type', 'text')
-                .attr('placeholder', 'YYYY-MM-DD or YYYY')
+                .attr('placeholder', 'e.g. 08 ago 2023, 08/08/2003, YYYY-MM-DD')
                 .val(row.value);
 
             $input.on('input', function() {
@@ -2133,15 +2696,11 @@
         }
 
         // 5. Fallback text input (string, external-id, url, etc.)
-        let valToDisplay = (typeof row.value === 'object' && row.value !== null) ? 
-            (row.value.text || row.value.id || row.value.time || row.value.amount || JSON.stringify(row.value)) : 
-            (row.value || '');
-
         let $input = $('<input>')
             .addClass('cradle-input')
             .attr('type', 'text')
             .attr('placeholder', `Enter value`)
-            .val(valToDisplay);
+            .val(row.value);
 
         $input.on('input', function() {
             row.value = $input.val();
@@ -2545,17 +3104,21 @@ function searchWikidataItems(term) {
     function isEmptyValue(value, datatype) {
         if (value === null || value === undefined) return true;
         if (datatype === 'monolingualtext') {
-            return !value.text || !value.language;
+            if (typeof value === 'object' && value !== null) {
+                return !value.text || value.text.trim() === '';
+            }
+            return String(value).trim() === '';
         }
-        if (typeof value === 'string') {
-            return value.trim() === '';
+        if (datatype === 'boolean') return false;
+        if (typeof value === 'object') {
+            if (value.text !== undefined) return value.text.trim() === '';
+            if (value.id !== undefined) return value.id.trim() === '';
+            if (value.amount !== undefined) return String(value.amount).trim() === '';
+            if (value.time !== undefined) return String(value.time).trim() === '';
         }
-        return false;
+        return String(value).trim() === '';
     }
 
-    /**
-     * Constructs the standard Wikibase API datavalue object.
-     */
     function constructDataValue(value, datatype) {
         if (datatype === 'wikibase-item') {
             let qid = typeof value === 'string' ? value.trim().toUpperCase() : value.id;
@@ -2577,13 +3140,11 @@ function searchWikidataItems(term) {
             };
         }
         if (datatype === 'monolingualtext') {
-            let textVal = (typeof value === 'object' && value !== null) ? (value.text || '') : String(value || '');
-            let langVal = (typeof value === 'object' && value !== null) ? (value.language || mw.config.get('wgUserLanguage') || 'en') : (mw.config.get('wgUserLanguage') || 'en');
             return {
                 type: 'monolingualtext',
                 value: {
-                    text: textVal.trim(),
-                    language: langVal.trim().toLowerCase()
+                    text: value.text.trim(),
+                    language: value.language.trim().toLowerCase()
                 }
             };
         }
