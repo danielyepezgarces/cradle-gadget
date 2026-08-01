@@ -194,287 +194,48 @@
             width: 100%;
         }
 
-        
-        /* Official Wikibase Native Editor Styling inside Cradle Drawer */
-        .wikibase-statementgroupview {
-            background-color: #ffffff !important;
-            border: 1px solid #c8ccd1 !important;
-            border-radius: 6px !important;
-            margin-bottom: 16px !important;
-            padding: 16px 18px !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+
+        /* ── Cradle validation state borders (applied on top of Wikibase native card) ── */
+        .cradle-drawer .wikibase-statementgroupview.valid {
+            border-left: 4px solid #00af89 !important;
         }
-        .wikibase-statementgroupview-property {
-            border-bottom: 1px solid #eaecf0 !important;
-            padding-bottom: 8px !important;
-            margin-bottom: 12px !important;
+        .cradle-drawer .wikibase-statementgroupview.invalid {
+            border-left: 4px solid #d33 !important;
         }
-        .wikibase-statementgroupview-property-label {
-            font-size: 1.05rem !important;
-            font-weight: 700 !important;
-            color: #101418 !important;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        .cradle-drawer .wikibase-statementgroupview.optional-missing {
+            border-left: 4px solid #fc3 !important;
         }
-        .wikibase-statementview {
-            background-color: #f8f9fa !important;
-            border: 1px solid #eaecf0 !important;
-            border-radius: 4px !important;
-            padding: 12px !important;
-            margin-bottom: 10px !important;
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 8px !important;
+        .cradle-drawer .wikibase-statementgroupview.optional-present {
+            border-left: 4px solid #36c !important;
         }
-        .wikibase-statementview.deleted {
-            opacity: 0.5 !important;
-            text-decoration: line-through !important;
-            background-color: #fff0f0 !important;
-        }
-        .wikibase-addtoolbar {
-            margin-top: 10px !important;
+        .cradle-drawer .wikibase-statementview.wb-removed {
+            opacity: 0.5;
+            text-decoration: line-through;
+            background-color: #fff0f0;
         }
 
-        /* Exact Wikibase Native Editor Clone CSS for Cradle Drawer */
-        .cradle-drawer .wikibase-statementgroupview {
-            background-color: #ffffff !important;
-            border: 1px solid #c8ccd1 !important;
-            border-radius: 4px !important;
-            margin-bottom: 20px !important;
-            padding: 16px !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        /* ── Inputs inside the Drawer snakview — let Wikibase CSS cascade; only add sizing ── */
+        .cradle-drawer .valueview-value input,
+        .cradle-drawer .valueview-value select,
+        .cradle-drawer .valueview-value textarea {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
         }
-        .cradle-drawer .wikibase-statementgroupview-property {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            border-bottom: 2px solid #eaecf0 !important;
-            padding-bottom: 8px !important;
-            margin-bottom: 14px !important;
-        }
-        .cradle-drawer .wikibase-statementgroupview-property-label {
-            font-size: 1.1rem !important;
-            font-weight: 700 !important;
-            color: #101418 !important;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        }
-        .cradle-drawer .wikibase-statementview {
-            background-color: #ffffff !important;
-            border: 1px solid #a2a9b1 !important;
-            border-radius: 4px !important;
-            padding: 14px !important;
-            margin-bottom: 12px !important;
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 10px !important;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.03) !important;
-        }
-        .cradle-drawer .wikibase-statementview-mainsnak-container {
-            display: flex !important;
-            align-items: center !important;
-            gap: 10px !important;
-            width: 100% !important;
-        }
-        .cradle-drawer .wikibase-statementview-rankselector {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 32px !important;
-            height: 32px !important;
-            border-radius: 3px !important;
-            border: 1px solid #c8ccd1 !important;
-            background-color: #f8f9fa !important;
-            cursor: pointer !important;
-        }
-        .cradle-drawer .wikibase-statementview-qualifiers {
-            background-color: #f8f9fa !important;
-            border-left: 3px solid #a2a9b1 !important;
-            border-radius: 0 4px 4px 0 !important;
-            padding: 12px !important;
-            margin-top: 6px !important;
-        }
-        .cradle-drawer .wikibase-statementview-references-container {
-            background-color: #f4f6f9 !important;
-            border-left: 3px solid #36c !important;
-            border-radius: 0 4px 4px 0 !important;
-            padding: 12px !important;
-            margin-top: 6px !important;
-        }
-        .cradle-drawer .wikibase-addtoolbar {
-            margin-top: 12px !important;
-            text-align: center !important;
-        }
-        .cradle-drawer .wikibase-addtoolbar button {
-            width: 100% !important;
-            background-color: #f8f9fa !important;
-            color: #36c !important;
-            border: 1px dashed #a2a9b1 !important;
-            border-radius: 4px !important;
-            padding: 10px !important;
-            font-weight: 700 !important;
-            font-size: 0.9rem !important;
-            cursor: pointer !important;
-            transition: all 0.15s ease !important;
-        }
-        .cradle-drawer .wikibase-addtoolbar button:hover {
-            background-color: #eaf3ff !important;
-            border-color: #36c !important;
-            color: #2a4b8d !important;
+        .cradle-drawer .valueview-value {
+            width: 100%;
         }
 
-        /* MediaWiki Native Section Heading Styling (wb-section-heading section-heading wikibase-statements) */
-        .cradle-drawer h2.wb-section-heading,
-        .cradle-drawer .wikibase-statements-heading {
-            font-family: 'Linux Libertine', 'Georgia', 'Times', serif !important;
-            font-size: 1.3rem !important;
-            font-weight: normal !important;
-            color: #000000 !important;
-            border-bottom: 1px solid #a2a9b1 !important;
-            padding-bottom: 4px !important;
-            margin-top: 20px !important;
-            margin-bottom: 16px !important;
+        /* ── Rank selector compact select ── */
+        .cradle-drawer .cradle-rank-select {
+            font-size: 0.8rem;
+            padding: 2px 4px;
+            border: 1px solid #c8ccd1;
+            background: #f8f9fa;
+            border-radius: 2px;
         }
 
-        
-        /* ==========================================================================
-           NAMESPACED CRADLE WIKIBASE EDITOR CLONE STYLES (NO DOM COLLISION)
-           ========================================================================== */
-        
-        .cradle-drawer .cradle-statementgroupview {
-            background-color: #ffffff !important;
-            border: 1px solid #a2a9b1 !important;
-            border-radius: 4px !important;
-            margin-bottom: 20px !important;
-            padding: 16px !important;
-            position: relative !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-        }
 
-        .cradle-drawer .cradle-statementgroupview-property {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            border-bottom: 2px solid #eaecf0 !important;
-            padding-bottom: 8px !important;
-            margin-bottom: 14px !important;
-        }
-
-        .cradle-drawer .cradle-statementgroupview-property-label {
-            font-size: 1.1rem !important;
-            font-weight: 700 !important;
-            color: #101418 !important;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        }
-
-        .cradle-drawer .cradle-statementlistview {
-            width: 100% !important;
-        }
-
-        .cradle-drawer .cradle-statementview {
-            background-color: #ffffff !important;
-            border: 1px solid #a2a9b1 !important;
-            border-radius: 4px !important;
-            padding: 14px !important;
-            margin-bottom: 12px !important;
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 10px !important;
-            position: relative !important;
-        }
-
-        .cradle-drawer .cradle-statementview.deleted {
-            opacity: 0.5 !important;
-            background-color: #fff0f0 !important;
-            text-decoration: line-through !important;
-        }
-
-        .cradle-drawer .cradle-statementview-rankselector {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 32px !important;
-            height: 32px !important;
-            border-radius: 3px !important;
-            border: 1px solid #c8ccd1 !important;
-            background-color: #f8f9fa !important;
-            cursor: pointer !important;
-        }
-
-        .cradle-drawer .cradle-statementview-mainsnak-container {
-            display: flex !important;
-            align-items: center !important;
-            gap: 10px !important;
-            width: 100% !important;
-        }
-
-        .cradle-drawer .cradle-statementview-qualifiers {
-            background-color: #f8f9fa !important;
-            border-left: 3px solid #a2a9b1 !important;
-            border-radius: 0 4px 4px 0 !important;
-            padding: 12px !important;
-            margin-top: 6px !important;
-        }
-
-        .cradle-drawer .cradle-statementview-references-container {
-            background-color: #f4f6f9 !important;
-            border-left: 3px solid #36c !important;
-            border-radius: 0 4px 4px 0 !important;
-            padding: 12px !important;
-            margin-top: 6px !important;
-        }
-
-        .cradle-drawer .cradle-addtoolbar {
-            margin-top: 12px !important;
-            text-align: center !important;
-        }
-
-        .cradle-drawer .cradle-addtoolbar button {
-            width: 100% !important;
-            background-color: #f8f9fa !important;
-            color: #36c !important;
-            border: 1px dashed #a2a9b1 !important;
-            border-radius: 4px !important;
-            padding: 10px !important;
-            font-weight: 700 !important;
-            font-size: 0.9rem !important;
-            cursor: pointer !important;
-            transition: all 0.15s ease !important;
-        }
-
-        .cradle-drawer .cradle-addtoolbar button:hover {
-            background-color: #eaf3ff !important;
-            border-color: #36c !important;
-            color: #2a4b8d !important;
-        }
-
-        .cradle-drawer h2.wb-section-heading {
-            font-family: 'Linux Libertine', 'Georgia', 'Times', serif !important;
-            font-size: 1.3rem !important;
-            font-weight: normal !important;
-            color: #000000 !important;
-            border-bottom: 1px solid #a2a9b1 !important;
-            padding-bottom: 4px !important;
-            margin-top: 20px !important;
-            margin-bottom: 16px !important;
-        }
-
-        /* Wikibase listview-item hierarchy inside Cradle Drawer */
-        .cradle-drawer .wikibase-statementlistview-listview {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 10px !important;
-            width: 100% !important;
-        }
-        .cradle-drawer .listview-item {
-            border: 1px solid #c8ccd1 !important;
-            border-radius: 4px !important;
-            padding: 12px 14px !important;
-            background-color: #ffffff !important;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
-        }
-        .cradle-drawer .listview-item:hover {
-            border-color: #36c !important;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
-        }
 /* Select/Community Tab Menu responsive styling */
         .cradle-select-tabs {
             display: flex;
