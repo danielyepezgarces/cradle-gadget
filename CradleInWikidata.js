@@ -864,7 +864,53 @@
         setTimeout(decorateNativeWikidataDOM, 2200);
     }
 
-    function init() {
+        /**
+     * Auto-triggers background schema detection and loading on Item Page load,
+     * so native DOM decoration (borders + missing cards) appears immediately without clicking.
+     */
+    function autoStartBackgroundSchemaLoading() {
+        if (!isItemPage) return;
+        logDebug("[Cradle] Auto-starting background schema loading for entity:", entityId);
+
+        schemasLoadedPromise = getEntityData().then(data => {
+            let classQids = [];
+            if (data && data.claims && data.claims['P31']) {
+                data.claims['P31'].forEach(c => {
+                    if (c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value) {
+                        classQids.push(c.mainsnak.datavalue.value.id);
+                    }
+                });
+            }
+            if (classQids.length > 0) {
+                return findSchemasForClasses(classQids).then(foundSchemas => {
+                    detectedSchemas = foundSchemas;
+                    return foundSchemas;
+                });
+            }
+            return [];
+        });
+
+        schemasLoadedPromise.then(schemas => {
+            if (schemas && schemas.length > 0 && !activeSchema) {
+                logDebug("[Cradle] Auto-loading detected schema for native DOM:", schemas[0]);
+                let schemaId = schemas[0];
+                activeSchema = { id: schemaId, type: 'schema' };
+                fetchShexSchema(schemaId).then(shexText => {
+                    if (shexText) {
+                        let parsed = parseShexSchema(shexText);
+                        schemaProperties = parsed.properties;
+                        logDebug("[Cradle] Auto-loaded schema properties:", schemaProperties);
+                        fetchPropertyMetadata(Object.keys(schemaProperties)).then(() => {
+                            initializeFormState();
+                            scheduleNativeDecoration();
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+function init() {
         mw.hook('wikibase.entityView.rendered').add(function() {
             scheduleNativeDecoration();
         });
@@ -1051,6 +1097,8 @@
         if (isSpecialCradle) {
             setupSpecialPage();
         } else if (isItemPage) {
+        autoStartBackgroundSchemaLoading();
+
             createHeadingButton();
             
             // Scan for schemas if on an item page (uses caching/on-demand loader)
