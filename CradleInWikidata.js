@@ -699,31 +699,35 @@
         .cradle-row.deleted {
             opacity: 0.4;
         }
-        .cradle-row.deleted .cradle-input, 
-        .cradle-row.deleted .cradle-select {
-            text-decoration: line-through;
-            pointer-events: none;
-        }
-        
-        .cradle-input {
-            flex: 1;
+        /* Wikibase-style: inputs styled via snakview chain, no custom class on input */
+        .cradle-drawer .wikibase-snakview-value input,
+        .cradle-drawer .wikibase-snakview-value select,
+        .cradle-drawer .wikibase-snakview-value textarea,
+        .cradle-drawer .valueview-value input,
+        .cradle-drawer .valueview-value select,
+        .cradle-drawer .valueview-value textarea {
             display: block;
             width: 100%;
-            max-width: 100%;
             padding: 6px 8px;
             border-radius: 2px;
-            border: 1px solid var(--border-color-base, #a2a9b1);
-            background-color: var(--background-color-base, #ffffff);
-            color: var(--color-base, #202122);
-            font-size: 0.85rem;
+            border: 1px solid #a2a9b1;
+            background-color: #ffffff;
+            color: #202122;
+            font-size: 0.875rem;
+            font-family: inherit;
             outline: none;
             transition: border-color 0.1s, box-shadow 0.1s;
             height: 36px;
             box-sizing: border-box;
         }
-        .cradle-input:focus {
-            border-color: var(--border-color-progressive-focus, #36c);
-            box-shadow: inset 0 0 0 1px var(--border-color-progressive-focus, #36c);
+        .cradle-drawer .wikibase-snakview-value input:focus,
+        .cradle-drawer .valueview-value input:focus,
+        .cradle-drawer .valueview-value select:focus {
+            border-color: #36c;
+            box-shadow: inset 0 0 0 1px #36c;
+        }
+        .cradle-drawer .valueview-value {
+            width: 100%;
         }
 
         .cradle-select {
@@ -3430,11 +3434,12 @@ function parseClaimValue(datavalue) {
      */
     function createInputForDatatype(pid, row) {
         let propDef = schemaProperties[pid];
+        let $view = $('<div>').addClass('valueview-value');
         
         // 1. wikibase-item datatype
         if (row.datatype === 'wikibase-item') {
             if (propDef.softselect && propDef.softselect.length > 0) {
-                let $select = $('<select>').addClass('cradle-select');
+                let $select = $('<select>');
                 $select.append($('<option>').val('').text('-- Select --'));
                 propDef.softselect.forEach(qid => {
                     let label = softselectLabels[qid] || qid;
@@ -3446,12 +3451,11 @@ function parseClaimValue(datavalue) {
                     row.value = $select.val();
                     liveUpdateValidation();
                 });
-                return $select;
+                return $view.append($select);
             }
 
-            let $wrapper = $('<div>').addClass('cradle-autocomplete-wrapper');
+            let $wrapper = $('<div>').css({'position': 'relative'});
             let $input = $('<input>')
-                .addClass('cradle-input')
                 .attr('type', 'text')
                 .attr('placeholder', mw.msg('cradle-search-placeholder'))
                 .val(row.value);
@@ -3520,7 +3524,7 @@ function parseClaimValue(datavalue) {
                 }
             });
 
-            return $wrapper;
+            return $view.append($wrapper);
         }
 
         // 2. monolingualtext datatype
@@ -3529,14 +3533,11 @@ function parseClaimValue(datavalue) {
             let valObj = row.value || { text: '', language: 'en' };
             
             let $langInput = $('<input>')
-                .addClass('cradle-input')
-                .addClass('cradle-lang-input')
                 .attr('type', 'text')
                 .attr('placeholder', 'Lang')
                 .val(valObj.language);
                 
             let $textInput = $('<input>')
-                .addClass('cradle-input')
                 .attr('type', 'text')
                 .attr('placeholder', 'Text')
                 .val(valObj.text);
@@ -3553,13 +3554,12 @@ function parseClaimValue(datavalue) {
             });
 
             $group.append($langInput).append($textInput);
-            return $group;
+            return $view.append($group);
         }
 
         // 3. quantity datatype
         if (row.datatype === 'quantity') {
             let $input = $('<input>')
-                .addClass('cradle-input')
                 .attr('type', 'number')
                 .attr('placeholder', 'Number value')
                 .val(row.value);
@@ -3568,13 +3568,12 @@ function parseClaimValue(datavalue) {
                 row.value = $input.val();
                 liveUpdateValidation();
             });
-            return $input;
+            return $view.append($input);
         }
 
         // 4. time datatype
         if (row.datatype === 'time') {
             let $input = $('<input>')
-                .addClass('cradle-input')
                 .attr('type', 'text')
                 .attr('placeholder', 'e.g. 08 ago 2023, 08/08/2003, YYYY-MM-DD')
                 .val(row.value);
@@ -3583,12 +3582,11 @@ function parseClaimValue(datavalue) {
                 row.value = $input.val();
                 liveUpdateValidation();
             });
-            return $input;
+            return $view.append($input);
         }
 
         // 5. Fallback text input (string, external-id, url, etc.)
         let $input = $('<input>')
-            .addClass('cradle-input')
             .attr('type', 'text')
             .attr('placeholder', `Enter value`)
             .val(row.value);
@@ -3597,7 +3595,7 @@ function parseClaimValue(datavalue) {
             row.value = $input.val();
             liveUpdateValidation();
         });
-        return $input;
+        return $view.append($input);
     }
 
     /**
