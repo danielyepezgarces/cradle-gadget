@@ -103,7 +103,10 @@
     "cradle-rank": "Rank",
     "cradle-rank-preferred": "Preferred",
     "cradle-rank-normal": "Normal",
-    "cradle-rank-deprecated": "Deprecated"
+    "cradle-rank-deprecated": "Deprecated",
+    "cradle-native-schema-title": "EntitySchema Compliance",
+    "cradle-missing-required-prop": "Required by schema (missing)",
+    "cradle-missing-optional-prop": "Optional schema property"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -209,6 +212,9 @@
     "cradle-rank": "Rango",
     "cradle-rank-preferred": "Preferido",
     "cradle-rank-normal": "Normal",
-    "cradle-rank-deprecated": "En desuso"
+    "cradle-rank-deprecated": "En desuso",
+    "cradle-native-schema-title": "Cumplimiento de EntitySchema",
+    "cradle-missing-required-prop": "Requerida por esquema (faltante)",
+    "cradle-missing-optional-prop": "Propiedad opcional del esquema"
   }
 }
