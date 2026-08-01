@@ -3015,174 +3015,109 @@ function parseClaimValue(datavalue) {
             let $rowGroup = $('<div>');
             $rowGroup.append($row);
 
-            // Sub-bar for Qualifiers and References toggle buttons
-            let $subBar = $('<div>').css({'display': 'flex', 'gap': '8px', 'margin-top': '6px', 'padding-left': '4px'});
-
-            let qualCount = Object.keys(row.qualifiers).length;
-            let $qualToggleBtn = $('<button>')
-                .addClass('cradle-btn-secondary')
-                .css({'font-size': '0.8rem', 'padding': '2px 8px'})
-                .html(ICONS.gear + ' <span>' + mw.msg('cradle-qualifiers') + ' (' + qualCount + ')</span>')
-                .on('click', function(e) {
-                    e.preventDefault();
-                    $refContainer.slideUp(150);
-                    $qualContainer.slideToggle(150);
-                });
-            $subBar.append($qualToggleBtn);
-
-            let $refToggleBtn = $('<button>')
-                .addClass('cradle-btn-secondary')
-                .css({'font-size': '0.8rem', 'padding': '2px 8px'})
-                .html(ICONS.reference + ' <span>' + mw.msg('cradle-references') + ' (' + row.references.length + ')</span>')
-                .on('click', function(e) {
-                    e.preventDefault();
-                    $qualContainer.slideUp(150);
-                    $refContainer.slideToggle(150);
-                });
-            $subBar.append($refToggleBtn);
-            $rowGroup.append($subBar);
-
-            // Qualifiers Container
-            let $qualContainer = $('<div>')
-                .addClass('cradle-qualifiers-container')
-                .css({
-                    'display': qualCount > 0 ? 'block' : 'none',
-                    'background-color': 'var(--background-color-interactive-subtle, #f8f9fa)',
-                    'border': '1px solid var(--border-color-subtle, #eaecf0)',
-                    'border-radius': '4px',
-                    'padding': '10px',
-                    'margin-bottom': '8px',
-                    'margin-left': '8px'
-                });
+            // ── Qualifiers: .wikibase-statementview-qualifiers inside mainsnak-container (Wikibase exact) ──
+            let $qualContainer = $('<div>').addClass('wikibase-statementview-qualifiers');
+            let $qualListView = $('<div>').addClass('wikibase-snaklistview').hide();
 
             function renderQualifiersUI() {
-                $qualContainer.empty();
+                $qualListView.empty();
                 let currentQualPids = Object.keys(row.qualifiers);
-                if (currentQualPids.length === 0) {
-                    $qualContainer.append($('<p>').css({'margin': '0 0 8px 0', 'font-size': '0.85rem', 'color': 'var(--color-subtle, #54595d)'}).text('No qualifiers added yet.'));
-                }
-
                 currentQualPids.forEach(qPid => {
-                    let $qRow = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'margin-bottom': '6px'});
-                    $qRow.append($('<span>').css({'font-size': '0.85rem', 'font-weight': 'bold', 'min-width': '55px'}).text(qPid + ':'));
-
-                    let $qInput = $('<input>')
-                        .addClass('cradle-input')
-                        .css({'font-size': '0.85rem', 'flex': '1'})
+                    // Each qualifier is a wikibase-snakview inside wikibase-snaklistview
+                    let $snakItem = $('<div>').addClass('wikibase-snakview');
+                    let $propLabel = $('<div>').addClass('wikibase-snakview-property').css({'font-size':'0.8rem','font-weight':'bold','padding':'2px 0'})
+                        .text(qPid);
+                    let $valContainer = $('<div>').addClass('wikibase-snakview-value-container').attr('dir','auto');
+                    let $valBody = $('<div>').addClass('wikibase-snakview-body');
+                    let $valDiv = $('<div>').addClass('wikibase-snakview-value valueview-value');
+                    let $qInput = $('<input>').attr('type','text')
                         .val(formatSnakValueForDisplay(row.qualifiers[qPid][0]))
-                        .on('input', function() {
-                            row.qualifiers[qPid][0] = $(this).val();
-                        });
-
-                    let $delQBtn = $('<button>')
-                        .addClass('cradle-btn-secondary')
-                        .css({'font-size': '0.75rem', 'padding': '2px 6px', 'color': 'var(--color-destructive, #d33)'})
-                        .text('×')
-                        .on('click', function(e) {
-                            e.preventDefault();
-                            delete row.qualifiers[qPid];
-                            $qualToggleBtn.find('span').text(mw.msg('cradle-qualifiers') + ' (' + Object.keys(row.qualifiers).length + ')');
-                            renderQualifiersUI();
-                        });
-                    $qRow.append($qInput).append($delQBtn);
-                    $qualContainer.append($qRow);
+                        .on('input', function() { row.qualifiers[qPid][0] = $(this).val(); });
+                    let $delQBtn = $('<button>').addClass('cdx-button cdx-button--action-destructive cdx-button--weight-quiet cdx-button--size-medium')
+                        .css({'font-size':'0.75rem','padding':'1px 4px','margin-left':'4px'}).text('×')
+                        .on('click', function(e) { e.preventDefault(); delete row.qualifiers[qPid]; renderQualifiersUI(); updateQualLink(); });
+                    $valDiv.append($qInput).append($delQBtn);
+                    $valBody.append($valDiv);
+                    $valContainer.append($valBody);
+                    $snakItem.append($propLabel).append($valContainer);
+                    $qualListView.append($snakItem);
                 });
 
-                let $addQualBar = $('<div>').css({'display': 'flex', 'gap': '6px', 'margin-top': '6px'});
-                let $newQPidInput = $('<input>')
-                    .addClass('cradle-input')
-                    .css({'font-size': '0.8rem', 'flex': '1'})
-                    .attr('placeholder', 'Property ID (e.g. P580, P582)...');
-
-                let $addQualBtn = $('<button>')
-                    .addClass('cradle-btn-secondary')
-                    .css({'font-size': '0.8rem', 'padding': '2px 8px'})
-                    .html(ICONS.plus + ' <span>' + mw.msg('cradle-add-qualifier') + '</span>')
+                // "+ add qualifier" link (Wikibase style: small link at bottom of qualifiers)
+                let $addQualRow = $('<div>').css({'margin-top':'4px'});
+                let $newQPidInput = $('<input>').attr('type','text').attr('placeholder', 'P…').css({'width':'60px','margin-right':'4px','font-size':'0.8rem'});
+                let $addQualLink = $('<a>').css({'font-size':'0.8rem','cursor':'pointer','color':'#36c'})
+                    .text(mw.msg('cradle-add-qualifier'))
                     .on('click', function(e) {
                         e.preventDefault();
                         let newQPid = $newQPidInput.val().trim().toUpperCase();
                         if (newQPid) {
-                            if (!newQPid.startsWith('P')) newQPid = 'P' + newQPid.replace(/\D/g, '');
+                            if (!newQPid.startsWith('P')) newQPid = 'P' + newQPid.replace(/\D/g,'');
                             if (!row.qualifiers[newQPid]) row.qualifiers[newQPid] = [''];
-                            $qualToggleBtn.find('span').text(mw.msg('cradle-qualifiers') + ' (' + Object.keys(row.qualifiers).length + ')');
-                            renderQualifiersUI();
+                            renderQualifiersUI(); updateQualLink();
                         }
                     });
-                $addQualBar.append($newQPidInput).append($addQualBtn);
-                $qualContainer.append($addQualBar);
+                $addQualRow.append($newQPidInput).append($addQualLink);
+                $qualListView.append($addQualRow);
             }
 
+            // Qualifier heading link — "qualifiers (n)" — Wikibase style
+            let $qualHeading = $('<a>').css({'font-size':'0.8rem','cursor':'pointer','color':'#36c','display':'block','margin-top':'4px'});
+            function updateQualLink() {
+                let n = Object.keys(row.qualifiers).length;
+                $qualHeading.text(mw.msg('cradle-qualifiers') + (n > 0 ? ' (' + n + ')' : ''));
+            }
+            updateQualLink();
+            $qualHeading.on('click', function(e) {
+                e.preventDefault();
+                $qualListView.slideToggle(150);
+            });
+            $qualContainer.append($qualHeading).append($qualListView);
             renderQualifiersUI();
-            $rowGroup.append($qualContainer);
+            if (Object.keys(row.qualifiers).length > 0) $qualListView.show();
 
-            // References Container
-            let $refContainer = $('<div>')
-                .addClass('cradle-references-container')
-                .css({
-                    'display': row.references.length > 0 ? 'block' : 'none',
-                    'background-color': 'var(--background-color-interactive-subtle, #f8f9fa)',
-                    'border': '1px solid var(--border-color-subtle, #eaecf0)',
-                    'border-radius': '4px',
-                    'padding': '10px',
-                    'margin-bottom': '12px',
-                    'margin-left': '8px'
-                });
+            // Attach qualifiers to mainsnak-container (Wikibase exact position)
+            $mainsnakContainer.append($qualContainer);
+
+            // ── References: .wikibase-statementview-references-container (Wikibase exact) ──
+            let $refsContainer = $('<div>').addClass('wikibase-statementview-references-container');
+            let $refsHeading = $('<div>').addClass('wikibase-statementview-references-heading');
+            let $refsToggleLink = $('<a>').css({'font-size':'0.8rem','cursor':'pointer','color':'#36c'});
+            function updateRefLink() {
+                let n = row.references.length;
+                $refsToggleLink.text(n > 0 ? n + ' ' + mw.msg('cradle-references') : mw.msg('cradle-add-reference'));
+            }
+            updateRefLink();
+            let $refListView = $('<div>').addClass('wikibase-statementview-references').hide();
 
             function renderReferencesUI() {
-                $refContainer.empty();
-                if (row.references.length === 0) {
-                    $refContainer.append($('<p>').css({'margin': '0 0 8px 0', 'font-size': '0.85rem', 'color': 'var(--color-subtle, #54595d)'}).text('No references added yet.'));
-                }
-
+                $refListView.empty();
                 row.references.forEach((refBlock, refIdx) => {
-                    let $refBox = $('<div>').css({
-                        'border': '1px dashed var(--border-color-base, #a2a9b1)',
-                        'padding': '8px',
-                        'margin-bottom': '8px',
-                        'border-radius': '3px',
-                        'background-color': '#fff'
-                    });
-
-                    let $refHeader = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '6px'});
-                    $refHeader.append($('<strong>').css({'font-size': '0.85rem'}).text('Reference #' + (refIdx + 1)));
-
-                    let $delRefBtn = $('<button>')
-                        .addClass('cradle-btn-secondary')
-                        .css({'font-size': '0.75rem', 'padding': '2px 6px', 'color': 'var(--color-destructive, #d33)'})
+                    // Each reference is a wikibase-referenceview
+                    let $refView = $('<div>').addClass('wikibase-referenceview');
+                    let $refHeadBar = $('<div>').addClass('wikibase-referenceview-heading').css({'display':'flex','justify-content':'space-between','align-items':'center','padding':'4px 6px','background':'#f8f9fa','border-bottom':'1px solid #eaecf0'});
+                    $refHeadBar.append($('<small>').text('#' + (refIdx + 1)));
+                    let $delRefBtn = $('<a>').css({'font-size':'0.8rem','cursor':'pointer','color':'#d33'})
                         .text(mw.msg('cradle-remove-reference'))
-                        .on('click', function(e) {
-                            e.preventDefault();
-                            row.references.splice(refIdx, 1);
-                            $refToggleBtn.find('span').text(mw.msg('cradle-references') + ' (' + row.references.length + ')');
-                            renderReferencesUI();
-                        });
-                    $refHeader.append($delRefBtn);
-                    $refBox.append($refHeader);
+                        .on('click', function(e) { e.preventDefault(); row.references.splice(refIdx, 1); renderReferencesUI(); updateRefLink(); });
+                    $refHeadBar.append($delRefBtn);
+                    $refView.append($refHeadBar);
 
-                    // Citoid Auto-Fill Helper Bar
-                    let $autoCiteBar = $('<div>').css({'display': 'flex', 'gap': '6px', 'margin-bottom': '8px'});
-                    let $urlInput = $('<input>')
-                        .addClass('cradle-input')
-                        .css({'font-size': '0.8rem', 'flex': '1'})
-                        .attr('placeholder', mw.msg('cradle-ref-url-placeholder'));
-
-                    let $autoCiteBtn = $('<button>')
-                        .addClass('cradle-btn-secondary')
-                        .css({'font-size': '0.8rem', 'white-space': 'nowrap'})
+                    // Citoid auto-fill bar
+                    let $autoCiteBar = $('<div>').css({'display':'flex','gap':'6px','padding':'6px','border-bottom':'1px solid #eaecf0'});
+                    let $urlInput = $('<input>').attr('type','text').attr('placeholder', mw.msg('cradle-ref-url-placeholder')).css({'flex':'1'});
+                    let $autoCiteBtn = $('<a>').css({'font-size':'0.8rem','cursor':'pointer','color':'#36c','white-space':'nowrap'})
                         .text(mw.msg('cradle-auto-cite'))
                         .on('click', function(e) {
                             e.preventDefault();
                             let urlVal = $urlInput.val().trim();
                             let todayStr = '+' + new Date().toISOString().split('T')[0] + 'T00:00:00Z';
-
                             if (!refBlock.snaks['P813']) refBlock.snaks['P813'] = [];
                             refBlock.snaks['P813'][0] = todayStr;
-
                             if (urlVal) {
                                 if (!refBlock.snaks['P854']) refBlock.snaks['P854'] = [];
                                 refBlock.snaks['P854'][0] = urlVal;
-
-                                $autoCiteBtn.prop('disabled', true).text(mw.msg('cradle-citoid-loading'));
+                                $autoCiteBtn.css('color','#54595d').text(mw.msg('cradle-citoid-loading'));
                                 fetchCitoidCitation(urlVal).then(citeData => {
                                     if (citeData) {
                                         if (citeData.url) refBlock.snaks['P854'] = [citeData.url];
@@ -3205,84 +3140,64 @@ function parseClaimValue(datavalue) {
                             }
                         });
                     $autoCiteBar.append($urlInput).append($autoCiteBtn);
-                    $refBox.append($autoCiteBar);
+                    $refView.append($autoCiteBar);
 
-                    // Property snaks inside this reference
+                    // Snaks listview inside referenceview
+                    let $snakListView = $('<div>').addClass('wikibase-referenceview-listview').css({'padding':'6px'});
                     Object.keys(refBlock.snaks).forEach(refPid => {
-                        let $snakRow = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'margin-bottom': '4px'});
-                        $snakRow.append($('<span>').css({'font-size': '0.8rem', 'font-weight': 'bold', 'min-width': '50px'}).text(refPid + ':'));
-
-                        let $snakValInput = $('<input>')
-                            .addClass('cradle-input')
-                            .css({'font-size': '0.8rem', 'flex': '1'})
+                        let $snakRow = $('<div>').addClass('wikibase-snakview').css({'margin-bottom':'4px'});
+                        $snakRow.append($('<div>').addClass('wikibase-snakview-property').css({'font-size':'0.8rem','font-weight':'bold'}).text(refPid));
+                        let $snakValDiv = $('<div>').addClass('valueview-value');
+                        let $snakValInput = $('<input>').attr('type','text')
                             .val(formatSnakValueForDisplay(refBlock.snaks[refPid][0]))
-                            .on('input', function() {
-                                refBlock.snaks[refPid][0] = $(this).val();
-                            });
-
-                        let $delSnakBtn = $('<button>')
-                            .addClass('cradle-btn-secondary')
-                            .css({'font-size': '0.75rem', 'padding': '1px 4px'})
-                            .text('×')
-                            .on('click', function(e) {
-                                e.preventDefault();
-                                delete refBlock.snaks[refPid];
-                                renderReferencesUI();
-                            });
-                        $snakRow.append($snakValInput).append($delSnakBtn);
-                        $refBox.append($snakRow);
+                            .on('input', function() { refBlock.snaks[refPid][0] = $(this).val(); });
+                        let $delSnakBtn = $('<a>').css({'font-size':'0.75rem','cursor':'pointer','color':'#d33','margin-left':'4px'}).text('×')
+                            .on('click', function(e) { e.preventDefault(); delete refBlock.snaks[refPid]; renderReferencesUI(); });
+                        $snakValDiv.append($snakValInput).append($delSnakBtn);
+                        $snakRow.append($snakValDiv);
+                        $snakListView.append($snakRow);
                     });
 
-                    // Add property to reference dropdown
-                    let $addPropSelect = $('<select>').addClass('cradle-input').css({'font-size': '0.8rem', 'margin-top': '4px'});
+                    // "+ add property" select inside reference
+                    let $addPropSelect = $('<select>').css({'font-size':'0.8rem','margin-top':'4px','width':'100%'});
                     $addPropSelect.append($('<option>').val('').text('+ ' + mw.msg('cradle-add-ref-property')));
-                    $addPropSelect.append($('<option>').val('P854').text('P854 (Reference URL)'));
-                    $addPropSelect.append($('<option>').val('P813').text('P813 (Retrieved Date)'));
-                    $addPropSelect.append($('<option>').val('P248').text('P248 (Stated In)'));
-                    $addPropSelect.append($('<option>').val('P1476').text('P1476 (Title)'));
-                    $addPropSelect.append($('<option>').val('P356').text('P356 (DOI)'));
-                    $addPropSelect.append($('<option>').val('P212').text('P212 (ISBN-13)'));
-                    $addPropSelect.append($('<option>').val('P698').text('P698 (PubMed ID)'));
-                    $addPropSelect.append($('<option>').val('P2093').text('P2093 (Author Name String)'));
-                    $addPropSelect.append($('<option>').val('P577').text('P577 (Publication Date)'));
-                    $addPropSelect.append($('<option>').val('P478').text('P478 (Volume)'));
-                    $addPropSelect.append($('<option>').val('P433').text('P433 (Issue)'));
-                    $addPropSelect.append($('<option>').val('P304').text('P304 (Pages)'));
+                    ['P854','P813','P248','P1476','P356','P212','P698','P2093','P577','P478','P433','P304'].forEach(p => {
+                        $addPropSelect.append($('<option>').val(p).text(p));
+                    });
                     $addPropSelect.on('change', function() {
                         let selPid = $(this).val();
-                        if (selPid) {
-                            if (!refBlock.snaks[selPid]) refBlock.snaks[selPid] = [''];
-                            renderReferencesUI();
-                        }
+                        if (selPid) { if (!refBlock.snaks[selPid]) refBlock.snaks[selPid] = ['']; renderReferencesUI(); }
                     });
-                    $refBox.append($addPropSelect);
-
-                    $refContainer.append($refBox);
+                    $snakListView.append($addPropSelect);
+                    $refView.append($snakListView);
+                    $refListView.append($refView);
                 });
 
-                let $addBlockBtn = $('<button>')
-                    .addClass('cradle-btn-secondary')
-                    .css({'font-size': '0.8rem', 'padding': '4px 8px', 'margin-top': '4px'})
-                    .html(ICONS.plus + ' <span>' + mw.msg('cradle-add-reference') + '</span>')
+                // "+ add reference" link at the bottom
+                let $addRefLink = $('<a>').css({'font-size':'0.8rem','cursor':'pointer','color':'#36c','display':'block','padding':'4px 6px'})
+                    .text(mw.msg('cradle-add-reference'))
                     .on('click', function(e) {
                         e.preventDefault();
                         let todayStr = '+' + new Date().toISOString().split('T')[0] + 'T00:00:00Z';
-                        row.references.push({
-                            hash: null,
-                            snaks: {
-                                'P854': [''],
-                                'P813': [todayStr]
-                            }
-                        });
-                        $refToggleBtn.find('span').text(mw.msg('cradle-references') + ' (' + row.references.length + ')');
-                        renderReferencesUI();
+                        row.references.push({ hash: null, snaks: { 'P854': [''], 'P813': [todayStr] } });
+                        renderReferencesUI(); updateRefLink();
+                        $refListView.show();
                     });
-                $refContainer.append($addBlockBtn);
+                $refListView.append($addRefLink);
             }
 
+            $refsToggleLink.on('click', function(e) {
+                e.preventDefault();
+                $refListView.slideToggle(150);
+            });
+            $refsHeading.append($refsToggleLink);
+            $refsContainer.append($refsHeading).append($refListView);
             renderReferencesUI();
-            $rowGroup.append($refContainer);
-            $container.append($rowGroup);
+            if (row.references.length > 0) $refListView.show();
+
+            $row.append($refsContainer);
+            $container.append($row);
+
         });
 
         // Dynamic Action Bar rendering (Add row button)
