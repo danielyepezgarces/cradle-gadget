@@ -194,7 +194,46 @@
             width: 100%;
         }
 
-        /* Select/Community Tab Menu responsive styling */
+        
+        /* Official Wikibase Native Editor Styling inside Cradle Drawer */
+        .wikibase-statementgroupview {
+            background-color: #ffffff !important;
+            border: 1px solid #c8ccd1 !important;
+            border-radius: 6px !important;
+            margin-bottom: 16px !important;
+            padding: 16px 18px !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+        }
+        .wikibase-statementgroupview-property {
+            border-bottom: 1px solid #eaecf0 !important;
+            padding-bottom: 8px !important;
+            margin-bottom: 12px !important;
+        }
+        .wikibase-statementgroupview-property-label {
+            font-size: 1.05rem !important;
+            font-weight: 700 !important;
+            color: #101418 !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        }
+        .wikibase-statementview {
+            background-color: #f8f9fa !important;
+            border: 1px solid #eaecf0 !important;
+            border-radius: 4px !important;
+            padding: 12px !important;
+            margin-bottom: 10px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+        }
+        .wikibase-statementview.deleted {
+            opacity: 0.5 !important;
+            text-decoration: line-through !important;
+            background-color: #fff0f0 !important;
+        }
+        .wikibase-addtoolbar {
+            margin-top: 10px !important;
+        }
+/* Select/Community Tab Menu responsive styling */
         .cradle-select-tabs {
             display: flex;
             border-bottom: 1px solid var(--border-color-base, #a2a9b1);
@@ -2845,8 +2884,8 @@ function parseClaimValue(datavalue) {
             }
 
             // Header of card
-            let $cardHeader = $('<div>').addClass('cradle-field-header');
-            let $label = $('<h3>').addClass('cradle-field-title');
+            let $cardHeader = $('<div>').addClass('cradle-field-header wikibase-statementgroupview-property');
+            let $label = $('<h3>').addClass('cradle-field-title wikibase-statementgroupview-property-label');
             
             // Prepend validation badge span next to title
             let $badge = $('<span>').addClass('cradle-card-validation-badge').css({'margin-right': '6px', 'font-size': '1.1rem'});
@@ -2890,7 +2929,7 @@ function parseClaimValue(datavalue) {
      */
     function renderPropertyRows(pid) {
         let $container = $(`#cradle-rows-${pid}`).empty();
-        let $actionsContainer = $(`#cradle-actions-${pid}`).empty();
+        let $actionsContainer = $(`#cradle-actions-${pid}`).empty().addClass('wikibase-addtoolbar');
         let propDef = schemaProperties[pid];
 
         let rows = formState[pid];
