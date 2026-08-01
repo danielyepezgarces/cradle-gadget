@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.9.2
+ * Version: 1.9.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.9.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.9.3');
  */
 
 (function() {
@@ -1974,29 +1974,32 @@
      * Extracts values from Wikibase datavalue object based on type.
      */
     function parseClaimValue(datavalue) {
+        if (!datavalue || !datavalue.type) return '';
         let t = datavalue.type;
         let val = datavalue.value;
         if (t === 'wikibase-entityid') {
-            return val.id;
+            return val ? val.id : '';
         } else if (t === 'string') {
-            return val;
+            return val || '';
         } else if (t === 'monolingualtext') {
-            return { text: val.text, language: val.language };
+            return { text: (val && val.text) ? val.text : '', language: (val && val.language) ? val.language : 'en' };
         } else if (t === 'quantity') {
-            let amt = val.amount;
-            if (amt.startsWith('+')) amt = amt.substring(1);
-            return amt;
+            let amt = val ? val.amount : '';
+            if (amt && amt.startsWith('+')) amt = amt.substring(1);
+            return amt || '';
         } else if (t === 'time') {
-            let timeStr = val.time;
-            if (timeStr.startsWith('+') || timeStr.startsWith('-')) {
+            let timeStr = val ? val.time : '';
+            if (timeStr && (timeStr.startsWith('+') || timeStr.startsWith('-'))) {
                 timeStr = timeStr.substring(1);
             }
-            if (timeStr.endsWith('T00:00:00Z')) {
+            if (timeStr && timeStr.endsWith('T00:00:00Z')) {
                 timeStr = timeStr.replace('T00:00:00Z', '');
             }
-            return timeStr;
+            return timeStr || '';
+        } else if (t === 'globecoordinate') {
+            return val ? `${val.latitude}, ${val.longitude}` : '';
         }
-        return JSON.stringify(val);
+        return (typeof val === 'object' && val !== null) ? (val.text || val.id || JSON.stringify(val)) : String(val || '');
     }
 
     /**
@@ -2543,7 +2546,11 @@
         // 2. monolingualtext datatype
         if (row.datatype === 'monolingualtext') {
             let $group = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex': '1'});
-            let valObj = row.value || { text: '', language: 'en' };
+            let valObj = (typeof row.value === 'object' && row.value !== null) ? 
+                row.value : 
+                { text: String(row.value || ''), language: mw.config.get('wgUserLanguage') || 'en' };
+            if (!valObj.language) valObj.language = mw.config.get('wgUserLanguage') || 'en';
+            if (valObj.text === undefined) valObj.text = '';
             
             let $langInput = $('<input>')
                 .addClass('cradle-input')
@@ -2604,11 +2611,15 @@
         }
 
         // 5. Fallback text input (string, external-id, url, etc.)
+        let valToDisplay = (typeof row.value === 'object' && row.value !== null) ? 
+            (row.value.text || row.value.id || row.value.time || row.value.amount || JSON.stringify(row.value)) : 
+            (row.value || '');
+
         let $input = $('<input>')
             .addClass('cradle-input')
             .attr('type', 'text')
             .attr('placeholder', `Enter value`)
-            .val(row.value);
+            .val(valToDisplay);
 
         $input.on('input', function() {
             row.value = $input.val();
@@ -3046,11 +3057,13 @@ function searchWikidataItems(term) {
             };
         }
         if (datatype === 'monolingualtext') {
+            let textVal = (typeof value === 'object' && value !== null) ? (value.text || '') : String(value || '');
+            let langVal = (typeof value === 'object' && value !== null) ? (value.language || mw.config.get('wgUserLanguage') || 'en') : (mw.config.get('wgUserLanguage') || 'en');
             return {
                 type: 'monolingualtext',
                 value: {
-                    text: value.text.trim(),
-                    language: value.language.trim().toLowerCase()
+                    text: textVal.trim(),
+                    language: langVal.trim().toLowerCase()
                 }
             };
         }
