@@ -2152,35 +2152,118 @@ function initializeFormState() {
     /**
      * Extracts values from Wikibase datavalue object based on type.
      */
-    function parseClaimValue(datavalue) {
+        /**
+     * Flexible multi-language date/time parser for human inputs (e.g. "08 ago 2023", "08/08/2003", "2023-08-08", "august 2023", "2023").
+     * Converts to Wikibase time object structure.
+     */
+    function parseFlexibleTimeInput(inputStr) {
+        if (!inputStr) return null;
+        let str = String(inputStr).trim().toLowerCase();
+        if (str === '') return null;
+
+        // If already ISO format "+2023-08-08T00:00:00Z"
+        if (str.startsWith('+') || str.startsWith('-')) {
+            let m = str.match(/^([+-]\d{4}-\d{2}-\d{2})(T\d{2}:\d{2}:\d{2}Z)?$/i);
+            if (m) {
+                let timeVal = m[1] + (m[2] || 'T00:00:00Z');
+                return { time: timeVal, precision: 11, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+            }
+        }
+
+        // Standard ISO date YYYY-MM-DD
+        let isoMatch = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+        if (isoMatch) {
+            let y = isoMatch[1], mm = isoMatch[2].padStart(2, '0'), dd = isoMatch[3].padStart(2, '0');
+            return { time: `+${y}-${mm}-${dd}T00:00:00Z`, precision: 11, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+        }
+
+        // DD/MM/YYYY or DD-MM-YYYY
+        let dmyMatch = str.match(/^(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})$/);
+        if (dmyMatch) {
+            let dd = dmyMatch[1].padStart(2, '0'), mm = dmyMatch[2].padStart(2, '0'), y = dmyMatch[3];
+            return { time: `+${y}-${mm}-${dd}T00:00:00Z`, precision: 11, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+        }
+
+        // Just Year YYYY
+        let yearMatch = str.match(/^(\d{4})$/);
+        if (yearMatch) {
+            return { time: `+${yearMatch[1]}-00-00T00:00:00Z`, precision: 9, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+        }
+
+        // Multi-language month map (es, en, fr, de, pt, it, ca)
+        const monthMap = {
+            'ene': '01', 'enero': '01', 'jan': '01', 'january': '01', 'janvier': '01', 'januar': '01', 'janeiro': '01', 'gennaio': '01', 'gener': '01',
+            'feb': '02', 'febrero': '02', 'february': '02', 'février': '02', 'fevereiro': '02', 'febbraio': '02',
+            'mar': '03', 'marzo': '03', 'march': '03', 'mars': '03', 'março': '03',
+            'abr': '04', 'abril': '04', 'apr': '04', 'april': '04', 'avril': '04', 'aprile': '04',
+            'may': '05', 'mayo': '05', 'mai': '05', 'maggio': '05',
+            'jun': '06', 'junio': '06', 'june': '06', 'juin': '06', 'junho': '06', 'giugno': '06',
+            'jul': '07', 'julio': '07', 'july': '07', 'juillet': '07', 'julho': '07', 'luglio': '07',
+            'ago': '08', 'agosto': '08', 'aug': '08', 'august': '08', 'août': '08',
+            'sep': '09', 'sept': '09', 'septiembre': '09', 'september': '09', 'septembre': '09', 'setembro': '09', 'settembre': '09',
+            'oct': '10', 'octubre': '10', 'october': '10', 'octobre': '10', 'outubro': '10', 'ottobre': '10',
+            'nov': '11', 'noviembre': '11', 'november': '11', 'novembre': '11', 'novembro': '11',
+            'dic': '12', 'diciembre': '12', 'dec': '12', 'december': '12', 'décembre': '12', 'dezembro': '12', 'dicembre': '12'
+        };
+
+        // Textual dates e.g. "08 ago 2023", "8 de agosto de 2023", "august 2023"
+        let tokens = str.replace(/de/g, ' ').replace(/,/g, ' ').split(/\s+/).filter(t => t.length > 0);
+        let day = null, month = null, year = null;
+
+        tokens.forEach(tok => {
+            if (/^\d{4}$/.test(tok)) {
+                year = tok;
+            } else if (/^\d{1,2}$/.test(tok) && parseInt(tok) <= 31) {
+                if (!day) day = tok.padStart(2, '0');
+            } else if (monthMap[tok]) {
+                month = monthMap[tok];
+            }
+        });
+
+        if (year) {
+            if (month && day) {
+                return { time: `+${year}-${month}-${day}T00:00:00Z`, precision: 11, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+            } else if (month) {
+                return { time: `+${year}-${month}-00T00:00:00Z`, precision: 10, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+            } else {
+                return { time: `+${year}-00-00T00:00:00Z`, precision: 9, timezone: 0, before: 0, after: 0, calendarmodel: 'http://www.wikidata.org/entity/Q1985727' };
+            }
+        }
+
+        return null;
+    }
+
+function parseClaimValue(datavalue) {
+        if (!datavalue || !datavalue.type) return '';
         let t = datavalue.type;
         let val = datavalue.value;
         if (t === 'wikibase-entityid') {
-            return val.id;
+            return val ? (val.id || (val['numeric-id'] ? 'Q' + val['numeric-id'] : '')) : '';
         } else if (t === 'string') {
-            return val;
+            return val || '';
         } else if (t === 'monolingualtext') {
-            return { text: val.text, language: val.language };
+            return { text: (val && val.text) ? val.text : '', language: (val && val.language) ? val.language : 'en' };
         } else if (t === 'quantity') {
-            let amt = val.amount;
-            if (amt.startsWith('+')) amt = amt.substring(1);
-            return amt;
+            let amt = val ? val.amount : '';
+            if (amt && amt.startsWith('+')) amt = amt.substring(1);
+            return amt || '';
         } else if (t === 'time') {
-            let timeStr = val.time;
-            if (timeStr.startsWith('+') || timeStr.startsWith('-')) {
+            let timeStr = val ? val.time : '';
+            if (timeStr && (timeStr.startsWith('+') || timeStr.startsWith('-'))) {
                 timeStr = timeStr.substring(1);
             }
-            if (timeStr.endsWith('T00:00:00Z')) {
+            if (timeStr && timeStr.endsWith('T00:00:00Z')) {
                 timeStr = timeStr.replace('T00:00:00Z', '');
             }
-            return timeStr;
+            return timeStr || '';
+        } else if (t === 'globecoordinate') {
+            return val ? `${val.latitude}, ${val.longitude}` : '';
+        } else if (t === 'boolean') {
+            return val === true || val === 'true';
         }
-        return JSON.stringify(val);
+        return (typeof val === 'object' && val !== null) ? (val.text || val.id || val.amount || JSON.stringify(val)) : String(val || '');
     }
 
-    /**
-     * Creates standard structure for a new input row.
-     */
     function createNewRowState(datatype) {
         let defaultValue = '';
         if (datatype === 'monolingualtext') {
@@ -3062,7 +3145,7 @@ function initializeFormState() {
             let $input = $('<input>')
                 .addClass('cradle-input')
                 .attr('type', 'text')
-                .attr('placeholder', 'YYYY-MM-DD or YYYY')
+                .attr('placeholder', 'e.g. 08 ago 2023, 08/08/2003, YYYY-MM-DD')
                 .val(row.value);
                 
             $input.on('input', function() {
@@ -3483,17 +3566,21 @@ function searchWikidataItems(term) {
     function isEmptyValue(value, datatype) {
         if (value === null || value === undefined) return true;
         if (datatype === 'monolingualtext') {
-            return !value.text || !value.language;
+            if (typeof value === 'object' && value !== null) {
+                return !value.text || value.text.trim() === '';
+            }
+            return String(value).trim() === '';
         }
-        if (typeof value === 'string') {
-            return value.trim() === '';
+        if (datatype === 'boolean') return false;
+        if (typeof value === 'object') {
+            if (value.text !== undefined) return value.text.trim() === '';
+            if (value.id !== undefined) return value.id.trim() === '';
+            if (value.amount !== undefined) return String(value.amount).trim() === '';
+            if (value.time !== undefined) return String(value.time).trim() === '';
         }
-        return false;
+        return String(value).trim() === '';
     }
 
-    /**
-     * Constructs the standard Wikibase API datavalue object.
-     */
     function constructDataValue(value, datatype) {
         if (datatype === 'wikibase-item') {
             let qid = typeof value === 'string' ? value.trim().toUpperCase() : value.id;
