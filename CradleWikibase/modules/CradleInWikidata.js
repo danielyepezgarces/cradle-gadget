@@ -195,7 +195,148 @@
         }
 
 
-        /* ── Cradle validation state borders (applied on top of Wikibase native card) ── */
+
+        /*
+         * ── Wikibase exact layout translated for the Cradle 640px Drawer ──
+         *
+         * Wikibase uses position:absolute for the property column (15em wide)
+         * and margin-left:15em on the statementlistview. Inside a 640px Drawer
+         * we replicate this visually with CSS Grid: property label left, list right.
+         */
+
+        /* Root card — matches .wikibase-statementgrouplistview context */
+        .cradle-drawer .wikibase-statementgroupview {
+            position: relative;
+            margin-bottom: 1em;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* Two-column layout: property label | statement list */
+        .cradle-drawer .wikibase-statementgroupview > .wikibase-statementgroupview-property,
+        .cradle-drawer .wikibase-statementgroupview > .wikibase-statementlistview {
+            display: block;
+        }
+
+        /* Property label column — matches Wikibase's position:absolute; width:15em */
+        .cradle-drawer .wikibase-statementgroupview-property {
+            background: #f8f9fa;
+            border-right: 1px solid #c8ccd1;
+            border-bottom: 1px solid #c8ccd1;
+            padding: 10px;
+            min-width: 0;
+        }
+        .cradle-drawer .wikibase-statementgroupview-property-label {
+            word-wrap: break-word;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+        .cradle-drawer .wikibase-statementgroupview-property-label a {
+            color: #36c;
+        }
+
+        /* Statement list — matches wikibase-statementlistview with margin-left:15em */
+        .cradle-drawer .wikibase-statementlistview {
+            background: #ffffff;
+            border: 1px solid #c8ccd1;
+            border-top: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Each statement row — matches .wikibase-statementview */
+        .cradle-drawer .wikibase-statementview {
+            padding: 10px 5px 5px 0.625rem;
+            border-bottom: 1px solid #c8ccd1;
+            position: relative;
+            min-height: 2em;
+        }
+        .cradle-drawer .wikibase-statementview:last-child {
+            border-bottom: 0;
+        }
+        .cradle-drawer .wikibase-statementview.wb-removed {
+            opacity: 0.5;
+            text-decoration: line-through;
+            background-color: #fff0f0;
+        }
+
+        /* Rank selector — same visual as Wikibase's rankselector icon */
+        .cradle-drawer .wikibase-statementview-rankselector {
+            float: left;
+            margin-right: 6px;
+        }
+        .cradle-drawer .cradle-rank-select {
+            font-size: 0.8rem;
+            padding: 2px 2px;
+            border: 1px solid #c8ccd1;
+            background: #f8f9fa;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        /* Mainsnak container */
+        .cradle-drawer .wikibase-statementview-mainsnak-container {
+            overflow: hidden;
+        }
+        .cradle-drawer .wikibase-statementview-mainsnak {
+            word-wrap: break-word;
+            margin-right: 0;
+        }
+
+        /* Snakview — matches div.wikibase-snakview padding */
+        .cradle-drawer .wikibase-snakview {
+            padding: 4px 5px 4px 0;
+        }
+        .cradle-drawer .wikibase-snakview-value-container {
+            margin-left: 0;
+            min-height: 1.6em;
+        }
+        .cradle-drawer .wikibase-snakview-body {
+            width: 100%;
+        }
+
+        /* valueview-value input — width + border matching Wikibase edit mode */
+        .cradle-drawer .valueview-value {
+            width: 100%;
+            display: block;
+        }
+        .cradle-drawer .valueview-value input,
+        .cradle-drawer .valueview-value select,
+        .cradle-drawer .valueview-value textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 5px 8px;
+            border: 1px solid #a2a9b1;
+            background: #fff;
+            color: #202122;
+            font-size: 0.875rem;
+            font-family: inherit;
+            border-radius: 2px;
+        }
+        .cradle-drawer .valueview-value input:focus,
+        .cradle-drawer .valueview-value select:focus {
+            border-color: #36c;
+            box-shadow: inset 0 0 0 1px #36c;
+            outline: none;
+        }
+
+        /* Toolbar wrapper (delete/restore button) */
+        .cradle-drawer .wikibase-toolbar-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+
+        /* Add statement toolbar — matches wikibase-statementlistview > wikibase-toolbar-wrapper */
+        .cradle-drawer .wikibase-statementlistview > .wikibase-toolbar-wrapper {
+            background: #f8f9fa;
+            border-top: 1px solid #c8ccd1;
+            padding: 6px 10px;
+            text-align: right;
+        }
+
+        /* Validation state borders (Cradle-specific, on top of Wikibase card) */
         .cradle-drawer .wikibase-statementgroupview.valid {
             border-left: 4px solid #00af89 !important;
         }
@@ -208,32 +349,13 @@
         .cradle-drawer .wikibase-statementgroupview.optional-present {
             border-left: 4px solid #36c !important;
         }
-        .cradle-drawer .wikibase-statementview.wb-removed {
-            opacity: 0.5;
-            text-decoration: line-through;
-            background-color: #fff0f0;
-        }
 
-        /* ── Inputs inside the Drawer snakview — let Wikibase CSS cascade; only add sizing ── */
-        .cradle-drawer .valueview-value input,
-        .cradle-drawer .valueview-value select,
-        .cradle-drawer .valueview-value textarea {
-            display: block;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .cradle-drawer .valueview-value {
-            width: 100%;
-        }
+        /* Validation badge colours */
+        .wikibase-statementgroupview.valid .cradle-card-validation-badge { color: #00af89; }
+        .wikibase-statementgroupview.invalid .cradle-card-validation-badge { color: #d33; }
+        .wikibase-statementgroupview.optional-present .cradle-card-validation-badge { color: #36c; }
+        .wikibase-statementgroupview.optional-missing .cradle-card-validation-badge { color: #e69138; }
 
-        /* ── Rank selector compact select ── */
-        .cradle-drawer .cradle-rank-select {
-            font-size: 0.8rem;
-            padding: 2px 4px;
-            border: 1px solid #c8ccd1;
-            background: #f8f9fa;
-            border-radius: 2px;
-        }
 
 
 /* Select/Community Tab Menu responsive styling */
