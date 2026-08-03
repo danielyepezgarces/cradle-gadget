@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.6
+ * Version: 1.15.7
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.6');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.7');
  */
 
 (function() {
@@ -2676,9 +2676,18 @@
             if (propDef && propDef.softselect && propDef.softselect.length > 0) {
                 let $select = $('<select>').addClass('cradle-select');
                 
+                function getAllQids() {
+                    let qidList = [...propDef.softselect];
+                    if (row.value && typeof row.value === 'string' && /^[QP]\d+$/i.test(row.value) && !qidList.includes(row.value)) {
+                        qidList.push(row.value);
+                    }
+                    return qidList;
+                }
+
                 function buildOptions() {
+                    let qidList = getAllQids();
                     $select.empty().append($('<option>').val('').text('-- Select --'));
-                    propDef.softselect.forEach(qid => {
+                    qidList.forEach(qid => {
                         let label = softselectLabels[qid] || qid;
                         let text = (label && label !== qid) ? `${label} (${qid})` : qid;
                         $select.append($('<option>').val(qid).text(text));
@@ -2688,7 +2697,8 @@
 
                 buildOptions();
 
-                let missingQids = propDef.softselect.filter(qid => !softselectLabels[qid]);
+                let allQids = getAllQids();
+                let missingQids = allQids.filter(qid => !softselectLabels[qid]);
                 if (missingQids.length > 0) {
                     loadItemLabels(missingQids).then(labels => {
                         Object.assign(softselectLabels, labels);
