@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.8
+ * Version: 1.15.9
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.8');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.9');
  */
 
 (function() {
@@ -2690,11 +2690,11 @@
         
         // 1. wikibase-item & wikibase-property datatype
         if (row.datatype === 'wikibase-item' || row.datatype === 'wikibase-property') {
-            if (propDef && propDef.softselect && propDef.softselect.length > 0) {
+            if (propDef && propDef.hardselect && propDef.hardselect.length > 0) {
                 let $select = $('<select>').addClass('cradle-select');
                 
                 function getAllQids() {
-                    let qidList = [...propDef.softselect];
+                    let qidList = [...propDef.hardselect];
                     if (row.value && typeof row.value === 'string' && /^[QP]\d+$/i.test(row.value) && !qidList.includes(row.value)) {
                         qidList.push(row.value);
                     }
@@ -2762,10 +2762,18 @@
             let searchTimeout = null;
 
             function showSoftselectOptions() {
+                let optionsList = [];
                 if (propDef && propDef.softselect && propDef.softselect.length > 0) {
-                    loadItemDetails(propDef.softselect).then(details => {
+                    optionsList = [...propDef.softselect];
+                }
+                if (row.value && typeof row.value === 'string' && /^[QP]\d+$/i.test(row.value) && !optionsList.includes(row.value)) {
+                    optionsList.push(row.value);
+                }
+
+                if (optionsList.length > 0) {
+                    loadItemDetails(optionsList).then(details => {
                         $dropdown.empty();
-                        propDef.softselect.forEach(qid => {
+                        optionsList.forEach(qid => {
                             let item = details[qid] || { label: qid, description: '' };
                             let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
                             let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(item.label);
