@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.1
+ * Version: 1.15.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.2');
  */
 
 (function() {
@@ -2013,6 +2013,153 @@
         });
     }
 
+    const MONTH_KEYS = ['', 'january', 'february', 'march', 'april', 'may_long', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+
+    function formatWikibaseDate(isoTime, precision) {
+        if (!isoTime) return '';
+        let isNegative = isoTime.startsWith('-');
+        let clean = isoTime.replace(/^[+-]/, '').replace(/T.*$/, '');
+        let parts = clean.split('-');
+        let yearNum = parseInt(parts[0], 10) || 0;
+        let monthNum = parseInt(parts[1], 10) || 0;
+        let dayNum = parseInt(parts[2], 10) || 0;
+
+        let lang = mw.config.get('wgUserLanguage') || 'es';
+        let isEs = lang.startsWith('es');
+        let signStr = isNegative ? ' BCE' : '';
+
+        if (precision <= 9 || monthNum === 0) {
+            return (isNegative ? '-' : '') + yearNum + signStr;
+        }
+
+        let monthName = (monthNum >= 1 && monthNum <= 12) ? mw.msg(MONTH_KEYS[monthNum]) : String(monthNum);
+
+        if (precision === 10 || dayNum === 0) {
+            return isEs ? `${monthName} de ${yearNum}${signStr}` : `${monthName} ${yearNum}${signStr}`;
+        }
+
+        return isEs ? `${dayNum} de ${monthName} de ${yearNum}${signStr}` : `${dayNum} ${monthName} ${yearNum}${signStr}`;
+    }
+
+    function parseNaturalDate(inputStr) {
+        let str = String(inputStr || '').trim();
+        if (!str) return null;
+
+        let isNegative = false;
+        if (str.startsWith('-')) {
+            isNegative = true;
+            str = str.substring(1);
+        } else if (str.startsWith('+')) {
+            str = str.substring(1);
+        }
+
+        str = str.replace(/T.*$/, '').replace(/,/g, ' ').replace(/\bde\b/gi, ' ').replace(/\bof\b/gi, ' ').trim();
+        str = str.replace(/\s+/g, ' ');
+
+        // Build dynamic month lookup using MediaWiki i18n messages (mw.msg) + English fallback
+        let monthMap = {
+            'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
+            'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
+            'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'sept': 9,
+            'october': 10, 'oct': 10, 'november': 11, 'nov': 11, 'december': 12, 'dec': 12
+        };
+
+        for (let m = 1; m <= 12; m++) {
+            let msgName = mw.msg(MONTH_KEYS[m]);
+            if (msgName) {
+                let lower = msgName.toLowerCase();
+                monthMap[lower] = m;
+                if (lower.length >= 3) {
+                    monthMap[lower.substring(0, 3)] = m;
+                }
+            }
+        }
+
+        let tokens = str.split(/[\s/\.\-]+/);
+        let day = 0;
+        let month = 0;
+        let year = 0;
+        let precision = 9;
+
+        let numTokens = [];
+        tokens.forEach(t => {
+            let lower = t.toLowerCase();
+            if (monthMap[lower]) {
+                month = monthMap[lower];
+            } else if (/^\d+$/.test(t)) {
+                numTokens.push(parseInt(t, 10));
+            }
+        });
+
+        if (month > 0) {
+            if (numTokens.length === 1) {
+                year = numTokens[0];
+                precision = 10;
+            } else if (numTokens.length >= 2) {
+                if (numTokens[0] > 31) {
+                    year = numTokens[0];
+                    day = numTokens[1];
+                } else if (numTokens[1] > 31) {
+                    day = numTokens[0];
+                    year = numTokens[1];
+                } else {
+                    day = numTokens[0];
+                    year = numTokens[1];
+                }
+                precision = 11;
+            }
+        } else {
+            if (numTokens.length === 1) {
+                year = numTokens[0];
+                precision = 9;
+            } else if (numTokens.length === 2) {
+                if (numTokens[0] > 31) {
+                    year = numTokens[0];
+                    month = numTokens[1];
+                } else {
+                    month = numTokens[0];
+                    year = numTokens[1];
+                }
+                precision = 10;
+            } else if (numTokens.length >= 3) {
+                if (numTokens[0] > 31) {
+                    year = numTokens[0];
+                    month = numTokens[1];
+                    day = numTokens[2];
+                } else if (numTokens[2] > 31) {
+                    day = numTokens[0];
+                    month = numTokens[1];
+                    year = numTokens[2];
+                } else {
+                    day = numTokens[0];
+                    month = numTokens[1];
+                    year = numTokens[2];
+                }
+                precision = 11;
+            }
+        }
+
+        if (year <= 0) return null;
+
+        let yearStr = String(year).padStart(4, '0');
+        let monthStr = (month > 0) ? String(month).padStart(2, '0') : '00';
+        let dayStr = (day > 0) ? String(day).padStart(2, '0') : '00';
+
+        let isoTime = (isNegative ? '-' : '+') + yearStr + '-' + monthStr + '-' + dayStr + 'T00:00:00Z';
+
+        return {
+            type: 'time',
+            value: {
+                time: isoTime,
+                timezone: 0,
+                before: 0,
+                after: 0,
+                precision: precision,
+                calendarmodel: 'http://www.wikidata.org/entity/Q1985727'
+            }
+        };
+    }
+
     /**
      * Extracts values from Wikibase datavalue object based on type.
      */
@@ -2030,24 +2177,7 @@
             if (amt.startsWith('+')) amt = amt.substring(1);
             return amt;
         } else if (t === 'time') {
-            let rawTime = val.time || '';
-            let precision = (val.precision !== undefined) ? val.precision : 11;
-            let isNegative = rawTime.startsWith('-');
-            let timeStr = rawTime.replace(/^[+-]/, '').replace(/T.*$/, '');
-            let parts = timeStr.split('-');
-            let year = parts[0] ? String(parseInt(parts[0], 10)) : '0';
-            let month = parts[1] || '00';
-            let day = parts[2] || '00';
-
-            let signStr = isNegative ? '-' : '';
-
-            if (precision <= 9 || month === '00') {
-                return signStr + year;
-            } else if (precision === 10 || day === '00') {
-                return signStr + year + '-' + month;
-            } else {
-                return signStr + year + '-' + month + '-' + day;
-            }
+            return formatWikibaseDate(val.time, val.precision);
         }
         return JSON.stringify(val);
     }
@@ -3538,62 +3668,7 @@ function searchWikidataItems(term) {
             };
         }
         if (datatype === 'time') {
-            let str = String(value || '').trim();
-            if (!str) return null;
-
-            let isNegative = false;
-            if (str.startsWith('-')) {
-                isNegative = true;
-                str = str.substring(1);
-            } else if (str.startsWith('+')) {
-                str = str.substring(1);
-            }
-
-            str = str.replace(/T.*$/, '').trim();
-            let parts = str.split(/[-/.]/);
-            
-            let year = '0000';
-            let month = '00';
-            let day = '00';
-            let precision = 9;
-
-            if (parts.length === 1) {
-                year = parts[0].padStart(4, '0');
-                precision = 9;
-            } else if (parts.length === 2) {
-                year = parts[0].padStart(4, '0');
-                month = parts[1].padStart(2, '0');
-                precision = 10;
-            } else if (parts.length >= 3) {
-                if (parts[0].length === 4) {
-                    year = parts[0];
-                    month = parts[1].padStart(2, '0');
-                    day = parts[2].padStart(2, '0');
-                } else if (parts[2].length === 4) {
-                    year = parts[2];
-                    month = parts[1].padStart(2, '0');
-                    day = parts[0].padStart(2, '0');
-                } else {
-                    year = parts[0].padStart(4, '0');
-                    month = parts[1].padStart(2, '0');
-                    day = parts[2].padStart(2, '0');
-                }
-                precision = 11;
-            }
-
-            let isoTime = (isNegative ? '-' : '+') + year + '-' + month + '-' + day + 'T00:00:00Z';
-
-            return {
-                type: 'time',
-                value: {
-                    time: isoTime,
-                    timezone: 0,
-                    before: 0,
-                    after: 0,
-                    precision: precision,
-                    calendarmodel: 'http://www.wikidata.org/entity/Q1985727'
-                }
-            };
+            return parseNaturalDate(value);
         }
         return null;
     }
