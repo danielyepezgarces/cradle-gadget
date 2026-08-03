@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.14.9
+ * Version: 1.15.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.9');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.0');
  */
 
 (function() {
@@ -43,6 +43,7 @@
     const P12861 = 'P12861'; // EntitySchema for this class
     const P31 = 'P31';       // Instance of
     const P279 = 'P279';     // Subclass of
+    const P106 = 'P106';     // Occupation
 
     let pageName = mw.config.get('wgPageName');
     let isSpecialCradle = (pageName === 'Special:Cradle' || pageName === 'Special:BlankPage/Cradle');
@@ -985,7 +986,7 @@
     }
 
     /**
-     * Searches class properties (P12861) on P31 and P279 claims of the entity.
+     * Searches class properties (P12861) on P31, P279, and P106 claims of the entity.
      */
     function findAssociatedSchemas(data) {
         let schemas = [];
@@ -999,9 +1000,9 @@
             });
         }
 
-        // Check instance of (P31) and subclass of (P279)
+        // Check instance of (P31), subclass of (P279), and occupation (P106)
         let classesToCheck = [];
-        [P31, P279].forEach(prop => {
+        [P31, P279, P106].forEach(prop => {
             if (data.claims && data.claims[prop]) {
                 data.claims[prop].forEach(claim => {
                     if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value) {
