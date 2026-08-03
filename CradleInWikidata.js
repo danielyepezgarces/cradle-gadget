@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.14.2
+ * Version: 1.14.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.3');
  */
 
 (function() {
@@ -384,7 +384,7 @@
         }
         
         .cradle-lang-input {
-            width: 60px !important;
+            width: 75px !important;
             flex-grow: 0 !important;
         }
 
@@ -2318,6 +2318,8 @@
                 .attr('id', 'cradle-new-item-lang')
                 .val(mw.config.get('wgUserLanguage') || 'en');
                 
+            setupLanguageAutocomplete($langInput);
+
             let $labelInput = $('<input>')
                 .addClass('cradle-input')
                 .attr('type', 'text')
@@ -2543,7 +2545,7 @@
         // 2. monolingualtext datatype
         if (row.datatype === 'monolingualtext') {
             let $group = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex': '1'});
-            let valObj = row.value || { text: '', language: 'en' };
+            let valObj = row.value || { text: '', language: mw.config.get('wgUserLanguage') || 'en' };
             
             let $langInput = $('<input>')
                 .addClass('cradle-input')
@@ -2558,6 +2560,12 @@
                 .attr('placeholder', 'Text')
                 .val(valObj.text);
 
+            setupLanguageAutocomplete($langInput, function(selectedCode) {
+                valObj.language = selectedCode;
+                row.value = valObj;
+                liveUpdateValidation();
+            });
+
             $langInput.on('input', function() {
                 valObj.language = $langInput.val().trim();
                 row.value = valObj;
@@ -2571,6 +2579,106 @@
 
             $group.append($langInput).append($textInput);
             return $group;
+        }
+
+        // 2b. commonsMedia datatype (e.g. P18 image, P154 logo, P94 coat of arms)
+        if (row.datatype === 'commonsMedia') {
+            let $wrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'flex': '1'});
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', 'e.g. Example.jpg or search Commons...')
+                .val(row.value);
+
+            let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
+            let $previewContainer = $('<div>').css({'margin-top': '4px', 'display': 'none'});
+            let $previewImg = $('<img>').css({'max-height': '75px', 'max-width': '120px', 'border-radius': '2px', 'border': '1px solid #c8ccd1'});
+            $previewContainer.append($previewImg);
+
+            $wrapper.append($input).append($dropdown).append($previewContainer);
+
+            function updatePreview(filename) {
+                if (!filename || !filename.trim()) {
+                    $previewContainer.hide();
+                    return;
+                }
+                let cleanName = filename.replace(/^File:/i, '').trim();
+                let url = 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(cleanName) + '?width=150';
+                $previewImg.attr('src', url);
+                $previewContainer.show();
+            }
+
+            if (row.value) {
+                updatePreview(row.value);
+            }
+
+            let searchTimeout = null;
+            $input.on('input', function() {
+                let query = $input.val().trim();
+                let cleanQuery = query.replace(/^File:/i, '');
+                row.value = cleanQuery;
+                liveUpdateValidation();
+                updatePreview(cleanQuery);
+
+                clearTimeout(searchTimeout);
+                if (query.length < 2) {
+                    $dropdown.hide();
+                    return;
+                }
+
+                searchTimeout = setTimeout(function() {
+                    let apiUrl = 'https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=' + encodeURIComponent(query) + '&gsrnamespace=6&prop=pageimages|info&piprop=thumbnail&pithumbsize=80&format=json&origin=*';
+                    $.getJSON(apiUrl).done(function(res) {
+                        $dropdown.empty();
+                        let pages = (res && res.query && res.query.pages) ? Object.values(res.query.pages) : [];
+                        if (pages.length === 0) {
+                            $dropdown.hide();
+                            return;
+                        }
+                        pages.sort((a, b) => (a.index || 0) - (b.index || 0));
+
+                        pages.slice(0, 10).forEach(page => {
+                            let cleanTitle = (page.title || '').replace(/^File:/i, '');
+                            let thumbUrl = page.thumbnail ? page.thumbnail.source : null;
+
+                            let $row = $('<li>').addClass('cradle-autocomplete-row').css({
+                                'display': 'flex',
+                                'align-items': 'center',
+                                'gap': '8px',
+                                'padding': '6px 8px',
+                                'cursor': 'pointer'
+                            });
+
+                            if (thumbUrl) {
+                                $row.append($('<img>').attr('src', thumbUrl).css({'width': '32px', 'height': '32px', 'object-fit': 'cover', 'border-radius': '2px', 'flex-shrink': '0'}));
+                            }
+                            $row.append($('<span>').addClass('cradle-autocomplete-row-label').text(cleanTitle));
+
+                            $row.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                row.value = cleanTitle;
+                                $input.val(cleanTitle);
+                                updatePreview(cleanTitle);
+                                $dropdown.hide();
+                                liveUpdateValidation();
+                            });
+                            $dropdown.append($row);
+                        });
+                        $dropdown.show();
+                    }).fail(function() {
+                        $dropdown.hide();
+                    });
+                }, 300);
+            });
+
+            $(document).on('click.cradleCommonsMedia', function(e) {
+                if (!$(e.target).closest($wrapper).length) {
+                    $dropdown.hide();
+                }
+            });
+
+            return $wrapper;
         }
 
         // 3. quantity datatype
@@ -2828,6 +2936,221 @@
         });
 
         $(document).on('click.cradleSchemaAutocomplete', function(e) {
+            if (!$wrapper.is(e.target) && $wrapper.has(e.target).length === 0) {
+                $dropdown.hide();
+            }
+        });
+    }
+
+    let cachedLanguageList = null;
+    let commonLanguageNames = {
+        'en': 'English inglés',
+        'es': 'Spanish español',
+        'fr': 'French francés',
+        'de': 'German alemán',
+        'it': 'Italian italiano',
+        'pt': 'Portuguese portugués',
+        'pt-br': 'Brazilian Portuguese portugués brasileño',
+        'ru': 'Russian ruso',
+        'zh': 'Chinese chino',
+        'zh-hans': 'Simplified Chinese chino simplificado',
+        'zh-hant': 'Traditional Chinese chino tradicional',
+        'ja': 'Japanese japonés',
+        'ko': 'Korean coreano',
+        'ar': 'Arabic árabe',
+        'hi': 'Hindi hindi',
+        'bn': 'Bengali bengalí',
+        'nl': 'Dutch holandés neerlandés',
+        'sv': 'Swedish sueco',
+        'pl': 'Polish polaco',
+        'uk': 'Ukrainian ucraniano',
+        'tr': 'Turkish turco',
+        'vi': 'Vietnamese vietnamita',
+        'ca': 'Catalan catalán',
+        'gl': 'Galician gallego',
+        'eu': 'Basque euskera vasco',
+        'ast': 'Asturian asturiano',
+        'qu': 'Quechua quechua',
+        'ay': 'Aymara aimara',
+        'gn': 'Guarani guaraní',
+        'eo': 'Esperanto esperanto',
+        'la': 'Latin latín',
+        'grc': 'Ancient Greek griego antiguo',
+        'el': 'Greek griego',
+        'he': 'Hebrew hebreo',
+        'fa': 'Persian persa',
+        'th': 'Thai tailandés',
+        'id': 'Indonesian indonesio',
+        'ms': 'Malay malayo',
+        'sw': 'Swahili suajili',
+        'fi': 'Finnish finlandés',
+        'da': 'Danish danés',
+        'no': 'Norwegian noruego',
+        'nb': 'Bokmål noruego bokmål',
+        'nn': 'Nynorsk noruego nynorsk',
+        'cs': 'Czech checo',
+        'hu': 'Hungarian húngaro',
+        'ro': 'Romanian rumano',
+        'bg': 'Bulgarian búlgaro',
+        'sr': 'Serbian serbio',
+        'hr': 'Croatian croata',
+        'sk': 'Slovak eslovaco',
+        'sl': 'Slovenian esloveno',
+        'et': 'Estonian estonio',
+        'lv': 'Latvian letón',
+        'lt': 'Lithuanian lituano'
+    };
+
+    function fetchSupportedLanguages() {
+        if (cachedLanguageList) {
+            return Promise.resolve(cachedLanguageList);
+        }
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            api.get({
+                action: 'query',
+                meta: 'wbcontentlanguages',
+                wbclcontext: 'monolingualtext',
+                wbclprop: 'code|name|autonym',
+                formatversion: 2
+            }).done(function(res) {
+                let langsDict = (res && res.query && res.query.wbcontentlanguages) ? res.query.wbcontentlanguages : {};
+                let langKeys = Object.keys(langsDict);
+                if (langKeys.length > 0) {
+                    cachedLanguageList = langKeys.map(k => {
+                        let obj = langsDict[k];
+                        let code = obj.code || k;
+                        let autonym = obj.autonym || code;
+                        let name = obj.name || autonym;
+                        let extra = commonLanguageNames[code] || '';
+                        let displayName = (name !== autonym) ? `${autonym} / ${name}` : autonym;
+                        return {
+                            code: code,
+                            name: displayName,
+                            searchStr: (code + ' ' + name + ' ' + autonym + ' ' + extra).toLowerCase()
+                        };
+                    });
+                    resolve(cachedLanguageList);
+                    return;
+                }
+                fallbackLangs();
+            }).fail(function() {
+                fallbackLangs();
+            });
+
+            function fallbackLangs() {
+                api.get({
+                    action: 'query',
+                    meta: 'siteinfo',
+                    siprop: 'languages',
+                    formatversion: 2
+                }).done(function(res) {
+                    let langs = (res && res.query && res.query.languages) ? res.query.languages : [];
+                    cachedLanguageList = langs.map(l => {
+                        let code = l.code || '';
+                        let autonym = l.name || l['*'] || code;
+                        let extra = commonLanguageNames[code] || '';
+                        return {
+                            code: code,
+                            name: autonym,
+                            searchStr: (code + ' ' + autonym + ' ' + extra).toLowerCase()
+                        };
+                    });
+                    resolve(cachedLanguageList);
+                }).fail(function() {
+                    cachedLanguageList = Object.keys(commonLanguageNames).map(c => ({
+                        code: c,
+                        name: commonLanguageNames[c].split(' ')[0],
+                        searchStr: (c + ' ' + commonLanguageNames[c]).toLowerCase()
+                    }));
+                    resolve(cachedLanguageList);
+                });
+            }
+        });
+    }
+
+    function setupLanguageAutocomplete($input, onSelect) {
+        let $wrapper = $('<div>').addClass('cradle-lang-autocomplete-wrapper').css({
+            'position': 'relative',
+            'display': 'inline-block'
+        });
+        $input.after($wrapper);
+        $wrapper.append($input);
+
+        let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').css({
+            'position': 'absolute',
+            'top': '100%',
+            'left': '0',
+            'min-width': '180px',
+            'max-height': '180px',
+            'overflow-y': 'auto',
+            'z-index': '10005',
+            'background-color': 'var(--background-color-base, #ffffff)',
+            'border': '1px solid var(--border-color-base, #a2a9b1)',
+            'border-radius': '2px',
+            'box-shadow': '0 4px 12px rgba(0,0,0,0.15)',
+            'margin': '2px 0 0 0',
+            'padding': '0',
+            'list-style': 'none'
+        }).hide();
+        $wrapper.append($dropdown);
+
+        function updateDropdown() {
+            let q = $input.val().trim().toLowerCase();
+            fetchSupportedLanguages().then(langs => {
+                let filtered = [];
+                if (!q) {
+                    filtered = langs.slice(0, 12);
+                } else {
+                    filtered = langs.filter(l => l.searchStr.includes(q));
+                    filtered.sort((a, b) => {
+                        if (a.code === q) return -1;
+                        if (b.code === q) return 1;
+                        if (a.code.startsWith(q)) return -1;
+                        if (b.code.startsWith(q)) return 1;
+                        return 0;
+                    });
+                    filtered = filtered.slice(0, 15);
+                }
+
+                $dropdown.empty();
+                if (filtered.length === 0) {
+                    $dropdown.hide();
+                    return;
+                }
+
+                filtered.forEach(item => {
+                    let $li = $('<li>').addClass('cradle-autocomplete-row').css({
+                        'padding': '6px 10px',
+                        'font-size': '0.8rem',
+                        'cursor': 'pointer',
+                        'display': 'flex',
+                        'justify-content': 'space-between',
+                        'align-items': 'center'
+                    });
+                    $li.append($('<span>').css({'font-weight': 'bold'}).text(item.name));
+                    $li.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${item.code})`));
+
+                    $li.on('click mousedown', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        $input.val(item.code);
+                        $dropdown.hide();
+                        if (typeof onSelect === 'function') {
+                            onSelect(item.code);
+                        }
+                    });
+                    $dropdown.append($li);
+                });
+                $dropdown.show();
+            });
+        }
+
+        $input.on('focus input', function() {
+            updateDropdown();
+        });
+
+        $(document).on('click.cradleLangAutocomplete', function(e) {
             if (!$wrapper.is(e.target) && $wrapper.has(e.target).length === 0) {
                 $dropdown.hide();
             }
