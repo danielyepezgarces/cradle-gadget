@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.14.7
+ * Version: 1.14.8
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.7');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.8');
  */
 
 (function() {
@@ -2522,45 +2522,23 @@
                 .val('');
 
             let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
-            
-            let $itemInfo = $('<div>').addClass('cradle-item-info').css({
-                'font-size': '0.78rem',
-                'color': 'var(--color-subtle, #54595d)',
-                'margin-top': '4px',
-                'display': 'flex',
-                'align-items': 'center',
-                'flex-wrap': 'wrap',
-                'gap': '4px'
-            }).hide();
+            $wrapper.append($input).append($dropdown);
 
-            let $itemDesc = $('<span>').addClass('cradle-item-info-desc').css({'font-style': 'italic'});
-            let $itemQidLink = $('<a>').addClass('cradle-item-info-qid').attr('target', '_blank').css({
-                'color': 'var(--color-link, #36c)',
-                'font-weight': 'bold',
-                'text-decoration': 'none'
-            });
-            $itemInfo.append($itemDesc).append($itemQidLink);
-
-            $wrapper.append($input).append($dropdown).append($itemInfo);
-
-            function setSelectedItemUI(id, label, desc) {
+            function setSelectedItemUI(id, label) {
                 row.value = id;
-                $input.val(label || id);
-                if (desc) {
-                    $itemDesc.text(desc);
+                if (label && label !== id) {
+                    $input.val(`${label} (${id})`);
                 } else {
-                    $itemDesc.text('');
+                    $input.val(id);
                 }
-                $itemQidLink.attr('href', mw.util.getUrl(id)).text('(' + id + ')');
-                $itemInfo.show();
             }
 
             if (row.value) {
-                loadItemDetails([row.value]).then(details => {
-                    if (details[row.value]) {
-                        setSelectedItemUI(row.value, details[row.value].label, details[row.value].description);
+                loadItemLabels([row.value]).then(labels => {
+                    if (labels[row.value]) {
+                        setSelectedItemUI(row.value, labels[row.value]);
                     } else {
-                        setSelectedItemUI(row.value, row.value, '');
+                        setSelectedItemUI(row.value, row.value);
                     }
                 });
             }
@@ -2583,7 +2561,7 @@
                             $r.on('click mousedown', function(e) {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                setSelectedItemUI(qid, item.label, item.description);
+                                setSelectedItemUI(qid, item.label);
                                 $dropdown.hide();
                                 liveUpdateValidation();
                             });
@@ -2606,16 +2584,15 @@
                 if (/^[qQpP]\d+$/.test(query)) {
                     let id = query.toUpperCase();
                     row.value = id;
-                    loadItemDetails([id]).then(details => {
-                        if (details[id]) {
-                            setSelectedItemUI(id, details[id].label, details[id].description);
+                    loadItemLabels([id]).then(labels => {
+                        if (labels[id]) {
+                            setSelectedItemUI(id, labels[id]);
                         } else {
-                            setSelectedItemUI(id, id, '');
+                            setSelectedItemUI(id, id);
                         }
                     });
                 } else if (!query) {
                     row.value = '';
-                    $itemInfo.hide();
                 }
                 liveUpdateValidation();
                 
@@ -2645,7 +2622,7 @@
                             $r.on('click mousedown', function(e) {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                setSelectedItemUI(res.id, res.label || res.id, res.description || '');
+                                setSelectedItemUI(res.id, res.label || res.id);
                                 $dropdown.hide();
                                 liveUpdateValidation();
                             });
@@ -2715,53 +2692,7 @@
                 .val(row.value);
 
             let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
-            
-            let $previewContainer = $('<div>').css({
-                'margin-top': '6px',
-                'display': 'none',
-                'align-items': 'center',
-                'gap': '10px',
-                'padding': '6px 8px',
-                'background': 'var(--background-color-neutral-subtle, #f8f9fa)',
-                'border': '1px solid var(--border-color-base, #c8ccd1)',
-                'border-radius': '2px'
-            });
-
-            let $previewImg = $('<img>').css({
-                'height': '48px',
-                'width': '48px',
-                'object-fit': 'contain',
-                'border-radius': '2px',
-                'flex-shrink': '0',
-                'background': '#ffffff',
-                'border': '1px solid #eaecf0'
-            });
-
-            let $previewTitle = $('<span>').css({
-                'font-size': '0.8rem',
-                'font-weight': 'bold',
-                'color': 'var(--color-base, #202122)',
-                'word-break': 'break-all'
-            });
-
-            $previewContainer.append($previewImg).append($previewTitle);
-            $wrapper.append($input).append($dropdown).append($previewContainer);
-
-            function updatePreview(filename) {
-                if (!filename || !filename.trim()) {
-                    $previewContainer.css('display', 'none');
-                    return;
-                }
-                let cleanName = filename.replace(/^File:/i, '').trim();
-                let url = 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(cleanName) + '?width=150';
-                $previewImg.attr('src', url);
-                $previewTitle.text(cleanName);
-                $previewContainer.css('display', 'flex');
-            }
-
-            if (row.value) {
-                updatePreview(row.value);
-            }
+            $wrapper.append($input).append($dropdown);
 
             let searchTimeout = null;
             $input.on('input', function() {
@@ -2769,7 +2700,6 @@
                 let cleanQuery = query.replace(/^File:/i, '');
                 row.value = cleanQuery;
                 liveUpdateValidation();
-                updatePreview(cleanQuery);
 
                 clearTimeout(searchTimeout);
                 if (query.length < 2) {
@@ -2835,7 +2765,6 @@
                                 e.stopPropagation();
                                 row.value = cleanTitle;
                                 $input.val(cleanTitle);
-                                updatePreview(cleanTitle);
                                 $dropdown.hide();
                                 liveUpdateValidation();
                             });
