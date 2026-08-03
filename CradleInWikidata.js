@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.2
+ * Version: 1.15.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.3');
  */
 
 (function() {
@@ -2013,7 +2013,21 @@
         });
     }
 
-    const MONTH_KEYS = ['', 'january', 'february', 'march', 'april', 'may_long', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+    const MONTH_NAMES_ES = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const MONTH_NAMES_EN = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    function getMonthName(monthNum, lang) {
+        if (monthNum < 1 || monthNum > 12) return String(monthNum);
+        try {
+            let d = new Date(2000, monthNum - 1, 15);
+            let userLang = lang || mw.config.get('wgUserLanguage') || 'es';
+            let monthName = new Intl.DateTimeFormat(userLang, { month: 'long' }).format(d);
+            return monthName;
+        } catch(e) {
+            let isEs = (lang || '').startsWith('es');
+            return isEs ? MONTH_NAMES_ES[monthNum] : MONTH_NAMES_EN[monthNum];
+        }
+    }
 
     function formatWikibaseDate(isoTime, precision) {
         if (!isoTime) return '';
@@ -2024,15 +2038,15 @@
         let monthNum = parseInt(parts[1], 10) || 0;
         let dayNum = parseInt(parts[2], 10) || 0;
 
-        let lang = mw.config.get('wgUserLanguage') || 'es';
-        let isEs = lang.startsWith('es');
+        let userLang = mw.config.get('wgUserLanguage') || 'es';
+        let isEs = userLang.startsWith('es');
         let signStr = isNegative ? ' BCE' : '';
 
         if (precision <= 9 || monthNum === 0) {
             return (isNegative ? '-' : '') + yearNum + signStr;
         }
 
-        let monthName = (monthNum >= 1 && monthNum <= 12) ? mw.msg(MONTH_KEYS[monthNum]) : String(monthNum);
+        let monthName = getMonthName(monthNum, userLang);
 
         if (precision === 10 || dayNum === 0) {
             return isEs ? `${monthName} de ${yearNum}${signStr}` : `${monthName} ${yearNum}${signStr}`;
@@ -2056,23 +2070,25 @@
         str = str.replace(/T.*$/, '').replace(/,/g, ' ').replace(/\bde\b/gi, ' ').replace(/\bof\b/gi, ' ').trim();
         str = str.replace(/\s+/g, ' ');
 
-        // Build dynamic month lookup using MediaWiki i18n messages (mw.msg) + English fallback
         let monthMap = {
             'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
             'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
             'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'sept': 9,
-            'october': 10, 'oct': 10, 'november': 11, 'nov': 11, 'december': 12, 'dec': 12
+            'october': 10, 'oct': 10, 'november': 11, 'nov': 11, 'december': 12, 'dec': 12,
+            'enero': 1, 'ene': 1, 'febrero': 2, 'feb': 2, 'marzo': 3, 'abril': 4, 'abr': 4,
+            'mayo': 5, 'junio': 6, 'jun': 6, 'julio': 7, 'jul': 7, 'agosto': 8, 'ago': 8,
+            'septiembre': 9, 'setiembre': 9, 'octubre': 10, 'oct': 10, 'noviembre': 11, 'nov': 11, 'diciembre': 12, 'dic': 12
         };
 
+        let userLang = mw.config.get('wgUserLanguage') || 'es';
         for (let m = 1; m <= 12; m++) {
-            let msgName = mw.msg(MONTH_KEYS[m]);
-            if (msgName) {
-                let lower = msgName.toLowerCase();
-                monthMap[lower] = m;
-                if (lower.length >= 3) {
-                    monthMap[lower.substring(0, 3)] = m;
-                }
-            }
+            try {
+                let d = new Date(2000, m - 1, 15);
+                let longName = new Intl.DateTimeFormat(userLang, { month: 'long' }).format(d).toLowerCase();
+                let shortName = new Intl.DateTimeFormat(userLang, { month: 'short' }).format(d).toLowerCase().replace(/\./g, '');
+                monthMap[longName] = m;
+                monthMap[shortName] = m;
+            } catch(e) {}
         }
 
         let tokens = str.split(/[\s/\.\-]+/);
