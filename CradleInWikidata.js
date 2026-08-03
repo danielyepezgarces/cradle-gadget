@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.14.8
+ * Version: 1.14.9
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.8');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.9');
  */
 
 (function() {
@@ -2514,6 +2514,36 @@
         
         // 1. wikibase-item & wikibase-property datatype
         if (row.datatype === 'wikibase-item' || row.datatype === 'wikibase-property') {
+            if (propDef && propDef.softselect && propDef.softselect.length > 0) {
+                let $select = $('<select>').addClass('cradle-select');
+                
+                function buildOptions() {
+                    $select.empty().append($('<option>').val('').text('-- Select --'));
+                    propDef.softselect.forEach(qid => {
+                        let label = softselectLabels[qid] || qid;
+                        let text = (label && label !== qid) ? `${label} (${qid})` : qid;
+                        $select.append($('<option>').val(qid).text(text));
+                    });
+                    $select.val(row.value);
+                }
+
+                buildOptions();
+
+                let missingQids = propDef.softselect.filter(qid => !softselectLabels[qid]);
+                if (missingQids.length > 0) {
+                    loadItemLabels(missingQids).then(labels => {
+                        Object.assign(softselectLabels, labels);
+                        buildOptions();
+                    });
+                }
+                
+                $select.on('change', function() {
+                    row.value = $select.val();
+                    liveUpdateValidation();
+                });
+                return $select;
+            }
+
             let $wrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'flex': '1'});
             let $input = $('<input>')
                 .addClass('cradle-input')
