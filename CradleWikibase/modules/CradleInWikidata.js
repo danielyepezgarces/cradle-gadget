@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.7
+ * Version: 1.15.8
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.7');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.8');
  */
 
 (function() {
@@ -1723,16 +1723,26 @@
         let startMatch = shexText.match(/start\s*=\s*@<\s*(.+?)\s*>/i);
         let startShape = startMatch ? startMatch[1] : null;
         
-        // Find shape contents
+        // Find shape contents and EXTRA properties
         let shapes = {};
-        let shapeRegex = /<([^>]+)>\s*(?:EXTRA\s+[^{]+)?\s*\{([\s\S]*?)\}/gi;
+        let shapeExtraPids = [];
+        let shapeRegex = /<([^>]+)>\s*(?:EXTRA\s+([^{]+))?\s*\{([\s\S]*?)\}/gi;
         let match;
         while ((match = shapeRegex.exec(shexText)) !== null) {
             let shapeName = match[1];
-            let shapeContent = match[2];
+            let extraStr = match[2] || '';
+            let shapeContent = match[3];
             shapes[shapeName] = shapeContent;
-            if (!startShape) {
+            
+            if (!startShape || startShape === shapeName) {
                 startShape = shapeName;
+                if (extraStr) {
+                    let pids = extraStr.match(/P\d+/gi) || [];
+                    shapeExtraPids = pids.map(p => p.toUpperCase());
+                    if (shapeExtraPids.length === 0) {
+                        shapeExtraPids.push('ALL');
+                    }
+                }
             }
         }
         
@@ -1795,6 +1805,10 @@
                 softselect = qids;
             }
             
+            if (shapeExtraPids.includes(propId) || shapeExtraPids.includes('ALL')) {
+                max = Infinity;
+            }
+
             props[propId] = {
                 id: propId,
                 min: min,
@@ -2009,6 +2023,9 @@
                     if (initVal !== '') newRow.value = initVal;
                     formState[pid].push(newRow);
                 }
+            } else if (formState[pid].length > 1) {
+                // If item already has multiple claims, allow adding/removing values
+                propDef.max = Infinity;
             }
         });
     }
@@ -2252,7 +2269,7 @@
             if (activeClaims.length < min) {
                 errors.push(mw.msg('cradle-val-err-min', min));
             }
-            if (max !== '*' && activeClaims.length > max) {
+            if (max !== '*' && max !== Infinity && activeClaims.length > max) {
                 errors.push(mw.msg('cradle-val-err-max', max));
             }
             
