@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.14.5
+ * Version: 1.14.6
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.5');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.6');
  */
 
 (function() {
@@ -2309,19 +2309,9 @@
         $content.append($headerPanel);
 
         // Display current active schema/template title
-        let activeTitle = "";
         if (activeTemplate) {
-            activeTitle = activeTemplate.labels[mw.config.get('wgUserLanguage')] || activeTemplate.title;
-        } else if (activeSchema) {
-            activeTitle = `${activeSchema.label} (${activeSchema.id})`;
-        }
-
-        if (activeTitle) {
-            let $formHeader = $('<div>')
-                .css({
-                    'margin-bottom': '20px',
-                    'padding-bottom': '8px'
-                })
+            let activeTitle = activeTemplate.labels[mw.config.get('wgUserLanguage')] || activeTemplate.title;
+            let $formHeader = $('<div>').css({'margin-bottom': '20px', 'padding-bottom': '8px'})
                 .append($('<h2>').css({
                     'font-size': '1.25rem',
                     'margin': '0',
@@ -2329,6 +2319,36 @@
                     'color': 'var(--color-base, #202122)'
                 }).text(activeTitle));
             $content.append($formHeader);
+        } else if (activeSchema) {
+            let schemaUrl = mw.util.getUrl('EntitySchema:' + activeSchema.id);
+            let schemaText = (activeSchema.label && activeSchema.label !== activeSchema.id)
+                ? `${activeSchema.label} (${activeSchema.id})`
+                : activeSchema.id;
+
+            let $schemaLink = $('<a>')
+                .attr({
+                    'href': schemaUrl,
+                    'target': '_blank',
+                    'title': 'EntitySchema:' + activeSchema.id
+                })
+                .css({
+                    'color': 'var(--color-link, #36c)',
+                    'text-decoration': 'none'
+                })
+                .text(schemaText)
+                .hover(
+                    function() { $(this).css('text-decoration', 'underline'); },
+                    function() { $(this).css('text-decoration', 'none'); }
+                );
+
+            let $h2 = $('<h2>').css({
+                'font-size': '1.25rem',
+                'margin': '0',
+                'font-weight': 'bold',
+                'color': 'var(--color-base, #202122)'
+            }).append($schemaLink);
+
+            $content.append($('<div>').css({'margin-bottom': '20px', 'padding-bottom': '8px'}).append($h2));
         }
 
         // Live validation summary banner at the top of the form
