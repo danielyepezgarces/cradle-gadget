@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.3
+ * Version: 1.15.4
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.4');
  */
 
 (function() {
@@ -2760,8 +2760,26 @@
             }
 
             $input.on('focus', function() {
+                let currentVal = $input.val();
+                let cleanLabel = currentVal.replace(/\s*\([QP]\d+\)$/i, '');
+                $input.val(cleanLabel);
+                setTimeout(function() { $input.select(); }, 50);
+
                 if (!$input.val().trim() || $input.val().trim().length < 2) {
                     showSoftselectOptions();
+                }
+            });
+
+            $input.on('blur', function() {
+                if (row.value && row.value.match(/^[QP]\d+$/i)) {
+                    loadItemLabels([row.value]).then(labels => {
+                        let label = labels[row.value] || row.value;
+                        if (label && label !== row.value) {
+                            $input.val(`${label} (${row.value})`);
+                        } else {
+                            $input.val(row.value);
+                        }
+                    });
                 }
             });
 
@@ -2846,7 +2864,10 @@
                 .addClass('cradle-input')
                 .attr('type', 'text')
                 .attr('placeholder', 'Text')
+                .css({'flex': '1'})
                 .val(valObj.text);
+
+            $group.append($langInput).append($textInput);
 
             setupLanguageAutocomplete($langInput, function(selectedCode) {
                 valObj.language = selectedCode;
@@ -2865,7 +2886,6 @@
                 liveUpdateValidation();
             });
 
-            $group.append($langInput).append($textInput);
             return $group;
         }
 
@@ -3370,19 +3390,21 @@
     function setupLanguageAutocomplete($input, onSelect) {
         let $wrapper = $('<div>').addClass('cradle-lang-autocomplete-wrapper').css({
             'position': 'relative',
+            'flex': '0 0 110px',
+            'min-width': '110px',
             'display': 'inline-block'
         });
-        $input.after($wrapper);
-        $wrapper.append($input);
+        $input.css({'width': '100%', 'box-sizing': 'border-box'}).wrap($wrapper);
+        let $containerWrapper = $input.parent();
 
         let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').css({
             'position': 'absolute',
             'top': '100%',
             'left': '0',
-            'min-width': '180px',
+            'min-width': '220px',
             'max-height': '180px',
             'overflow-y': 'auto',
-            'z-index': '10005',
+            'z-index': '10010',
             'background-color': 'var(--background-color-base, #ffffff)',
             'border': '1px solid var(--border-color-base, #a2a9b1)',
             'border-radius': '2px',
@@ -3391,7 +3413,7 @@
             'padding': '0',
             'list-style': 'none'
         }).hide();
-        $wrapper.append($dropdown);
+        $containerWrapper.append($dropdown);
 
         function updateDropdown() {
             let q = $input.val().trim().toLowerCase();
