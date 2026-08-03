@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.14.6
+ * Version: 1.14.7
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.6');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.7');
  */
 
 (function() {
@@ -3185,27 +3185,33 @@
             let api = new mw.Api();
             api.get({
                 action: 'query',
-                meta: 'wbcontentlanguages',
+                meta: 'wbcontentlanguages|languageinfo',
                 wbclcontext: 'monolingualtext',
                 wbclprop: 'code|name|autonym',
+                liprop: 'code|name|autonym',
                 formatversion: 2
             }).done(function(res) {
-                let langsDict = (res && res.query && res.query.wbcontentlanguages) ? res.query.wbcontentlanguages : {};
-                let langKeys = Object.keys(langsDict);
-                if (langKeys.length > 0) {
-                    cachedLanguageList = langKeys.map(k => {
-                        let obj = langsDict[k];
-                        let code = obj.code || k;
-                        let autonym = obj.autonym || code;
-                        let name = obj.name || autonym;
+                let wbLangs = (res && res.query && res.query.wbcontentlanguages) ? res.query.wbcontentlanguages : {};
+                let cldrLangs = (res && res.query && res.query.languageinfo) ? res.query.languageinfo : {};
+                
+                let codes = new Set([...Object.keys(wbLangs), ...Object.keys(cldrLangs)]);
+                if (codes.size > 0) {
+                    cachedLanguageList = Array.from(codes).map(code => {
+                        let wbObj = wbLangs[code] || {};
+                        let cldrObj = cldrLangs[code] || {};
+                        let autonym = cldrObj.autonym || wbObj.autonym || wbObj.name || code;
+                        let name = cldrObj.name || wbObj.name || autonym;
                         let extra = commonLanguageNames[code] || '';
-                        let displayName = (name !== autonym) ? `${autonym} / ${name}` : autonym;
+                        
+                        let displayName = (name && name !== autonym) ? `${autonym} (${name})` : autonym;
                         return {
                             code: code,
                             name: displayName,
                             searchStr: (code + ' ' + name + ' ' + autonym + ' ' + extra).toLowerCase()
                         };
                     });
+                    
+                    cachedLanguageList.sort((a, b) => a.code.localeCompare(b.code));
                     resolve(cachedLanguageList);
                     return;
                 }
