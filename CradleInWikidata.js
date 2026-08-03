@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.5
+ * Version: 1.15.6
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.5');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.6');
  */
 
 (function() {
@@ -724,8 +724,8 @@
             'cradle-loading-templates': 'Loading templates from Wikidata:Cradle...',
             'cradle-enter-schema-title': 'Enter or select an EntitySchema to edit this item:',
             'cradle-change-schema': 'Change Schema',
-            'cradle-edit-summary': 'Updated statements using Cradle Wikidata Gadget (EntitySchema:$1)',
-            'cradle-create-summary': 'Created new item using Cradle Wikidata Gadget (Template: $1)',
+            'cradle-edit-summary': 'Updated statements with [[User:Danielyepezgarces/Cradle-gadget|Cradle-gadget]] ([[EntitySchema:$1]])',
+            'cradle-create-summary': 'New item created with [[User:Danielyepezgarces/Cradle-gadget|Cradle-gadget]] (Template: $1)',
             'cradle-search-placeholder': 'Search item...',
             'cradle-credits': 'Created by $1 & $2. Based on $3 by $4.',
             'cradle-hardselect-placeholder': 'hardselect QIDs (comma-separated, e.g. Q5,Q6)',
@@ -834,8 +834,8 @@
                     'cradle-loading-templates': 'Cargando plantillas desde Wikidata:Cradle...',
                     'cradle-enter-schema-title': 'Introduce o selecciona un EntitySchema para editar este elemento:',
                     'cradle-change-schema': 'Cambiar esquema',
-                    'cradle-edit-summary': 'Declaraciones actualizadas con el gadget Cradle de Wikidata (EntitySchema:$1)',
-                    'cradle-create-summary': 'Nuevo elemento creado con el gadget Cradle de Wikidata (Plantilla: $1)',
+                    'cradle-edit-summary': 'Declaraciones actualizadas con [[User:Danielyepezgarces/Cradle-gadget|Cradle-gadget]] ([[EntitySchema:$1]])',
+                    'cradle-create-summary': 'Nuevo elemento creado con [[User:Danielyepezgarces/Cradle-gadget|Cradle-gadget]] (Plantilla: $1)',
                     'cradle-search-placeholder': 'Buscar elemento...',
                     'cradle-credits': 'Creado por $1 e $2. Basado en $3 por Magnus Manske.',
                     'cradle-btn-edit-with-cradle': 'Editar con Cradle',
