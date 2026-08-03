@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.14.4
+ * Version: 1.14.5
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.4');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.5');
  */
 
 (function() {
@@ -2695,21 +2695,48 @@
                 .val(row.value);
 
             let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
-            let $previewContainer = $('<div>').css({'margin-top': '4px', 'display': 'none'});
-            let $previewImg = $('<img>').css({'max-height': '75px', 'max-width': '120px', 'border-radius': '2px', 'border': '1px solid #c8ccd1'});
-            $previewContainer.append($previewImg);
+            
+            let $previewContainer = $('<div>').css({
+                'margin-top': '6px',
+                'display': 'none',
+                'align-items': 'center',
+                'gap': '10px',
+                'padding': '6px 8px',
+                'background': 'var(--background-color-neutral-subtle, #f8f9fa)',
+                'border': '1px solid var(--border-color-base, #c8ccd1)',
+                'border-radius': '2px'
+            });
 
+            let $previewImg = $('<img>').css({
+                'height': '48px',
+                'width': '48px',
+                'object-fit': 'contain',
+                'border-radius': '2px',
+                'flex-shrink': '0',
+                'background': '#ffffff',
+                'border': '1px solid #eaecf0'
+            });
+
+            let $previewTitle = $('<span>').css({
+                'font-size': '0.8rem',
+                'font-weight': 'bold',
+                'color': 'var(--color-base, #202122)',
+                'word-break': 'break-all'
+            });
+
+            $previewContainer.append($previewImg).append($previewTitle);
             $wrapper.append($input).append($dropdown).append($previewContainer);
 
             function updatePreview(filename) {
                 if (!filename || !filename.trim()) {
-                    $previewContainer.hide();
+                    $previewContainer.css('display', 'none');
                     return;
                 }
                 let cleanName = filename.replace(/^File:/i, '').trim();
                 let url = 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(cleanName) + '?width=150';
                 $previewImg.attr('src', url);
-                $previewContainer.show();
+                $previewTitle.text(cleanName);
+                $previewContainer.css('display', 'flex');
             }
 
             if (row.value) {
@@ -2748,15 +2775,40 @@
                             let $row = $('<li>').addClass('cradle-autocomplete-row').css({
                                 'display': 'flex',
                                 'align-items': 'center',
-                                'gap': '8px',
+                                'flex-direction': 'row',
+                                'gap': '10px',
                                 'padding': '6px 8px',
                                 'cursor': 'pointer'
                             });
 
+                            let $thumb = $('<div>').css({
+                                'width': '40px',
+                                'height': '40px',
+                                'flex-shrink': '0',
+                                'display': 'flex',
+                                'align-items': 'center',
+                                'justify-content': 'center',
+                                'background': '#f8f9fa',
+                                'border': '1px solid #eaecf0',
+                                'border-radius': '2px'
+                            });
+
                             if (thumbUrl) {
-                                $row.append($('<img>').attr('src', thumbUrl).css({'width': '32px', 'height': '32px', 'object-fit': 'cover', 'border-radius': '2px', 'flex-shrink': '0'}));
+                                $thumb.append($('<img>').attr('src', thumbUrl).css({
+                                    'max-width': '40px',
+                                    'max-height': '40px',
+                                    'object-fit': 'contain'
+                                }));
                             }
-                            $row.append($('<span>').addClass('cradle-autocomplete-row-label').text(cleanTitle));
+                            $row.append($thumb);
+
+                            let $nameSpan = $('<span>').addClass('cradle-autocomplete-row-label').css({
+                                'font-size': '0.825rem',
+                                'word-break': 'break-all',
+                                'flex': '1'
+                            }).text(cleanTitle);
+
+                            $row.append($nameSpan);
 
                             $row.on('click mousedown', function(e) {
                                 e.preventDefault();
