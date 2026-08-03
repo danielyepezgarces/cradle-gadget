@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.14.3
+ * Version: 1.14.4
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.14.4');
  */
 
 (function() {
@@ -1928,6 +1928,48 @@
     }
 
     /**
+     * Fetch labels AND descriptions for specific QIDs.
+     */
+    function loadItemDetails(qids) {
+        if (qids.length === 0) return Promise.resolve({});
+        qids = [...new Set(qids)];
+        return new Promise((resolve) => {
+            let api = new mw.Api();
+            let userLang = mw.config.get('wgUserLanguage') || 'en';
+            api.get({
+                action: 'wbgetentities',
+                ids: qids.join('|'),
+                props: 'labels|descriptions',
+                languages: userLang + '|en',
+                format: 'json'
+            }).done(function(res) {
+                let details = {};
+                if (res && res.entities) {
+                    Object.keys(res.entities).forEach(qid => {
+                        let ent = res.entities[qid];
+                        let label = qid;
+                        let desc = '';
+                        if (ent.labels) {
+                            label = (ent.labels[userLang] && ent.labels[userLang].value) ||
+                                    (ent.labels['en'] && ent.labels['en'].value) ||
+                                    qid;
+                        }
+                        if (ent.descriptions) {
+                            desc = (ent.descriptions[userLang] && ent.descriptions[userLang].value) ||
+                                   (ent.descriptions['en'] && ent.descriptions['en'].value) ||
+                                   '';
+                        }
+                        details[qid] = { label: label, description: desc };
+                    });
+                }
+                resolve(details);
+            }).fail(function() {
+                resolve({});
+            });
+        });
+    }
+
+    /**
      * Populates formState by mapping current entity claims to the parsed schema properties.
      */
     function initializeFormState() {
@@ -2450,57 +2492,116 @@
     function createInputForDatatype(pid, row) {
         let propDef = schemaProperties[pid];
         
-        // 1. wikibase-item datatype
-        if (row.datatype === 'wikibase-item') {
-            if (propDef.softselect && propDef.softselect.length > 0) {
-                let $select = $('<select>').addClass('cradle-select');
-                $select.append($('<option>').val('').text('-- Select --'));
-                propDef.softselect.forEach(qid => {
-                    let label = softselectLabels[qid] || qid;
-                    $select.append($('<option>').val(qid).text(`${label} (${qid})`));
-                });
-                
-                $select.val(row.value);
-                $select.on('change', function() {
-                    row.value = $select.val();
-                    liveUpdateValidation();
-                });
-                return $select;
-            }
-
-            let $wrapper = $('<div>').addClass('cradle-autocomplete-wrapper');
+        // 1. wikibase-item & wikibase-property datatype
+        if (row.datatype === 'wikibase-item' || row.datatype === 'wikibase-property') {
+            let $wrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'flex': '1'});
             let $input = $('<input>')
                 .addClass('cradle-input')
                 .attr('type', 'text')
                 .attr('placeholder', mw.msg('cradle-search-placeholder'))
-                .val(row.value);
+                .val('');
 
             let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
-            $wrapper.append($input).append($dropdown);
+            
+            let $itemInfo = $('<div>').addClass('cradle-item-info').css({
+                'font-size': '0.78rem',
+                'color': 'var(--color-subtle, #54595d)',
+                'margin-top': '4px',
+                'display': 'flex',
+                'align-items': 'center',
+                'flex-wrap': 'wrap',
+                'gap': '4px'
+            }).hide();
 
-            if (row.value && row.value.startsWith('Q')) {
-                loadItemLabels([row.value]).then(labels => {
-                    if (labels[row.value]) {
-                        $input.val(`${labels[row.value]} (${row.value})`);
+            let $itemDesc = $('<span>').addClass('cradle-item-info-desc').css({'font-style': 'italic'});
+            let $itemQidLink = $('<a>').addClass('cradle-item-info-qid').attr('target', '_blank').css({
+                'color': 'var(--color-link, #36c)',
+                'font-weight': 'bold',
+                'text-decoration': 'none'
+            });
+            $itemInfo.append($itemDesc).append($itemQidLink);
+
+            $wrapper.append($input).append($dropdown).append($itemInfo);
+
+            function setSelectedItemUI(id, label, desc) {
+                row.value = id;
+                $input.val(label || id);
+                if (desc) {
+                    $itemDesc.text(desc);
+                } else {
+                    $itemDesc.text('');
+                }
+                $itemQidLink.attr('href', mw.util.getUrl(id)).text('(' + id + ')');
+                $itemInfo.show();
+            }
+
+            if (row.value) {
+                loadItemDetails([row.value]).then(details => {
+                    if (details[row.value]) {
+                        setSelectedItemUI(row.value, details[row.value].label, details[row.value].description);
+                    } else {
+                        setSelectedItemUI(row.value, row.value, '');
                     }
                 });
             }
 
             let searchTimeout = null;
+
+            function showSoftselectOptions() {
+                if (propDef && propDef.softselect && propDef.softselect.length > 0) {
+                    loadItemDetails(propDef.softselect).then(details => {
+                        $dropdown.empty();
+                        propDef.softselect.forEach(qid => {
+                            let item = details[qid] || { label: qid, description: '' };
+                            let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
+                            let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(item.label);
+                            $lbl.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${qid})`));
+                            $r.append($lbl);
+                            if (item.description) {
+                                $r.append($('<div>').addClass('cradle-autocomplete-row-desc').css({'font-size': '0.75rem', 'color': 'var(--color-subtle, #54595d)'}).text(item.description));
+                            }
+                            $r.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedItemUI(qid, item.label, item.description);
+                                $dropdown.hide();
+                                liveUpdateValidation();
+                            });
+                            $dropdown.append($r);
+                        });
+                        $dropdown.show();
+                    });
+                }
+            }
+
+            $input.on('focus', function() {
+                if (!$input.val().trim() || $input.val().trim().length < 2) {
+                    showSoftselectOptions();
+                }
+            });
+
             $input.on('input', function() {
                 let query = $input.val().trim();
                 
-                // If they typed a valid QID directly, update row value immediately
-                if (/^[qQ]\d+$/.test(query)) {
-                    row.value = query.toUpperCase();
-                } else {
+                if (/^[qQpP]\d+$/.test(query)) {
+                    let id = query.toUpperCase();
+                    row.value = id;
+                    loadItemDetails([id]).then(details => {
+                        if (details[id]) {
+                            setSelectedItemUI(id, details[id].label, details[id].description);
+                        } else {
+                            setSelectedItemUI(id, id, '');
+                        }
+                    });
+                } else if (!query) {
                     row.value = '';
+                    $itemInfo.hide();
                 }
                 liveUpdateValidation();
                 
                 clearTimeout(searchTimeout);
                 if (query.length < 2) {
-                    $dropdown.hide();
+                    showSoftselectOptions();
                     return;
                 }
 
@@ -2513,28 +2614,31 @@
                         }
                         
                         results.forEach(res => {
-                            let $row = $('<li>').addClass('cradle-autocomplete-row');
-                            $row.append($('<span>').addClass('cradle-autocomplete-row-label').text(`${res.label} (${res.id})`));
+                            let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
+                            let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(res.label || res.id);
+                            $lbl.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${res.id})`));
+                            $r.append($lbl);
                             if (res.description) {
-                                $row.append($('<span>').addClass('cradle-autocomplete-row-desc').text(res.description));
+                                $r.append($('<div>').addClass('cradle-autocomplete-row-desc').css({'font-size': '0.75rem', 'color': 'var(--color-subtle, #54595d)'}).text(res.description));
                             }
                             
-                            $row.on('click', function() {
-                                row.value = res.id;
-                                $input.val(`${res.label} (${res.id})`);
+                            $r.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedItemUI(res.id, res.label || res.id, res.description || '');
                                 $dropdown.hide();
                                 liveUpdateValidation();
                             });
                             
-                            $dropdown.append($row);
+                            $dropdown.append($r);
                         });
                         $dropdown.show();
                     });
                 }, 300);
             });
 
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest($wrapper).length) {
+            $(document).on('click.cradleItemAutocomplete', function(e) {
+                if (!$wrapper.is(e.target) && $wrapper.has(e.target).length === 0) {
                     $dropdown.hide();
                 }
             });
