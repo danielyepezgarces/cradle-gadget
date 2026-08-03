@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.0
+ * Version: 1.15.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.1');
  */
 
 (function() {
@@ -2030,14 +2030,24 @@
             if (amt.startsWith('+')) amt = amt.substring(1);
             return amt;
         } else if (t === 'time') {
-            let timeStr = val.time;
-            if (timeStr.startsWith('+') || timeStr.startsWith('-')) {
-                timeStr = timeStr.substring(1);
+            let rawTime = val.time || '';
+            let precision = (val.precision !== undefined) ? val.precision : 11;
+            let isNegative = rawTime.startsWith('-');
+            let timeStr = rawTime.replace(/^[+-]/, '').replace(/T.*$/, '');
+            let parts = timeStr.split('-');
+            let year = parts[0] ? String(parseInt(parts[0], 10)) : '0';
+            let month = parts[1] || '00';
+            let day = parts[2] || '00';
+
+            let signStr = isNegative ? '-' : '';
+
+            if (precision <= 9 || month === '00') {
+                return signStr + year;
+            } else if (precision === 10 || day === '00') {
+                return signStr + year + '-' + month;
+            } else {
+                return signStr + year + '-' + month + '-' + day;
             }
-            if (timeStr.endsWith('T00:00:00Z')) {
-                timeStr = timeStr.replace('T00:00:00Z', '');
-            }
-            return timeStr;
         }
         return JSON.stringify(val);
     }
@@ -3528,31 +3538,55 @@ function searchWikidataItems(term) {
             };
         }
         if (datatype === 'time') {
-            let timeStr = value.trim();
-            if (!timeStr.startsWith('+') && !timeStr.startsWith('-')) {
-                timeStr = '+' + timeStr;
+            let str = String(value || '').trim();
+            if (!str) return null;
+
+            let isNegative = false;
+            if (str.startsWith('-')) {
+                isNegative = true;
+                str = str.substring(1);
+            } else if (str.startsWith('+')) {
+                str = str.substring(1);
             }
-            if (timeStr.length === 5) {
-                timeStr += '-00-00T00:00:00Z';
-            } else if (timeStr.length === 8) {
-                timeStr += '-00T00:00:00Z';
-            } else if (timeStr.length === 11) {
-                timeStr += 'T00:00:00Z';
-            }
+
+            str = str.replace(/T.*$/, '').trim();
+            let parts = str.split(/[-/.]/);
             
-            let precision = 9; // Year
-            if (timeStr.includes('-00-00')) {
+            let year = '0000';
+            let month = '00';
+            let day = '00';
+            let precision = 9;
+
+            if (parts.length === 1) {
+                year = parts[0].padStart(4, '0');
                 precision = 9;
-            } else if (timeStr.includes('-00T')) {
-                precision = 10; // Month
-            } else {
-                precision = 11; // Day
+            } else if (parts.length === 2) {
+                year = parts[0].padStart(4, '0');
+                month = parts[1].padStart(2, '0');
+                precision = 10;
+            } else if (parts.length >= 3) {
+                if (parts[0].length === 4) {
+                    year = parts[0];
+                    month = parts[1].padStart(2, '0');
+                    day = parts[2].padStart(2, '0');
+                } else if (parts[2].length === 4) {
+                    year = parts[2];
+                    month = parts[1].padStart(2, '0');
+                    day = parts[0].padStart(2, '0');
+                } else {
+                    year = parts[0].padStart(4, '0');
+                    month = parts[1].padStart(2, '0');
+                    day = parts[2].padStart(2, '0');
+                }
+                precision = 11;
             }
+
+            let isoTime = (isNegative ? '-' : '+') + year + '-' + month + '-' + day + 'T00:00:00Z';
 
             return {
                 type: 'time',
                 value: {
-                    time: timeStr,
+                    time: isoTime,
                     timezone: 0,
                     before: 0,
                     after: 0,
