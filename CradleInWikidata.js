@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.10
+ * Version: 1.15.11
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.10');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.11');
  */
 
 (function() {
@@ -870,6 +870,9 @@
             't-cradle',
             'Create items using Cradle templates or schemas'
         );
+
+        // Replace Special:NewItem link in sidebar with Special:Cradle
+        $('#n-special-newitem a').attr('href', mw.util.getUrl('Special:Cradle'));
 
         if (isSpecialCradle) {
             setupSpecialPage();
