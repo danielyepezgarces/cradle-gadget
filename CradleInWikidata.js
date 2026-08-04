@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.14
+ * Version: 1.15.15
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.14');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.15');
  */
 
 (function() {
@@ -2558,28 +2558,26 @@
             });
         $content.append($summaryBox);
 
-        // For Create Mode: Render Language, Label, Description and Aliases inputs in a single row
+        // For Create Mode: Render Language, Label, Description and Aliases inputs in a single row inside card
         if (activeMode === 'create') {
-            let $metaGroup = $('<div>').addClass('wikibase-statementgroupview').attr('id', 'cradle-meta-group');
-            let $metaProp = $('<div>').addClass('wikibase-statementgroupview-property');
-            $metaProp.append($('<div>').addClass('wikibase-statementgroupview-property-label').text(mw.msg('cradle-new-item-identity')));
-            $metaProp.append($('<span>').addClass('cradle-prop-desc').text(mw.msg('cradle-new-item-identity-desc')));
-            $metaGroup.append($metaProp);
+            let $metaCard = $('<div>').addClass('cradle-field-card').addClass('mandatory');
+            let $title = $('<h3>').addClass('cradle-field-title').text(mw.msg('cradle-new-item-identity'));
+            $title.append($('<span>').addClass('cradle-field-required-marker').text(' *'));
+            $metaCard.append($title);
+            $metaCard.append($('<p>').addClass('cradle-field-description').text(mw.msg('cradle-new-item-identity-desc')));
 
-            let $metaList = $('<div>').addClass('wikibase-statementlistview');
-            let $metaInner = $('<div>').addClass('wikibase-statementlistview-listview').css({
-                'padding': '10px',
+            let $row = $('<div>').addClass('cradle-row').css({
                 'display': 'flex',
                 'flex-direction': 'row',
                 'gap': '8px',
                 'align-items': 'center',
-                'flex-wrap': 'wrap'
+                'margin-bottom': '0'
             });
 
             // 1. Language search input
-            let $langWrapper = $('<div>').css({'flex': '0 0 110px', 'position': 'relative'});
+            let $langWrapper = $('<div>').css({'flex': '0 0 90px', 'position': 'relative'});
             let $langInput = $('<input>')
-                .addClass('valueview-value')
+                .addClass('cradle-input')
                 .addClass('cradle-lang-input')
                 .attr({
                     'type': 'text',
@@ -2594,38 +2592,37 @@
 
             // 2. Label input
             let $labelInput = $('<input>')
-                .addClass('valueview-value')
+                .addClass('cradle-input')
                 .attr({
                     'type': 'text',
                     'id': 'cradle-new-item-label',
                     'placeholder': mw.msg('cradle-new-item-label')
                 })
-                .css({'flex': '1', 'min-width': '140px'});
+                .css({'flex': '1', 'min-width': '130px'});
 
             // 3. Description input
             let $descInput = $('<input>')
-                .addClass('valueview-value')
+                .addClass('cradle-input')
                 .attr({
                     'type': 'text',
                     'id': 'cradle-new-item-desc',
                     'placeholder': mw.msg('cradle-new-item-desc')
                 })
-                .css({'flex': '1.5', 'min-width': '160px'});
+                .css({'flex': '1.4', 'min-width': '150px'});
 
             // 4. Aliases input
             let $aliasesInput = $('<input>')
-                .addClass('valueview-value')
+                .addClass('cradle-input')
                 .attr({
                     'type': 'text',
                     'id': 'cradle-new-item-aliases',
                     'placeholder': mw.msg('cradle-new-item-aliases')
                 })
-                .css({'flex': '1', 'min-width': '140px'});
+                .css({'flex': '1', 'min-width': '130px'});
 
-            $metaInner.append($langWrapper).append($labelInput).append($descInput).append($aliasesInput);
-            $metaList.append($metaInner);
-            $metaGroup.append($metaList);
-            $content.append($metaGroup);
+            $row.append($langWrapper).append($labelInput).append($descInput).append($aliasesInput);
+            $metaCard.append($row);
+            $content.append($metaCard);
         }
 
         // Render properties
