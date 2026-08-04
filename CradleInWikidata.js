@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.13
+ * Version: 1.15.14
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.13');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.14');
  */
 
 (function() {
@@ -704,6 +704,7 @@
             'cradle-new-item-identity-desc': 'Provide the label and description for the new Wikidata item.',
             'cradle-new-item-label': 'Enter item label (e.g. Marie Curie)...',
             'cradle-new-item-desc': 'Enter item description (e.g. Polish-French physicist)...',
+            'cradle-new-item-aliases': 'Aliases (comma-separated)...',
             'cradle-add-value': 'Add Value',
             'cradle-save-changes': 'Save Changes',
             'cradle-create-item': 'Create Item',
@@ -820,6 +821,7 @@
                     'cradle-new-item-identity-desc': 'Proporciona la etiqueta y descripción para el nuevo elemento de Wikidata.',
                     'cradle-new-item-label': 'Introduce la etiqueta del elemento (ej. Marie Curie)...',
                     'cradle-new-item-desc': 'Introduce la descripción del elemento (ej. física polaca-francesa)...',
+                    'cradle-new-item-aliases': 'Alias (separados por coma)...',
                     'cradle-add-value': 'Añadir valor',
                     'cradle-save-changes': 'Guardar cambios',
                     'cradle-create-item': 'Crear elemento',
@@ -2556,41 +2558,74 @@
             });
         $content.append($summaryBox);
 
-        // For Create Mode: Ingest Label and Description inputs
+        // For Create Mode: Render Language, Label, Description and Aliases inputs in a single row
         if (activeMode === 'create') {
-            let $metaCard = $('<div>').addClass('cradle-field-card').addClass('mandatory');
-            $metaCard.append($('<h3>').addClass('cradle-field-title').text(mw.msg('cradle-new-item-identity')));
-            $metaCard.append($('<p>').addClass('cradle-field-description').text(mw.msg('cradle-new-item-identity-desc')));
-            
-            // Lang & Label input
-            let $labelRow = $('<div>').addClass('cradle-row');
+            let $metaGroup = $('<div>').addClass('wikibase-statementgroupview').attr('id', 'cradle-meta-group');
+            let $metaProp = $('<div>').addClass('wikibase-statementgroupview-property');
+            $metaProp.append($('<div>').addClass('wikibase-statementgroupview-property-label').text(mw.msg('cradle-new-item-identity')));
+            $metaProp.append($('<span>').addClass('cradle-prop-desc').text(mw.msg('cradle-new-item-identity-desc')));
+            $metaGroup.append($metaProp);
+
+            let $metaList = $('<div>').addClass('wikibase-statementlistview');
+            let $metaInner = $('<div>').addClass('wikibase-statementlistview-listview').css({
+                'padding': '10px',
+                'display': 'flex',
+                'flex-direction': 'row',
+                'gap': '8px',
+                'align-items': 'center',
+                'flex-wrap': 'wrap'
+            });
+
+            // 1. Language search input
+            let $langWrapper = $('<div>').css({'flex': '0 0 110px', 'position': 'relative'});
             let $langInput = $('<input>')
-                .addClass('cradle-input')
+                .addClass('valueview-value')
                 .addClass('cradle-lang-input')
-                .attr('type', 'text')
-                .attr('id', 'cradle-new-item-lang')
+                .attr({
+                    'type': 'text',
+                    'id': 'cradle-new-item-lang',
+                    'placeholder': 'Lang'
+                })
+                .css({'width': '100%'})
                 .val(mw.config.get('wgUserLanguage') || 'en');
                 
             setupLanguageAutocomplete($langInput);
+            $langWrapper.append($langInput);
 
+            // 2. Label input
             let $labelInput = $('<input>')
-                .addClass('cradle-input')
-                .attr('type', 'text')
-                .attr('id', 'cradle-new-item-label')
-                .attr('placeholder', mw.msg('cradle-new-item-label'));
+                .addClass('valueview-value')
+                .attr({
+                    'type': 'text',
+                    'id': 'cradle-new-item-label',
+                    'placeholder': mw.msg('cradle-new-item-label')
+                })
+                .css({'flex': '1', 'min-width': '140px'});
 
-            $labelRow.append($langInput).append($labelInput);
-            $metaCard.append($labelRow);
-
-            // Description input
+            // 3. Description input
             let $descInput = $('<input>')
-                .addClass('cradle-input')
-                .attr('type', 'text')
-                .attr('id', 'cradle-new-item-desc')
-                .attr('placeholder', mw.msg('cradle-new-item-desc'));
-                
-            $metaCard.append($('<div>').addClass('cradle-row').append($descInput));
-            $content.append($metaCard);
+                .addClass('valueview-value')
+                .attr({
+                    'type': 'text',
+                    'id': 'cradle-new-item-desc',
+                    'placeholder': mw.msg('cradle-new-item-desc')
+                })
+                .css({'flex': '1.5', 'min-width': '160px'});
+
+            // 4. Aliases input
+            let $aliasesInput = $('<input>')
+                .addClass('valueview-value')
+                .attr({
+                    'type': 'text',
+                    'id': 'cradle-new-item-aliases',
+                    'placeholder': mw.msg('cradle-new-item-aliases')
+                })
+                .css({'flex': '1', 'min-width': '140px'});
+
+            $metaInner.append($langWrapper).append($labelInput).append($descInput).append($aliasesInput);
+            $metaList.append($metaInner);
+            $metaGroup.append($metaList);
+            $content.append($metaGroup);
         }
 
         // Render properties
@@ -3680,6 +3715,15 @@ function searchWikidataItems(term) {
                 creationData.descriptions = {
                     [langCode]: { language: langCode, value: descVal }
                 };
+            }
+            let aliasesVal = $('#cradle-new-item-aliases').length ? $('#cradle-new-item-aliases').val().trim() : '';
+            if (aliasesVal) {
+                let aliasList = aliasesVal.split(',').map(a => a.trim()).filter(Boolean);
+                if (aliasList.length > 0) {
+                    creationData.aliases = {
+                        [langCode]: aliasList.map(a => ({ language: langCode, value: a }))
+                    };
+                }
             }
             queryParams.data = JSON.stringify(creationData);
             queryParams.summary = mw.msg('cradle-create-summary', activeTemplate ? activeTemplate.title : (activeSchema ? activeSchema.id : 'Custom'));
