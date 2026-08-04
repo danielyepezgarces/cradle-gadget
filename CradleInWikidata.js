@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.16
+ * Version: 1.15.17
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.16');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.17');
  */
 
 (function() {
@@ -704,7 +704,7 @@
             'cradle-new-item-identity-desc': 'Provide the label and description for the new Wikidata item.',
             'cradle-new-item-label': 'Enter item label (e.g. Marie Curie)...',
             'cradle-new-item-desc': 'Enter item description (e.g. Polish-French physicist)...',
-            'cradle-new-item-aliases': 'Aliases (comma-separated)...',
+            'cradle-new-item-aliases': 'Aliases (pipe-separated |, e.g. Marie Curie | Curie, Marie)...',
             'cradle-add-value': 'Add Value',
             'cradle-save-changes': 'Save Changes',
             'cradle-create-item': 'Create Item',
@@ -823,7 +823,7 @@
                     'cradle-new-item-identity-desc': 'Proporciona la etiqueta y descripción para el nuevo elemento de Wikidata.',
                     'cradle-new-item-label': 'Introduce la etiqueta del elemento (ej. Marie Curie)...',
                     'cradle-new-item-desc': 'Introduce la descripción del elemento (ej. física polaca-francesa)...',
-                    'cradle-new-item-aliases': 'Alias (separados por coma)...',
+                    'cradle-new-item-aliases': 'Alias (separados por plecas |, ej. Marie Curie | Curie, Marie)...',
                     'cradle-add-value': 'Añadir valor',
                     'cradle-save-changes': 'Guardar cambios',
                     'cradle-create-item': 'Crear elemento',
@@ -3719,7 +3719,7 @@ function searchWikidataItems(term) {
             }
             let aliasesVal = $('#cradle-new-item-aliases').length ? $('#cradle-new-item-aliases').val().trim() : '';
             if (aliasesVal) {
-                let aliasList = aliasesVal.split(',').map(a => a.trim()).filter(Boolean);
+                let aliasList = aliasesVal.split('|').map(a => a.trim()).filter(Boolean);
                 if (aliasList.length > 0) {
                     creationData.aliases = {
                         [langCode]: aliasList.map(a => ({ language: langCode, value: a }))
@@ -4077,30 +4077,33 @@ function searchWikidataItems(term) {
     }
 
     /**
-     * Generates standard ShEx (Shape Expression) code for an EntitySchema.
+     * Generates rich Wikidata-standard ShEx (Shape Expression) code for an EntitySchema.
      */
-    function generateShExCode(title, propRows) {
-        let cleanTitle = (title || 'CustomSchema').replace(/[^a-zA-Z0-9_]/g, '');
-        if (!cleanTitle) cleanTitle = 'CustomSchema';
+    function generateShExCode(title, propRows, propertyLabels) {
+        let cleanTitle = (title || 'custom_shape').toLowerCase().replace(/[^a-z0-9_]/g, '');
+        if (!cleanTitle) cleanTitle = 'custom_shape';
 
         let lines = [
-            `# EntitySchema: ${title || 'Custom Schema'}`,
-            `# Generated with Cradle Wikidata Gadget`,
-            ``,
+            `PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>`,
+            `PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>`,
             `PREFIX wd: <http://www.wikidata.org/entity/>`,
             `PREFIX wdt: <http://www.wikidata.org/prop/direct/>`,
             `PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>`,
             ``,
-            `start = @<${cleanTitle}Shape>`,
+            `start = @<${cleanTitle}>`,
             ``,
-            `<${cleanTitle}Shape> {`
+            `<${cleanTitle}> EXTRA wdt:P31 {`
         ];
+
+        let propMap = propertyLabels || propertyMetadata || {};
 
         propRows.forEach((row) => {
             let pid = row.pid;
             let isMandatory = row.mandatory;
+            let meta = propMap[pid] || {};
+            let label = meta.label || pid;
+
             let options = [];
-            
             let qidsStr = row.hardselect || row.softselect || '';
             if (qidsStr) {
                 let qids = qidsStr.split(',').map(q => q.trim()).filter(q => /^Q\d+$/i.test(q));
@@ -4109,12 +4112,16 @@ function searchWikidataItems(term) {
                 }
             }
 
-            let valueExpr = options.length > 0 ? `[ ${options.join(' ')} ]` : '.';
+            let valueExpr = options.length > 0 ? `[${options.join(' ')}]` : '.';
             let cardinality = isMandatory ? ';' : '? ;';
+            if (row.softselect && !isMandatory) cardinality = '* ;';
+            if (row.softselect && isMandatory) cardinality = '+ ;';
 
-            lines.push(`  wdt:${pid} ${valueExpr} ${cardinality}`);
+            let comment = label ? `   # ${label}` : '';
+            lines.push(`  wdt:${pid} ${valueExpr} ${cardinality}${comment}`);
         });
 
+        lines.push(`  rdfs:label rdf:langString+;`);
         lines.push(`}`);
         return lines.join('\n');
     }
@@ -4204,7 +4211,7 @@ function searchWikidataItems(term) {
     /**
      * Publishes a new EntitySchema to Wikidata via the wbeditentityschema MediaWiki API.
      */
-    function publishEntitySchemaToWikidata(title, shexText) {
+    function publishEntitySchemaToWikidata(title, desc, aliasesStr, shexText) {
         let userLang = mw.config.get('wgUserLanguage') || 'en';
         let cleanTitle = (title || 'Custom Schema').trim();
 
@@ -4215,6 +4222,21 @@ function searchWikidataItems(term) {
             },
             schemaText: shexText
         };
+
+        if (desc && desc.trim()) {
+            payload.descriptions = {
+                [userLang]: { language: userLang, value: desc.trim() }
+            };
+        }
+
+        if (aliasesStr && aliasesStr.trim()) {
+            let aliasList = aliasesStr.split('|').map(a => a.trim()).filter(Boolean);
+            if (aliasList.length > 0) {
+                payload.aliases = {
+                    [userLang]: aliasList.map(a => ({ language: userLang, value: a }))
+                };
+            }
+        }
 
         return api.postWithEditToken({
             action: 'wbeditentityschema',
@@ -4234,8 +4256,8 @@ function searchWikidataItems(term) {
     /**
      * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata via MediaWiki API.
      */
-    function openShExExportModal(title, propRows) {
-        let shexText = generateShExCode(title, propRows);
+    function openShExExportModal(title, propRows, labelsMap) {
+        let shexText = generateShExCode(title, propRows, labelsMap);
 
         let $overlay = $('<div>').addClass('cradle-modal-overlay').css({
             'position': 'fixed',
@@ -4315,7 +4337,10 @@ function searchWikidataItems(term) {
 
                 $publishBtn.prop('disabled', true).text(mw.msg('cradle-publishing-shex'));
 
-                publishEntitySchemaToWikidata(title, code).then(function(newId) {
+                let schemaDesc = $('#cradle-schema-desc-input').length ? $('#cradle-schema-desc-input').val().trim() : '';
+                let schemaAliases = $('#cradle-schema-aliases-input').length ? $('#cradle-schema-aliases-input').val().trim() : '';
+
+                publishEntitySchemaToWikidata(title, schemaDesc, schemaAliases, code).then(function(newId) {
                     mw.notify(mw.msg('cradle-publish-shex-success', newId), { type: 'success' });
                     setTimeout(function() {
                         window.location.href = mw.util.getUrl('EntitySchema:' + newId);
@@ -4381,10 +4406,23 @@ function searchWikidataItems(term) {
         if (isEdit) {
             $titleInput.attr('disabled', 'disabled');
         }
-        $form.append($('<div>')
-            .append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title')))
-            .append($titleInput)
-        );
+
+        let $descInput = $('<input>').addClass('cradle-input').attr({
+            'id': 'cradle-schema-desc-input',
+            'placeholder': mw.msg('cradle-schema-desc-placeholder') || 'Descripción del esquema...'
+        });
+
+        let $aliasesInput = $('<input>').addClass('cradle-input').attr({
+            'id': 'cradle-schema-aliases-input',
+            'placeholder': mw.msg('cradle-schema-aliases-placeholder') || 'Alias del esquema (separados por plecas |)...'
+        });
+
+        let $headerFieldsRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap', 'margin-bottom': '12px'});
+        $headerFieldsRow.append($('<div>').css({'flex': '1', 'min-width': '140px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title'))).append($titleInput));
+        $headerFieldsRow.append($('<div>').css({'flex': '1.5', 'min-width': '160px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Descripción')).append($descInput));
+        $headerFieldsRow.append($('<div>').css({'flex': '1', 'min-width': '140px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Alias (|)')).append($aliasesInput));
+
+        $form.append($headerFieldsRow);
 
         let $propertiesDiv = $('<div>').css({
             'display': 'flex',
@@ -4866,7 +4904,10 @@ function searchWikidataItems(term) {
                     mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
                     return;
                 }
-                openShExExportModal(name, propRows);
+                let pids = propRows.map(r => r.pid);
+                fetchLabelsInBatches(pids, function(labelsMap) {
+                    openShExExportModal(name, propRows, labelsMap);
+                });
             });
 
         let $leftGroup = $('<div>').append($cancelBtn);
