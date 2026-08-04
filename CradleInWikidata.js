@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.15
+ * Version: 1.15.16
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.15');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.16');
  */
 
 (function() {
@@ -788,9 +788,11 @@
             'cradle-export-shex': 'Export ShEx (EntitySchema)',
             'cradle-shex-preview': 'Generated ShEx (EntitySchema)',
             'cradle-copy-shex': 'Copy ShEx',
-            'cradle-create-entityschema-btn': 'Create EntitySchema on Wikidata',
+            'cradle-create-entityschema-btn': 'Publish EntitySchema on Wikidata',
             'cradle-shex-valid': '✓ Valid ShEx syntax for Wikidata',
-            'cradle-shex-invalid': '⚠ Invalid ShEx syntax:'
+            'cradle-shex-invalid': '⚠ Invalid ShEx syntax:',
+            'cradle-publishing-shex': 'Publishing EntitySchema to Wikidata...',
+            'cradle-publish-shex-success': 'EntitySchema $1 published successfully on Wikidata!'
         };
 
         // Load local English fallbacks first
@@ -861,9 +863,11 @@
                     'cradle-export-shex': 'Exportar ShEx (EntitySchema)',
                     'cradle-shex-preview': 'Código ShEx generado (EntitySchema)',
                     'cradle-copy-shex': 'Copiar ShEx',
-                    'cradle-create-entityschema-btn': 'Crear EntitySchema en Wikidata',
+                    'cradle-create-entityschema-btn': 'Publicar EntitySchema en Wikidata',
                     'cradle-shex-valid': '✓ Sintaxis ShEx válida para Wikidata',
-                    'cradle-shex-invalid': '⚠ Sintaxis ShEx no válida:'
+                    'cradle-shex-invalid': '⚠ Sintaxis ShEx no válida:',
+                    'cradle-publishing-shex': 'Publicando EntitySchema en Wikidata...',
+                    'cradle-publish-shex-success': '¡EntitySchema $1 publicado con éxito en Wikidata!'
                 });
             }
             proceedInit();
@@ -4198,7 +4202,37 @@ function searchWikidataItems(term) {
     }
 
     /**
-     * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata Special:NewEntitySchema.
+     * Publishes a new EntitySchema to Wikidata via the wbeditentityschema MediaWiki API.
+     */
+    function publishEntitySchemaToWikidata(title, shexText) {
+        let userLang = mw.config.get('wgUserLanguage') || 'en';
+        let cleanTitle = (title || 'Custom Schema').trim();
+
+        let api = new mw.Api();
+        let payload = {
+            labels: {
+                [userLang]: { language: userLang, value: cleanTitle }
+            },
+            schemaText: shexText
+        };
+
+        return api.postWithEditToken({
+            action: 'wbeditentityschema',
+            new: 'entityschema',
+            data: JSON.stringify(payload),
+            summary: 'Created EntitySchema using Cradle Wikidata Gadget'
+        }).then(function(res) {
+            if (res && res.entityschema && res.entityschema.id) {
+                return res.entityschema.id;
+            } else if (res && res.entity && res.entity.id) {
+                return res.entity.id;
+            }
+            throw new Error(res.error ? res.error.info : 'Unknown API response');
+        });
+    }
+
+    /**
+     * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata via MediaWiki API.
      */
     function openShExExportModal(title, propRows) {
         let shexText = generateShExCode(title, propRows);
@@ -4259,7 +4293,7 @@ function searchWikidataItems(term) {
             .text(mw.msg('cradle-copy-shex'))
             .on('click', function() {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(shexText).then(function() {
+                    navigator.clipboard.writeText($textarea.val()).then(function() {
                         mw.notify('ShEx copied to clipboard!', { type: 'info' });
                     });
                 } else {
@@ -4269,13 +4303,30 @@ function searchWikidataItems(term) {
                 }
             });
 
-        let $createBtn = $('<a>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-            .attr({
-                'href': mw.util.getUrl('Special:NewEntitySchema'),
-                'target': '_blank'
-            })
-            .css({'text-decoration': 'none', 'display': 'inline-flex', 'align-items': 'center', 'gap': '4px'})
-            .text(mw.msg('cradle-create-entityschema-btn'));
+        let $publishBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+            .text(mw.msg('cradle-create-entityschema-btn'))
+            .on('click', function() {
+                let code = $textarea.val();
+                let res = validateShExSyntax(code);
+                if (!res.valid) {
+                    mw.notify('Please fix ShEx syntax errors before publishing.', { type: 'error' });
+                    return;
+                }
+
+                $publishBtn.prop('disabled', true).text(mw.msg('cradle-publishing-shex'));
+
+                publishEntitySchemaToWikidata(title, code).then(function(newId) {
+                    mw.notify(mw.msg('cradle-publish-shex-success', newId), { type: 'success' });
+                    setTimeout(function() {
+                        window.location.href = mw.util.getUrl('EntitySchema:' + newId);
+                    }, 1200);
+                }).catch(function(err) {
+                    console.warn('[Cradle] wbeditentityschema API failed, opening Special:NewEntitySchema:', err);
+                    mw.notify('Opening Special:NewEntitySchema...', { type: 'warn' });
+                    window.open(mw.util.getUrl('Special:NewEntitySchema'), '_blank');
+                    $publishBtn.prop('disabled', false).text(mw.msg('cradle-create-entityschema-btn'));
+                });
+            });
 
         function updateValidationUI() {
             let res = validateShExSyntax($textarea.val());
@@ -4285,7 +4336,7 @@ function searchWikidataItems(term) {
                     'border': '1px solid #00af89',
                     'color': '#00805d'
                 }).html(mw.msg('cradle-shex-valid'));
-                $createBtn.removeClass('cdx-button--is-disabled').css('pointer-events', 'auto');
+                $publishBtn.prop('disabled', false);
             } else {
                 let $errHtml = $('<div>').append($('<div>').text(mw.msg('cradle-shex-invalid')));
                 let $ul = $('<ul>').css({'margin': '4px 0 0 16px', 'padding': '0', 'font-weight': 'normal'});
@@ -4296,6 +4347,7 @@ function searchWikidataItems(term) {
                     'border': '1px solid #d33',
                     'color': '#d33'
                 }).html($errHtml);
+                $publishBtn.prop('disabled', true);
             }
         }
 
@@ -4306,7 +4358,7 @@ function searchWikidataItems(term) {
             .text(mw.msg('cradle-cancel'))
             .on('click', function() { $overlay.remove(); });
 
-        $btnRow.append($copyBtn).append($createBtn).append($closeBtn);
+        $btnRow.append($copyBtn).append($publishBtn).append($closeBtn);
         $modal.append($btnRow);
         $overlay.append($modal);
         $('body').append($overlay);
@@ -4752,7 +4804,19 @@ function searchWikidataItems(term) {
             return propRows;
         }
 
-        let $footer = $('#cradle-footer-area').empty();
+        let $footer = $('#cradle-footer-area').empty().css({
+            'display': 'flex',
+            'flex-direction': 'row',
+            'justify-content': 'space-between',
+            'align-items': 'center',
+            'gap': '8px',
+            'padding': '12px 16px'
+        });
+
+        let $cancelBtn = $('<button>').addClass('cradle-btn-secondary').html(ICONS.back + ' <span>' + mw.msg('cradle-back') + '</span>').on('click', function() {
+            renderCreateOptionsSelector();
+        });
+
         let $saveBtn = $('<button>').addClass('cradle-btn-primary').text(mw.msg('cradle-save-schema')).on('click', function() {
             let name = $titleInput.val().trim();
             if (!name) {
@@ -4794,7 +4858,6 @@ function searchWikidataItems(term) {
 
         let $exportShexBtn = $('<button>')
             .addClass('cradle-btn-secondary')
-            .css({'margin-right': 'auto'})
             .text(mw.msg('cradle-export-shex'))
             .on('click', function() {
                 let name = $titleInput.val().trim() || 'CustomSchema';
@@ -4806,11 +4869,10 @@ function searchWikidataItems(term) {
                 openShExExportModal(name, propRows);
             });
 
-        let $cancelBtn = $('<button>').addClass('cradle-btn-secondary').html(ICONS.back + ' <span>' + mw.msg('cradle-back') + '</span>').on('click', function() {
-            renderCreateOptionsSelector();
-        });
+        let $leftGroup = $('<div>').append($cancelBtn);
+        let $rightGroup = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center'}).append($exportShexBtn).append($saveBtn);
 
-        $footer.append($cancelBtn).append($exportShexBtn).append($saveBtn);
+        $footer.append($leftGroup).append($rightGroup);
     }
     
     $(document).ready(function() {
