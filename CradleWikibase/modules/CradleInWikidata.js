@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.18
+ * Version: 1.15.19
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.18');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.19');
  */
 
 (function() {
@@ -4139,7 +4139,6 @@ function searchWikidataItems(term) {
 
         propRows.forEach((row) => {
             let pid = row.pid;
-            let isMandatory = row.mandatory;
             let meta = propMap[pid] || {};
             let label = meta.label || pid;
 
@@ -4153,12 +4152,17 @@ function searchWikidataItems(term) {
             }
 
             let valueExpr = options.length > 0 ? `[${options.join(' ')}]` : '.';
-            let cardinality = isMandatory ? ';' : '? ;';
-            if (row.softselect && !isMandatory) cardinality = '* ;';
-            if (row.softselect && isMandatory) cardinality = '+ ;';
+            
+            let cardSymbol = ';';
+            if (row.cardinality === '+') cardSymbol = '+ ;';
+            else if (row.cardinality === '*') cardSymbol = '* ;';
+            else if (row.cardinality === '?') cardSymbol = '? ;';
+            else if (row.cardinality === '1') cardSymbol = ';';
+            else if (row.mandatory) cardSymbol = row.allowMultiple ? '+ ;' : ';';
+            else cardSymbol = row.allowMultiple ? '* ;' : '? ;';
 
             let comment = label ? `   # ${label}` : '';
-            lines.push(`  wdt:${pid} ${valueExpr} ${cardinality}${comment}`);
+            lines.push(`  wdt:${pid} ${valueExpr} ${cardSymbol}${comment}`);
         });
 
         lines.push(`  rdfs:label rdf:langString+;`);
@@ -4541,13 +4545,34 @@ function searchWikidataItems(term) {
             $headerRow.append($remove);
             $row.append($headerRow);
 
-            // Mandatory checkbox
+            // Cardinality selection dropdown
             let $optionsRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center'});
-            let $reqCheck = $('<input>').attr('type', 'checkbox').attr('checked', mandatory ? 'checked' : false);
-            let $reqLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '4px', 'font-size': '13px'})
-                .append($reqCheck)
-                .append(mw.msg('cradle-required-checkbox'));
-            $optionsRow.append($reqLabel);
+            let $cardinalitySelect = $('<select>').addClass('cradle-select').css({
+                'font-size': '12px',
+                'height': '28px',
+                'padding': '2px 6px',
+                'width': 'auto'
+            });
+            $cardinalitySelect.append($('<option>').val('1').text('1 (Obligatorio, único)'));
+            $cardinalitySelect.append($('<option>').val('?').text('0..1 / ? (Opcional, único)'));
+            $cardinalitySelect.append($('<option>').val('+').text('1..* / + (Obligatorio, múltiple)'));
+            $cardinalitySelect.append($('<option>').val('*').text('0..* / * (Opcional, múltiple)'));
+
+            let initialCard = '1';
+            if (mandatory) initialCard = '1';
+            else initialCard = '?';
+            $cardinalitySelect.val(initialCard);
+
+            let $cardinalityLabel = $('<label>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'font-size': '12px',
+                'font-weight': 'bold',
+                'color': '#202122'
+            }).text('Cardinalidad: ').append($cardinalitySelect);
+
+            $optionsRow.append($cardinalityLabel);
             $row.append($optionsRow);
 
             // Selection options layout: Radio buttons for Value type
@@ -4753,9 +4778,12 @@ function searchWikidataItems(term) {
                 let qidString = selectedItems.map(i => i.qid).join(',');
                 let useHard = $radioHard.is(':checked');
                 let useSoft = $radioSoft.is(':checked');
+                let cardVal = $cardinalitySelect.val();
                 return {
                     pid: pid,
-                    mandatory: $reqCheck.is(':checked'),
+                    cardinality: cardVal,
+                    mandatory: (cardVal === '1' || cardVal === '+'),
+                    allowMultiple: (cardVal === '+' || cardVal === '*'),
                     defaultValue: '',
                     hardselect: (useHard && qidString) ? qidString : '',
                     softselect: (useSoft && qidString) ? qidString : ''
@@ -4907,7 +4935,9 @@ function searchWikidataItems(term) {
             $propsList.children().each(function() {
                 let rowData = $(this).data('get_data')();
                 let pid = rowData.pid;
+                let cardVal = rowData.cardinality;
                 let mandatory = rowData.mandatory;
+                let allowMultiple = rowData.allowMultiple;
                 let hSel = rowData.hardselect;
                 let sSel = rowData.softselect;
 
@@ -4915,6 +4945,7 @@ function searchWikidataItems(term) {
                 if (hSel) parts.push('hardselect:' + hSel);
                 if (sSel) parts.push('softselect:' + sSel);
                 if (mandatory) parts.push('mandatory');
+                if (allowMultiple) parts.push('multiple');
 
                 wikitext += '; ' + pid;
                 if (parts.length > 0) {
