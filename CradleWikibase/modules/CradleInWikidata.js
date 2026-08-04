@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.12
+ * Version: 1.15.13
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.12');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.13');
  */
 
 (function() {
@@ -787,7 +787,9 @@
             'cradle-export-shex': 'Export ShEx (EntitySchema)',
             'cradle-shex-preview': 'Generated ShEx (EntitySchema)',
             'cradle-copy-shex': 'Copy ShEx',
-            'cradle-create-entityschema-btn': 'Create EntitySchema on Wikidata'
+            'cradle-create-entityschema-btn': 'Create EntitySchema on Wikidata',
+            'cradle-shex-valid': '✓ Valid ShEx syntax for Wikidata',
+            'cradle-shex-invalid': '⚠ Invalid ShEx syntax:'
         };
 
         // Load local English fallbacks first
@@ -857,7 +859,9 @@
                     'cradle-export-shex': 'Exportar ShEx (EntitySchema)',
                     'cradle-shex-preview': 'Código ShEx generado (EntitySchema)',
                     'cradle-copy-shex': 'Copiar ShEx',
-                    'cradle-create-entityschema-btn': 'Crear EntitySchema en Wikidata'
+                    'cradle-create-entityschema-btn': 'Crear EntitySchema en Wikidata',
+                    'cradle-shex-valid': '✓ Sintaxis ShEx válida para Wikidata',
+                    'cradle-shex-invalid': '⚠ Sintaxis ShEx no válida:'
                 });
             }
             proceedInit();
@@ -4071,6 +4075,88 @@ function searchWikidataItems(term) {
     }
 
     /**
+     * Validates ShEx (Shape Expression) syntax and returns { valid: boolean, errors: Array<string> }.
+     */
+    function validateShExSyntax(shexText) {
+        let errors = [];
+        if (!shexText || !shexText.trim()) {
+            return { valid: false, errors: ['ShEx code is empty.'] };
+        }
+
+        let lines = shexText.split('\n');
+        
+        // 1. Check balanced brackets, braces, and angle brackets
+        let openBraces = (shexText.match(/\{/g) || []).length;
+        let closeBraces = (shexText.match(/\}/g) || []).length;
+        if (openBraces !== closeBraces) {
+            errors.push(`Unbalanced braces: found ${openBraces} '{' and ${closeBraces} '}'.`);
+        }
+
+        let openBrackets = (shexText.match(/\[/g) || []).length;
+        let closeBrackets = (shexText.match(/\]/g) || []).length;
+        if (openBrackets !== closeBrackets) {
+            errors.push(`Unbalanced brackets: found ${openBrackets} '[' and ${closeBrackets} ']'.`);
+        }
+
+        let openAngles = (shexText.match(/</g) || []).length;
+        let closeAngles = (shexText.match(/>/g) || []).length;
+        if (openAngles !== closeAngles) {
+            errors.push(`Unbalanced angle brackets: found ${openAngles} '<' and ${closeAngles} '>'.`);
+        }
+
+        // 2. Check start shape declaration vs shape definition
+        let startMatch = shexText.match(/start\s*=\s*@<\s*(.+?)\s*>/i);
+        if (startMatch) {
+            let startShapeName = startMatch[1];
+            let shapeDefRegex = new RegExp(`<\\s*${startShapeName}\\s*>`, 'i');
+            if (!shapeDefRegex.test(shexText)) {
+                errors.push(`Declaration 'start = @<${startShapeName}>' does not match any defined shape '<${startShapeName}> {'.`);
+            }
+        } else if (!/<[^>]+>\s*(?:EXTRA\s+[^{]+)?\s*\{/.test(shexText)) {
+            errors.push("No valid shape definition found like '<ShapeName> { ... }'.");
+        }
+
+        // 3. Line-by-line checks for property syntax
+        let inShape = false;
+        lines.forEach((line, idx) => {
+            let cleanLine = line.replace(/#.*/, '').trim();
+            if (!cleanLine) return;
+
+            if (cleanLine.includes('{')) inShape = true;
+            if (cleanLine.includes('}')) inShape = false;
+
+            if (inShape && !cleanLine.startsWith('{') && !cleanLine.startsWith('}')) {
+                if (cleanLine.includes(':')) {
+                    let propMatch = cleanLine.match(/(?:wdt|p|ps|pxt):([A-Za-z0-9_]+)/);
+                    if (propMatch) {
+                        let pid = propMatch[1];
+                        if (!/^P\d+$/i.test(pid)) {
+                            errors.push(`Line ${idx + 1}: Invalid property ID '${pid}' (must be format P123).`);
+                        }
+                    }
+                    let bracketMatch = cleanLine.match(/\[\s*([^\]]+)\s*\]/);
+                    if (bracketMatch) {
+                        let items = bracketMatch[1].split(/\s+/).filter(Boolean);
+                        items.forEach(item => {
+                            if (item.startsWith('wd:')) {
+                                let qid = item.substring(3);
+                                if (!/^Q\d+$/i.test(qid)) {
+                                    errors.push(`Line ${idx + 1}: Invalid QID '${item}' (must be format wd:Q123).`);
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+        return {
+            valid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    /**
      * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata Special:NewEntitySchema.
      */
     function openShExExportModal(title, propRows) {
@@ -4103,10 +4189,18 @@ function searchWikidataItems(term) {
 
         $modal.append($('<h3>').css({'margin':'0'}).text(mw.msg('cradle-shex-preview')));
 
+        let $statusBox = $('<div>').css({
+            'padding': '8px 12px',
+            'border-radius': '4px',
+            'font-size': '12px',
+            'font-weight': 'bold'
+        });
+        $modal.append($statusBox);
+
         let $textarea = $('<textarea>')
             .css({
                 'width': '100%',
-                'height': '220px',
+                'height': '200px',
                 'font-family': 'monospace',
                 'font-size': '12px',
                 'padding': '8px',
@@ -4141,6 +4235,31 @@ function searchWikidataItems(term) {
             })
             .css({'text-decoration': 'none', 'display': 'inline-flex', 'align-items': 'center', 'gap': '4px'})
             .text(mw.msg('cradle-create-entityschema-btn'));
+
+        function updateValidationUI() {
+            let res = validateShExSyntax($textarea.val());
+            if (res.valid) {
+                $statusBox.css({
+                    'background': '#e6f9f0',
+                    'border': '1px solid #00af89',
+                    'color': '#00805d'
+                }).html(mw.msg('cradle-shex-valid'));
+                $createBtn.removeClass('cdx-button--is-disabled').css('pointer-events', 'auto');
+            } else {
+                let $errHtml = $('<div>').append($('<div>').text(mw.msg('cradle-shex-invalid')));
+                let $ul = $('<ul>').css({'margin': '4px 0 0 16px', 'padding': '0', 'font-weight': 'normal'});
+                res.errors.forEach(e => $ul.append($('<li>').text(e)));
+                $errHtml.append($ul);
+                $statusBox.css({
+                    'background': '#fef2f2',
+                    'border': '1px solid #d33',
+                    'color': '#d33'
+                }).html($errHtml);
+            }
+        }
+
+        $textarea.on('input', updateValidationUI);
+        updateValidationUI();
 
         let $closeBtn = $('<button>').addClass('cdx-button cdx-button--weight-quiet')
             .text(mw.msg('cradle-cancel'))
