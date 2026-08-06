@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.27
+ * Version: 1.15.28
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.27');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.28');
  */
 
 (function() {
@@ -958,14 +958,14 @@
             'flex-shrink': '0'
         });
 
-        // Insert in top header bar BEFORE the user dropdown component so it remains permanently visible
+        // Prepend as FIRST element in top header bar outside dropdowns
+        let $outsideContainer = $('#p-vector-user-menu-overflow, #vector-user-menu-overflow, #vector-user-links-main, .vector-user-links-main, .vector-header-end');
         let $userDropdown = $('#vector-user-links-dropdown, .vector-user-menu-dropdown, #p-personal');
-        let $headerEnd = $('.vector-header-end, .vector-header-container');
 
-        if ($userDropdown.length) {
-            $userDropdown.before($elem);
-        } else if ($headerEnd.length) {
-            $headerEnd.append($elem);
+        if ($outsideContainer.length) {
+            $outsideContainer.prepend($elem);
+        } else if ($userDropdown.length) {
+            $userDropdown.parent().prepend($elem);
         } else if ($('#p-personal ul').length) {
             $('#p-personal ul').prepend($elem);
         }
