@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.17.3
+ * Version: 1.17.4
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.17.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.17.4');
  */
 
 (function() {
@@ -5131,9 +5131,10 @@ function searchWikidataItems(term) {
             let langsToFetch = userLang === 'en' ? 'en' : `${userLang}|en`;
 
             chunks.forEach(chunk => {
+                let idsStr = Array.isArray(chunk) ? chunk.join('|') : chunk;
                 api.get({
                     action: 'wbgetentities',
-                    ids: chunk,
+                    ids: idsStr,
                     props: 'labels',
                     languages: langsToFetch,
                     format: 'json'
