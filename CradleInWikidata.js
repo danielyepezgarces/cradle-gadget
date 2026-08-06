@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.26
+ * Version: 1.15.27
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.26');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.27');
  */
 
 (function() {
@@ -916,43 +916,35 @@
     }
 
     /**
-     * Creates a prominent blue Codex button in vector-menu-content of user-menu-preferences portlet.
+     * Creates a prominent blue Codex button in top header bar, permanently visible OUTSIDE any dropdown menu.
      */
     function setupUserMenuButton() {
         let btnText = mw.msg('cradle-user-menu-btn');
-        let portletLink = mw.util.addPortletLink(
-            'p-personal',
-            mw.util.getUrl('Special:Cradle'),
-            btnText,
-            'pt-cradle-create',
-            'Crear un nuevo elemento de Wikidata usando esquemas de Cradle',
-            null,
-            '#pt-preferences'
-        );
-
-        let $li = $(portletLink || '#pt-cradle-create');
-        if (!$li.length) {
-            $li = $('<li>').attr('id', 'pt-cradle-create').addClass('mw-list-item');
+        let $elem = $('#pt-cradle-create');
+        if (!$elem.length) {
+            $elem = $('<div>').attr('id', 'pt-cradle-create').addClass('vector-user-links-main-item');
             let $a = $('<a>').attr({
                 'href': mw.util.getUrl('Special:Cradle'),
                 'title': 'Crear un nuevo elemento de Wikidata usando esquemas de Cradle'
             }).text(btnText);
-            $li.append($a);
-
-            // Target vector-menu-content list inside personal tools portlet
-            let $menuList = $('#p-personal .vector-menu-content-list, #p-user-menu-preferences .vector-menu-content-list, .mw-portlet-p-personal .vector-menu-content-list, #p-personal ul');
-            if ($menuList.length) {
-                $menuList.prepend($li);
-            }
+            $elem.append($a);
         }
 
-        let $a = $li.find('a');
+        $elem.css({
+            'display': 'inline-flex',
+            'align-items': 'center',
+            'align-self': 'center',
+            'flex-shrink': '0',
+            'margin': '0 8px 0 0'
+        });
+
+        let $a = $elem.find('a');
         $a.addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary').css({
             'background-color': '#36c',
             'color': '#ffffff !important',
             'border': '1px solid #36c',
             'border-radius': '2px',
-            'padding': '3px 8px',
+            'padding': '3px 10px',
             'font-weight': 'bold',
             'font-size': '0.8rem',
             'line-height': '1.3',
@@ -961,10 +953,22 @@
             'align-items': 'center',
             'white-space': 'nowrap',
             'gap': '4px',
-            'height': '26px',
+            'height': '28px',
             'box-sizing': 'border-box',
-            'margin': '2px 4px'
+            'flex-shrink': '0'
         });
+
+        // Insert in top header bar BEFORE the user dropdown component so it remains permanently visible
+        let $userDropdown = $('#vector-user-links-dropdown, .vector-user-menu-dropdown, #p-personal');
+        let $headerEnd = $('.vector-header-end, .vector-header-container');
+
+        if ($userDropdown.length) {
+            $userDropdown.before($elem);
+        } else if ($headerEnd.length) {
+            $headerEnd.append($elem);
+        } else if ($('#p-personal ul').length) {
+            $('#p-personal ul').prepend($elem);
+        }
 
         $a.off('click.cradleNav').on('click.cradleNav', function(e) {
             if (isSpecialCradle || isItemPage) {
