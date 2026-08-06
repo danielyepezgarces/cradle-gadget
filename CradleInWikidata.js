@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.17.4
+ * Version: 1.18.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.17.4');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.18.0');
  */
 
 (function() {
@@ -70,6 +70,67 @@
     
     let schemaProperties = {};
     let propertyMetadata = {};
+    let propertyConstraints = {};
+    let customSchemas = {};
+    let sortedPropertiesMap = {};
+    let sortedPropertiesLoaded = false;
+
+    /**
+     * Fetches MediaWiki:Wikibase-SortedProperties from Wikidata to order statements canonically.
+     */
+    function fetchSortedProperties(callback) {
+        if (sortedPropertiesLoaded) {
+            if (callback) callback();
+            return;
+        }
+        let api = new mw.Api();
+        api.get({
+            action: 'query',
+            prop: 'revisions',
+            titles: 'MediaWiki:Wikibase-SortedProperties',
+            rvslots: 'main',
+            rvprop: 'content',
+            format: 'json'
+        }).done(function(res) {
+            if (res && res.query && res.query.pages) {
+                let pages = res.query.pages;
+                let pageId = Object.keys(pages)[0];
+                if (pageId && pages[pageId].revisions && pages[pageId].revisions[0]) {
+                    let content = pages[pageId].revisions[0].slots.main['*'];
+                    let matches = content.match(/P\d+/g) || [];
+                    let idx = 0;
+                    matches.forEach(pid => {
+                        if (!(pid in sortedPropertiesMap)) {
+                            sortedPropertiesMap[pid] = idx++;
+                        }
+                    });
+                    sortedPropertiesLoaded = true;
+                    logDebug('[Cradle] Loaded ' + idx + ' sorted properties from MediaWiki:Wikibase-SortedProperties');
+                }
+            }
+            if (callback) callback();
+        }).fail(function() {
+            if (callback) callback();
+        });
+    }
+
+    /**
+     * Sorts an array of Property IDs according to MediaWiki:Wikibase-SortedProperties canonical order.
+     */
+    function sortPropertyIDs(propIds) {
+        if (!propIds || !Array.isArray(propIds)) return [];
+        return propIds.slice().sort((a, b) => {
+            let idxA = (a in sortedPropertiesMap) ? sortedPropertiesMap[a] : 999999;
+            let idxB = (b in sortedPropertiesMap) ? sortedPropertiesMap[b] : 999999;
+            if (idxA !== idxB) {
+                return idxA - idxB;
+            }
+            let numA = parseInt(a.replace('P', ''), 10) || 0;
+            let numB = parseInt(b.replace('P', ''), 10) || 0;
+            return numA - numB;
+        });
+    }
+    
     let softselectLabels = {};
     let formState = {}; // propertyId -> Array of { id, guid, value, datatype, isDeleted }
     let userWantsToChangeSchema = false;
@@ -926,6 +987,7 @@
      */
     function proceedInit() {
         mw.util.addCSS(customCSS);
+        fetchSortedProperties();
         
         // Add Toolbox portlet link in the sidebar on all pages
         mw.util.addPortletLink(
@@ -2811,7 +2873,7 @@
 
     function renderForm() {
         let $content = $('#cradle-content-area').empty();
-        let propIds = Object.keys(schemaProperties);
+        let propIds = sortPropertyIDs(Object.keys(schemaProperties));
 
         // Render back button
         let $headerPanel = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '16px'});
