@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.29
+ * Version: 1.15.30
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.29');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.30');
  */
 
 (function() {
@@ -916,44 +916,33 @@
     }
 
     /**
-     * Creates a prominent blue Codex button in user personal bar, ensuring exact 1-time insertion.
+     * Creates a prominent blue Codex button in top header bar, permanently visible OUTSIDE any dropdown menu without duplicates.
      */
     function setupUserMenuButton() {
-        $('#pt-cradle-create').remove(); // Deduplicate any previous elements
+        $('#pt-cradle-create').remove(); // Deduplicate any previous instance
 
         let btnText = mw.msg('cradle-user-menu-btn');
-        let portletLink = mw.util.addPortletLink(
-            'p-personal',
-            mw.util.getUrl('Special:Cradle'),
-            btnText,
-            'pt-cradle-create',
-            'Crear un nuevo elemento de Wikidata usando esquemas de Cradle',
-            null,
-            '#pt-preferences'
-        );
+        let $elem = $('<div>').attr('id', 'pt-cradle-create').addClass('vector-user-links-main-item');
+        let $a = $('<a>').attr({
+            'href': mw.util.getUrl('Special:Cradle'),
+            'title': 'Crear un nuevo elemento de Wikidata usando esquemas de Cradle'
+        }).text(btnText);
+        $elem.append($a);
 
-        let $li = $(portletLink || '#pt-cradle-create');
-        if (!$li.length) {
-            $li = $('<li>').attr('id', 'pt-cradle-create').addClass('mw-list-item');
-            let $a = $('<a>').attr({
-                'href': mw.util.getUrl('Special:Cradle'),
-                'title': 'Crear un nuevo elemento de Wikidata usando esquemas de Cradle'
-            }).text(btnText);
-            $li.append($a);
+        $elem.css({
+            'display': 'inline-flex',
+            'align-items': 'center',
+            'align-self': 'center',
+            'flex-shrink': '0',
+            'margin': '0 8px 0 0'
+        });
 
-            let $targetList = $('#p-personal .vector-menu-content-list, #p-personal ul').first();
-            if ($targetList.length) {
-                $targetList.prepend($li);
-            }
-        }
-
-        let $a = $li.find('a');
         $a.addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary').css({
             'background-color': '#36c',
             'color': '#ffffff !important',
             'border': '1px solid #36c',
             'border-radius': '2px',
-            'padding': '3px 8px',
+            'padding': '3px 10px',
             'font-weight': 'bold',
             'font-size': '0.8rem',
             'line-height': '1.3',
@@ -962,10 +951,21 @@
             'align-items': 'center',
             'white-space': 'nowrap',
             'gap': '4px',
-            'height': '26px',
+            'height': '28px',
             'box-sizing': 'border-box',
-            'margin': '2px 4px'
+            'flex-shrink': '0'
         });
+
+        // Target ONLY ONE single container OUTSIDE dropdown to avoid duplicate insertions
+        if ($('#p-vector-user-menu-overflow').length) {
+            $('#p-vector-user-menu-overflow').first().prepend($elem);
+        } else if ($('#vector-user-links-dropdown').length) {
+            $('#vector-user-links-dropdown').first().before($elem);
+        } else if ($('#p-personal ul').length) {
+            $('#p-personal ul').first().prepend($elem);
+        } else if ($('.vector-header-end').length) {
+            $('.vector-header-end').first().prepend($elem);
+        }
 
         $a.off('click.cradleNav').on('click.cradleNav', function(e) {
             if (isSpecialCradle || isItemPage) {
