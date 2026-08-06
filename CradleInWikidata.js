@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.18.1
+ * Version: 1.18.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.18.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.18.2');
  */
 
 (function() {
@@ -112,6 +112,18 @@
         }).fail(function() {
             if (callback) callback();
         });
+    }
+
+    /**
+     * Safely parses EntitySchema ID string (e.g. 'E524') from a datavalue object.
+     */
+    function parseEntitySchemaID(datavalueObj) {
+        if (!datavalueObj) return null;
+        let val = datavalueObj.value;
+        if (!val) return null;
+        if (typeof val === 'string') return val;
+        if (typeof val === 'object' && val.id) return val.id;
+        return null;
     }
 
     /**
@@ -1166,8 +1178,9 @@
         // Direct schema on this item
         if (data.claims && data.claims[P12861]) {
             data.claims[P12861].forEach(claim => {
-                if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value) {
-                    schemas.push(claim.mainsnak.datavalue.value.id);
+                let sId = parseEntitySchemaID(claim.mainsnak?.datavalue);
+                if (sId && !schemas.includes(sId)) {
+                    schemas.push(sId);
                 }
             });
         }
@@ -1204,11 +1217,9 @@
                         let cls = res.entities[qid];
                         if (cls.claims && cls.claims[P12861]) {
                             cls.claims[P12861].forEach(claim => {
-                                if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value) {
-                                    let schemaId = claim.mainsnak.datavalue.value.id;
-                                    if (schemaId && !schemas.includes(schemaId)) {
-                                        schemas.push(schemaId);
-                                    }
+                                let schemaId = parseEntitySchemaID(claim.mainsnak?.datavalue);
+                                if (schemaId && !schemas.includes(schemaId)) {
+                                    schemas.push(schemaId);
                                 }
                             });
                         }
@@ -5044,8 +5055,8 @@ function searchWikidataItems(term) {
                                     if (p31Res.entities[p31Id] && p31Res.entities[p31Id].claims) {
                                         let cMap = p31Res.entities[p31Id].claims;
                                         if (cMap.P12861 && cMap.P12861.length > 0) {
-                                            let v = cMap.P12861[0].mainsnak?.datavalue?.value;
-                                            if (v) p31ClaimsMap[p31Id] = v;
+                                            let sId = parseEntitySchemaID(cMap.P12861[0].mainsnak?.datavalue);
+                                            if (sId) p31ClaimsMap[p31Id] = sId;
                                         }
                                     }
                                 });
@@ -5143,10 +5154,7 @@ function searchWikidataItems(term) {
                     let existingSchemaId = null;
 
                     if (claims.P12861 && claims.P12861.length > 0) {
-                        let c = claims.P12861[0];
-                        if (c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value) {
-                            existingSchemaId = c.mainsnak.datavalue.value;
-                        }
+                        existingSchemaId = parseEntitySchemaID(claims.P12861[0].mainsnak?.datavalue);
                     }
 
                     if (existingSchemaId) {
