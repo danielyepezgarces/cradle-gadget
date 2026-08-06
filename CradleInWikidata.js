@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.40
+ * Version: 1.15.41
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.40');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.41');
  */
 
 (function() {
@@ -1959,6 +1959,9 @@
                     cInfo.text = mw.msg('cradle-constraint-inverse');
                 } else if (constraintQid === 'Q21510862') {
                     cInfo.text = mw.msg('cradle-constraint-distinct');
+                } else if (constraintQid === 'Q54554025') {
+                    cInfo.text = mw.msg('cradle-constraint-citation') || 'Statements should have at least one reference.';
+                    cInfo.isCitationNeeded = true;
                 }
 
                 if (cInfo.text) {
@@ -2519,9 +2522,11 @@
         let activeRows = allRows.filter(r => !r.isDeleted && r.rank !== 'deprecated');
         let preferredRows = activeRows.filter(r => r.rank === 'preferred');
 
-        // 1. References / citation-needed -> Suggestion (Exempt commonsMedia, url, external-id, geo-shape, tabular-data, math)
+        // 1. References / citation-needed -> Suggestion (Only if P2302 has Q54554025 citation-needed constraint)
         let EXEMPT_CITATION_DATATYPES = ['commonsMedia', 'url', 'external-id', 'geo-shape', 'tabular-data', 'math', 'musical-notation'];
-        if (!isEmpty && (!row.references || row.references.length === 0) && !EXEMPT_CITATION_DATATYPES.includes(row.datatype)) {
+        let hasCitationConstraint = meta.constraints && meta.constraints.some(c => c.isCitationNeeded || c.qid === 'Q54554025');
+
+        if (hasCitationConstraint && !isEmpty && (!row.references || row.references.length === 0) && !EXEMPT_CITATION_DATATYPES.includes(row.datatype)) {
             suggestions.push({
                 type: 'suggestion',
                 name: 'citation-needed constraint',
