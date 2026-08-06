@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.24.2
+ * Version: 1.24.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.24.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.24.3');
  */
 
 (function() {
@@ -1169,7 +1169,7 @@
         $portlet.append($heading).append($body);
 
         if ($('#p-wikibase-lexeme-lexicographical-data').length) {
-            $portlet.insertAfter('#p-wikibase-lexeme-lexicographical-data');
+            $portlet.insertBefore('#p-wikibase-lexeme-lexicographical-data');
         } else if ($('#p-navigation').length) {
             $portlet.insertAfter('#p-navigation');
         } else if ($('#p-tb').length) {
