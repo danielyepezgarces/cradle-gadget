@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.16.0
+ * Version: 1.16.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.16.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.16.1');
  */
 
 (function() {
@@ -4756,6 +4756,135 @@ function searchWikidataItems(term) {
     }
 
     /**
+     * Displays a modal to import properties from an existing Wikidata Item (QID) and detect its P31 class.
+     */
+    function openPropertyImporterModal(fetchLabelsInBatches, onImportCallback) {
+        let $overlay = $('<div>').addClass('cradle-modal-overlay').css({
+            'position': 'fixed', 'top': '0', 'left': '0', 'right': '0', 'bottom': '0',
+            'background': 'rgba(0,0,0,0.5)', 'z-index': '10000',
+            'display': 'flex', 'align-items': 'center', 'justify-content': 'center'
+        });
+
+        let $modal = $('<div>').css({
+            'background': '#fff', 'border-radius': '6px', 'padding': '20px',
+            'max-width': '520px', 'width': '90%',
+            'box-shadow': '0 4px 16px rgba(0,0,0,0.3)',
+            'display': 'flex', 'flex-direction': 'column', 'gap': '12px'
+        });
+
+        let $headRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center'});
+        $headRow.append($('<h3>').css({'margin': '0'}).text('📥 Importar propiedades desde un elemento'));
+        let $closeBtn = $('<button>').addClass('cradle-btn-secondary').html(ICONS.close).on('click', function() { $overlay.remove(); });
+        $headRow.append($closeBtn);
+        $modal.append($headRow);
+
+        let $inputGroup = $('<div>').css({'display': 'flex', 'gap': '8px'});
+        let $input = $('<input>').addClass('cradle-input').attr('placeholder', 'QID del elemento (ej: Q8682 Santiago Bernabéu o Q1203)').css({'flex': '1'});
+        let $searchBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive').text('Cargar elemento');
+        $inputGroup.append($input).append($searchBtn);
+        $modal.append($inputGroup);
+
+        let $resultArea = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'min-height': '60px'});
+        $modal.append($resultArea);
+
+        let fetchedPropPIDs = [];
+        let p31Candidates = [];
+        let selectedP31QID = '';
+
+        $searchBtn.on('click', function() {
+            let qid = $input.val().trim().toUpperCase();
+            if (!qid || !/^Q\d+$/i.test(qid)) {
+                mw.notify('Por favor ingrese un QID válido (ej: Q8682)', { type: 'error' });
+                return;
+            }
+            $searchBtn.prop('disabled', true).text('Cargando...');
+            $resultArea.empty().append($('<div>').css({'color': '#54595d', 'font-size': '13px'}).text('Consultando Wikidata...'));
+
+            let api = new mw.Api();
+            api.get({
+                action: 'wbgetentities',
+                ids: qid,
+                props: 'claims|labels',
+                languages: mw.config.get('wgUserLanguage') || 'en',
+                format: 'json'
+            }).done(function(res) {
+                $searchBtn.prop('disabled', false).text('Cargar elemento');
+                if (!res || !res.entities || !res.entities[qid] || !res.entities[qid].claims) {
+                    $resultArea.html('<div style="color:#d33; font-size:13px;">No se encontraron propiedades en ' + qid + '</div>');
+                    return;
+                }
+                let claims = res.entities[qid].claims;
+                fetchedPropPIDs = Object.keys(claims);
+
+                let p31QIDs = [];
+                if (claims.P31) {
+                    claims.P31.forEach(c => {
+                        if (c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id) {
+                            p31QIDs.push(c.mainsnak.datavalue.value.id);
+                        }
+                    });
+                }
+
+                let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs];
+                fetchLabelsInBatches(allQIDsToFetch, function(labelsMap) {
+                    $resultArea.empty();
+                    p31Candidates = p31QIDs.map(id => ({ qid: id, label: labelsMap[id] || id }));
+
+                    let $info = $('<div>').css({
+                        'background': '#eaf3ff', 'border': '1px solid #36c',
+                        'padding': '8px 12px', 'border-radius': '4px', 'font-size': '13px'
+                    }).html(`<strong>${labelsMap[qid] || qid} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas.`);
+                    $resultArea.append($info);
+
+                    if (p31Candidates.length === 1) {
+                        selectedP31QID = p31Candidates[0].qid;
+                        $resultArea.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
+                            .html(`Clase/Elemento asociado detectado (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong>`));
+                    } else if (p31Candidates.length > 1) {
+                        let $p31Box = $('<div>').css({
+                            'display': 'flex', 'flex-direction': 'column', 'gap': '6px',
+                            'background': '#f8f9fa', 'border': '1px solid #c8ccd1',
+                            'padding': '10px', 'border-radius': '4px'
+                        });
+                        $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text('Seleccione la clase asociada (P31) para este esquema:'));
+
+                        selectedP31QID = p31Candidates[0].qid;
+                        p31Candidates.forEach((cand, idx) => {
+                            let radId = `p31-cand-${cand.qid}-${idx}`;
+                            let $rad = $('<input>').attr({
+                                type: 'radio', name: 'p31-candidate', id: radId, value: cand.qid, checked: idx === 0
+                            }).on('change', function() { selectedP31QID = cand.qid; });
+                            let $lbl = $('<label>').attr('for', radId).css({'font-size': '13px', 'display': 'flex', 'align-items': 'center', 'gap': '6px', 'cursor': 'pointer'})
+                                .append($rad).append($('<span>').text(`${cand.label} (${cand.qid})`));
+                            $p31Box.append($lbl);
+                        });
+                        $resultArea.append($p31Box);
+                    } else {
+                        selectedP31QID = qid;
+                    }
+
+                    let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+                        .css({'margin-top': '8px'})
+                        .text(`✅ Importar ${fetchedPropPIDs.length} propiedades al diseñador`)
+                        .on('click', function() {
+                            $overlay.remove();
+                            if (onImportCallback) {
+                                onImportCallback(selectedP31QID, fetchedPropPIDs, labelsMap);
+                            }
+                        });
+                    $resultArea.append($importConfirmBtn);
+                });
+            }).fail(function() {
+                $searchBtn.prop('disabled', false).text('Cargar elemento');
+                $resultArea.html('<div style="color:#d33; font-size:13px;">Error al conectar con Wikidata</div>');
+            });
+        });
+
+        $overlay.append($modal);
+        $('body').append($overlay);
+    }
+
+    /**
      * Render the Cradle Schema Designer UI.
      */
     function renderSchemaDesigner(editSchemaName, editSchemaData) {
@@ -4785,97 +4914,46 @@ function searchWikidataItems(term) {
 
         let $targetItemInput = $('<input>').addClass('cradle-input').attr({
             'id': 'cradle-schema-target-item-input',
-            'placeholder': 'Ej: Q5 (Humano)'
+            'placeholder': 'Ej: Q115471 (Estadio de fútbol) o Q5 (Humano)'
         });
 
-        let $headerFieldsRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap', 'margin-bottom': '12px'});
-        $headerFieldsRow.append($('<div>').css({'flex': '1', 'min-width': '130px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title'))).append($titleInput));
-        $headerFieldsRow.append($('<div>').css({'flex': '1.4', 'min-width': '150px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Descripción')).append($descInput));
-        $headerFieldsRow.append($('<div>').css({'flex': '1', 'min-width': '120px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Elemento (QID)')).append($targetItemInput));
-        $headerFieldsRow.append($('<div>').css({'flex': '1', 'min-width': '120px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Alias (|)')).append($aliasesInput));
+        let $headerFieldsRow = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'margin-bottom': '12px'});
 
-        $form.append($headerFieldsRow);
-
-        // Property Importer Box
-        let $importerBox = $('<div>').css({
-            'display': 'flex',
-            'gap': '8px',
-            'align-items': 'center',
-            'background': '#f8f9fa',
-            'border': '1px solid #c8ccd1',
-            'border-radius': '4px',
-            'padding': '8px 12px',
-            'margin-bottom': '8px'
-        });
-
-        let $importItemInput = $('<input>').addClass('cradle-input').attr({
-            'id': 'cradle-schema-import-item-input',
-            'placeholder': 'QID del elemento para importar propiedades (ej: Q1203)'
-        }).css({'flex': '1', 'height': '32px'});
-
-        let $importItemBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet')
-            .css({'height': '32px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '4px'})
-            .html(ICONS.download + ' <span>Importar propiedades de elemento</span>')
+        // Row 1: Title + Importer Modal Trigger
+        let $titleRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center'});
+        $titleRow.append($('<div>').css({'flex': '1'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title'))).append($titleInput));
+        
+        let $openImporterBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet')
+            .css({'height': '36px', 'margin-top': '20px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
+            .html(ICONS.download + ' <span>Importar desde elemento</span>')
             .on('click', function(e) {
                 e.preventDefault();
-                let qid = $importItemInput.val().trim().toUpperCase();
-                if (!qid || !/^Q\d+$/i.test(qid)) {
-                    mw.notify('Por favor ingrese un QID válido (ej: Q1203)', { type: 'error' });
-                    return;
-                }
-
-                $importItemBtn.prop('disabled', true).text('Importando...');
-
-                if (!$targetItemInput.val().trim()) {
-                    $targetItemInput.val(qid);
-                }
-
-                let api = new mw.Api();
-                api.get({
-                    action: 'wbgetentities',
-                    ids: qid,
-                    props: 'claims|labels',
-                    languages: mw.config.get('wgUserLanguage') || 'en',
-                    format: 'json'
-                }).done(function(res) {
-                    $importItemBtn.prop('disabled', false).html(ICONS.download + ' <span>Importar propiedades de elemento</span>');
-                    if (!res || !res.entities || !res.entities[qid] || !res.entities[qid].claims) {
-                        mw.notify('No se encontraron propiedades en ' + qid, { type: 'warn' });
-                        return;
+                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, labelsMap) {
+                    if (importedTargetQID && !$targetItemInput.val().trim()) {
+                        $targetItemInput.val(importedTargetQID);
                     }
-                    let claims = res.entities[qid].claims;
-                    let propIds = Object.keys(claims);
-                    if (propIds.length === 0) {
-                        mw.notify('El elemento ' + qid + ' no tiene propiedades/declaraciones', { type: 'warn' });
-                        return;
-                    }
-
                     let existingPIDs = [];
-                    $propsList.children().each(function() {
-                        existingPIDs.push($(this).data('pid'));
+                    $propsList.children().each(function() { existingPIDs.push($(this).data('pid')); });
+                    let newPIDs = importedPIDs.filter(p => !existingPIDs.includes(p));
+                    newPIDs.forEach(pid => {
+                        renderPropRow(pid, false, '', null, null, labelsMap);
                     });
-                    let newPIDs = propIds.filter(p => !existingPIDs.includes(p));
-
-                    if (newPIDs.length === 0) {
-                        mw.notify('Todas las propiedades de ' + qid + ' ya están cargadas en la lista', { type: 'info' });
-                        return;
-                    }
-
-                    fetchLabelsInBatches(newPIDs, function(labelsMap) {
-                        newPIDs.forEach(pid => {
-                            renderPropRow(pid, false, '', null, null, labelsMap);
-                        });
-                        mw.notify(`¡Se importaron ${newPIDs.length} propiedades desde ${qid}!`, { type: 'success' });
-                        $importItemInput.val('');
-                    });
-                }).fail(function() {
-                    $importItemBtn.prop('disabled', false).html(ICONS.download + ' <span>Importar propiedades de elemento</span>');
-                    mw.notify('Error al consultar Wikidata para ' + qid, { type: 'error' });
+                    mw.notify(`¡Se importaron ${newPIDs.length} propiedades!`, { type: 'success' });
                 });
             });
+        $titleRow.append($openImporterBtn);
 
-        $importerBox.append($importItemInput).append($importItemBtn);
-        $form.append($importerBox);
+        // Row 2: Target Item QID (directly below title)
+        let $targetRow = $('<div>').css({'display': 'flex', 'gap': '8px'});
+        $targetRow.append($('<div>').css({'flex': '1'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Elemento / Clase asociada (QID)')).append($targetItemInput));
+        
+        // Row 3: Description + Aliases
+        let $metaRow = $('<div>').css({'display': 'flex', 'gap': '8px'});
+        $metaRow.append($('<div>').css({'flex': '1.5'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Descripción')).append($descInput));
+        $metaRow.append($('<div>').css({'flex': '1'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Alias (|)')).append($aliasesInput));
+
+        $headerFieldsRow.append($titleRow).append($targetRow).append($metaRow);
+        $form.append($headerFieldsRow);
 
         let $propertiesDiv = $('<div>').css({
             'display': 'flex',
