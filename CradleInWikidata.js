@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.33
+ * Version: 1.15.34
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.33');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.34');
  */
 
 (function() {
@@ -2499,6 +2499,55 @@
     }
 
     /**
+     * Evaluates live Wikibase Quality Constraints (wbqc) on property values.
+     */
+    function evaluateLiveConstraints(pid, rows) {
+        let meta = propertyMetadata[pid];
+        if (!meta || !meta.constraints || !meta.constraints.length || !rows) return [];
+
+        let reports = [];
+        let activeRows = rows.filter(r => !r.isDeleted);
+        let activeValues = activeRows.map(r => r.value).filter(v => !isEmptyValue(v, meta.datatype));
+
+        meta.constraints.forEach(c => {
+            // 1. Mandatory value constraint (Q21503250)
+            if (c.isMandatory && activeValues.length === 0) {
+                reports.push({
+                    type: 'warning',
+                    text: mw.msg('cradle-constraint-mandatory') || 'Restricción de valor obligatorio: Se debe proporcionar un valor para esta propiedad.'
+                });
+            }
+
+            // 2. Single value constraint (Q21510865)
+            if (c.isSingle && activeRows.length > 1) {
+                reports.push({
+                    type: 'violation',
+                    text: mw.msg('cradle-constraint-single') || 'Restricción de valor único: Solo se permite un único valor para esta propiedad.'
+                });
+            }
+
+            // 3. Format constraint (Q21502404 - Regex P1793)
+            if (c.regex) {
+                activeValues.forEach(val => {
+                    if (typeof val === 'string' && val.length > 0) {
+                        try {
+                            let reg = new RegExp(c.regex);
+                            if (!reg.test(val)) {
+                                reports.push({
+                                    type: 'violation',
+                                    text: (mw.msg('cradle-constraint-format') || 'Restricción de formato') + `: "${val}"`
+                                });
+                            }
+                        } catch (e) {}
+                    }
+                });
+            }
+        });
+
+        return reports;
+    }
+
+    /**
      * Updates card borders, badges, and validation summary in real-time.
      */
     function liveUpdateValidation() {
@@ -2536,20 +2585,23 @@
             // Update badge icon next to title
             $card.find('.cradle-card-validation-badge').html(propVal.badgeHtml);
 
-            // Update card error text list
-            $card.find('.cradle-field-errors').remove();
-            if (propVal.errors.length > 0) {
-                let $errList = $('<div>').addClass('cradle-field-errors').css({
-                    'color': 'var(--color-destructive, #d33)',
-                    'font-size': '0.75rem',
-                    'margin-top': '8px',
-                    'font-weight': 'bold',
-                    'line-height': '1.3'
+            // Update live Wikibase Quality Constraint (wbqc) reports container
+            let reports = evaluateLiveConstraints(pid, formState[pid]);
+            let $wbqcContainer = $(`#cradle-wbqc-reports-${pid}`);
+            if (!reports.length) {
+                if ($wbqcContainer.length) $wbqcContainer.remove();
+            } else {
+                if (!$wbqcContainer.length) {
+                    $wbqcContainer = $('<div>').attr('id', `cradle-wbqc-reports-${pid}`).css({'margin-top': '6px'});
+                    $(`#cradle-rows-${pid}`).after($wbqcContainer);
+                }
+                $wbqcContainer.empty();
+                reports.forEach(rep => {
+                    let $repBox = $('<div>')
+                        .addClass(`wbqc-reports-status wbqc-reports-status-${rep.type}`)
+                        .html(`<span>${rep.type === 'violation' ? '⛔' : '⚠'}</span> <span>${rep.text}</span>`);
+                    $wbqcContainer.append($repBox);
                 });
-                propVal.errors.forEach(err => {
-                    $errList.append($('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '4px'}).html(ICONS.alert + ' <span>' + err + '</span>'));
-                });
-                $(`#cradle-rows-${pid}`).after($errList);
             }
         });
     }
@@ -2827,38 +2879,11 @@
             if (meta.description) {
                 $cardHeader.append($('<p>').addClass('cradle-field-description').text(meta.description));
             }
-            if (meta.constraints && meta.constraints.length > 0) {
-                let count = meta.constraints.length;
-                let titleText = mw.msg('cradle-constraints-title', count);
-
-                let $cToggle = $('<div>').addClass('wbqc-reports-status wbqc-reports-status-suggestions cradle-constraint-toggle')
-                    .html(`<span>ⓘ ${titleText}</span> <span class="cradle-arrow" style="font-size:0.65rem;">▼</span>`);
-
-                let $cList = $('<div>').addClass('cradle-constraint-list').css({
-                    'display': 'none',
-                    'margin-top': '4px',
-                    'padding': '6px 10px',
-                    'background': '#f8f9fa',
-                    'border': '1px solid #c8ccd1',
-                    'border-left': '3px solid #36c',
-                    'border-radius': '2px',
-                    'font-size': '0.75rem',
-                    'color': '#202122'
-                });
-
-                meta.constraints.forEach(c => {
-                    let $item = $('<div>').css({'margin-bottom': '4px', 'line-height': '1.3'}).html(`<strong>•</strong> ${c.text}`);
-                    $cList.append($item);
-                });
-
-                $cToggle.on('click', function() {
-                    $cList.slideToggle(150);
-                    let $arrow = $(this).find('.cradle-arrow');
-                    $arrow.text($arrow.text() === '▼' ? '▲' : '▼');
-                });
-
-                $cardHeader.append($cToggle).append($cList);
+            $cardHeader.append($label);
+            if (meta.description) {
+                $cardHeader.append($('<p>').addClass('cradle-field-description').text(meta.description));
             }
+            $card.append($cardHeader);
             $card.append($cardHeader);
 
             // Container for statement input rows
