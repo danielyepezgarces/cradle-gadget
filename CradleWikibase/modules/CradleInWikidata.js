@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.18.3
+ * Version: 1.18.4
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.18.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.18.4');
  */
 
 (function() {
@@ -4918,13 +4918,12 @@ function searchWikidataItems(term) {
                     // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
                     let p31ClaimsMap = {};
                     let p31FetchDone = function() {
-                        let $duplicateNoticeBox = $('<div>').css({'margin-top': '6px'});
                         let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-                            .css({'margin-top': '8px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
+                            .css({'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'})
                             .html(ICONS.check + ` <span>Importar propiedades seleccionadas al diseñador</span>`);
 
                         let $editExistingSchemaBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive')
-                            .css({'display': 'none', 'align-items': 'center', 'gap': '6px', 'flex': '1'});
+                            .css({'display': 'none', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'});
 
                         function updateSchemaExistenceCheck(chosenQID) {
                             let schemaId = p31ClaimsMap[chosenQID];
@@ -5030,8 +5029,8 @@ function searchWikidataItems(term) {
                             }
                         });
 
-                        let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center', 'width': '100%', 'margin-top': '10px'})
-                            .append($importConfirmBtn.css({'flex': '1'}))
+                        let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'stretch', 'width': '100%', 'margin-top': '10px'})
+                            .append($importConfirmBtn)
                             .append($editExistingSchemaBtn);
                         $resultArea.append($btnRow);
 
@@ -5091,7 +5090,6 @@ function searchWikidataItems(term) {
         let titleVal = isEdit ? editSchemaName : '';
 
         let $form = $('<div>').addClass('cradle-selector-box').css({'display': 'flex', 'flex-direction': 'column', 'gap': '12px'});
-        $form.append($('<h3>').css({'margin': '0'}).text(mw.msg('cradle-schema-designer')));
 
         let $titleInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-schema-title')).val(titleVal);
         if (isEdit) {
