@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.32
+ * Version: 1.15.33
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.32');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.33');
  */
 
 (function() {
@@ -437,9 +437,33 @@
         .cradle-row.deleted .cradle-btn-delete {
             color: var(--color-progressive, #36c);
         }
-        .cradle-row.deleted .cradle-btn-delete:hover {
-            background-color: rgba(51, 102, 204, 0.05);
-            border-color: rgba(51, 102, 204, 0.15);
+        /* Wikibase Quality Constraints (wbqc) status styling */
+        .cradle-drawer .wbqc-reports-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #54595d;
+            background-color: #f8f9fa;
+            border: 1px solid #c8ccd1;
+            border-left: 3px solid #36c;
+            border-radius: 2px;
+            padding: 3px 8px;
+            margin-top: 6px;
+            cursor: pointer;
+            user-select: none;
+            width: fit-content;
+            transition: background-color 0.15s;
+        }
+        .cradle-drawer .wbqc-reports-status:hover {
+            background-color: #eaecf0;
+            color: #202122;
+        }
+        .cradle-drawer .wbqc-reports-status-suggestions {
+            border-left-color: #36c;
+        }
+        .cradle-drawer .wbqc-reports-status-warning {
+            border-left-color: #edab00;
         }
 
         /* Autocomplete dropdown list */
@@ -2807,32 +2831,19 @@
                 let count = meta.constraints.length;
                 let titleText = mw.msg('cradle-constraints-title', count);
 
-                let $cToggle = $('<div>').addClass('cradle-constraint-toggle').css({
-                    'display': 'inline-flex',
-                    'align-items': 'center',
-                    'gap': '6px',
-                    'font-size': '0.75rem',
-                    'font-weight': 'bold',
-                    'color': '#856404',
-                    'background-color': '#fff3cd',
-                    'border': '1px solid #ffeeba',
-                    'border-radius': '3px',
-                    'padding': '3px 8px',
-                    'margin-top': '6px',
-                    'cursor': 'pointer',
-                    'user-select': 'none',
-                    'width': 'fit-content'
-                }).html(`<span>ⓘ ${titleText}</span> <span class="cradle-arrow" style="font-size:0.65rem;">▼</span>`);
+                let $cToggle = $('<div>').addClass('wbqc-reports-status wbqc-reports-status-suggestions cradle-constraint-toggle')
+                    .html(`<span>ⓘ ${titleText}</span> <span class="cradle-arrow" style="font-size:0.65rem;">▼</span>`);
 
                 let $cList = $('<div>').addClass('cradle-constraint-list').css({
                     'display': 'none',
                     'margin-top': '4px',
                     'padding': '6px 10px',
-                    'background': '#fdf8e6',
-                    'border': '1px solid #f5e7b8',
-                    'border-radius': '3px',
+                    'background': '#f8f9fa',
+                    'border': '1px solid #c8ccd1',
+                    'border-left': '3px solid #36c',
+                    'border-radius': '2px',
                     'font-size': '0.75rem',
-                    'color': '#444'
+                    'color': '#202122'
                 });
 
                 meta.constraints.forEach(c => {
