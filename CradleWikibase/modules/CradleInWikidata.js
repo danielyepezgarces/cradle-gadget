@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.17.1
+ * Version: 1.17.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.17.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.17.2');
  */
 
 (function() {
@@ -5067,10 +5067,19 @@ function searchWikidataItems(term) {
                     let existingPIDs = [];
                     $propsList.children().each(function() { existingPIDs.push($(this).data('pid')); });
                     let newPIDs = importedPIDs.filter(p => !existingPIDs.includes(p));
-                    newPIDs.forEach(pid => {
-                        renderPropRow(pid, false, '', null, null, labelsMap);
+
+                    if (newPIDs.length === 0) {
+                        mw.notify('No hay propiedades nuevas para importar.', { type: 'info' });
+                        return;
+                    }
+
+                    fetchLabelsInBatches(newPIDs, function(freshLabelsMap) {
+                        let mergedMap = Object.assign({}, labelsMap, freshLabelsMap);
+                        newPIDs.forEach(pid => {
+                            renderPropRow(pid, false, '', null, null, mergedMap);
+                        });
+                        mw.notify(`¡Se importaron ${newPIDs.length} propiedades!`, { type: 'success' });
                     });
-                    mw.notify(`¡Se importaron ${newPIDs.length} propiedades!`, { type: 'success' });
                 });
             });
         $row1.append($openImporterBtn);
@@ -5101,7 +5110,7 @@ function searchWikidataItems(term) {
         // Helper to batch fetch labels for properties and items (with English fallback)
         function fetchLabelsInBatches(ids, callback) {
             let labels = {};
-            if (ids.length === 0) {
+            if (!ids || ids.length === 0) {
                 callback(labels);
                 return;
             }
@@ -5122,18 +5131,21 @@ function searchWikidataItems(term) {
                     languages: langsToFetch,
                     format: 'json'
                 }).done(function(res) {
-                    if (res.entities) {
+                    if (res && res.entities) {
                         chunk.forEach(id => {
-                            if (res.entities[id] && res.entities[id].labels) {
-                                let lObj = res.entities[id].labels;
+                            if (res.entities[id]) {
+                                let lObj = res.entities[id].labels || {};
                                 let lbl = (lObj[userLang] && lObj[userLang].value) || (lObj['en'] && lObj['en'].value);
                                 labels[id] = lbl || id;
+                            } else {
+                                labels[id] = id;
                             }
                         });
                     }
                     pending--;
                     if (pending === 0) callback(labels);
                 }).fail(function() {
+                    chunk.forEach(id => { labels[id] = id; });
                     pending--;
                     if (pending === 0) callback(labels);
                 });
