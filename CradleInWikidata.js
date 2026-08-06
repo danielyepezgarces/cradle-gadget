@@ -2954,23 +2954,14 @@
                 href: `/wiki/Property:${pid}`,
                 target: '_blank'
             }).text(meta.label));
-            $label.append($('<span>').css({'font-size': '0.75rem', 'font-weight': 'normal', 'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${pid})`));
-            
             if (propDef.mandatory) {
                 $label.append($('<span>').addClass('cradle-field-required-marker').text('*'));
             }
-            
-            $cardHeader.append($label);
-            if (meta.description) {
-                $cardHeader.append($('<p>').addClass('cradle-field-description').text(meta.description));
-            }
             $cardHeader.append($label);
             if (meta.description) {
                 $cardHeader.append($('<p>').addClass('cradle-field-description').text(meta.description));
             }
             $card.append($cardHeader);
-            $card.append($cardHeader);
-
             // Container for statement input rows
             let $rowsContainer = $('<div>').attr('id', `cradle-rows-${pid}`);
             $card.append($rowsContainer);
