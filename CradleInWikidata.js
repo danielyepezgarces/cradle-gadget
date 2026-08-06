@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.20.2
+ * Version: 1.20.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.20.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.20.3');
  */
 
 (function() {
@@ -4970,7 +4970,7 @@ function searchWikidataItems(term) {
                     if (recoinData && recoinData.completeness_percentage) {
                         let pct = parseFloat(recoinData.completeness_percentage).toFixed(1);
                         let lvl = recoinData.completeness_level || '?';
-                        recoinMetaHtml = `<div style="margin-top:4px; font-size:12px; color:#202122;">📊 <strong>Completitud de Recoin:</strong> ${pct}% (Nivel ${lvl}/5) • <span style="font-size:11px; color:#54595d;">Sugerencias basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; text-decoration:underline;">Recoin</a></span></div>`;
+                        recoinMetaHtml = `<div style="margin-top:4px; font-size:12px; color:#202122;">📊 <strong>Completitud:</strong> ${pct}% (Nivel ${lvl}/5)</div>`;
                     }
 
                     let $info = $('<div>').css({
@@ -5070,7 +5070,7 @@ function searchWikidataItems(term) {
                         fetchedPropPIDs.forEach(pid => {
                             let propLbl = labelsMap[pid] ? `${labelsMap[pid]} (${pid})` : pid;
                             let freqBadge = recoinFreqMap[pid]
-                                ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 Recoin: ${recoinFreqMap[pid]}</span>`
+                                ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 ${recoinFreqMap[pid]}</span>`
                                 : '';
                             let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-${pid}`, checked: true });
                             propCBs[pid] = $cb;
@@ -5082,23 +5082,19 @@ function searchWikidataItems(term) {
                         // Add missing Recoin recommended properties section
                         if (recoinMissingProps.length > 0) {
                             let $recoinSectionHeader = $('<div>').css({'font-weight': 'bold', 'margin': '8px 0 4px 0', 'padding-top': '6px', 'border-top': '1px dashed #c8ccd1', 'color': '#36c', 'font-size': '12px'})
-                                .html('💡 Propiedades recomendadas para esta clase (Recoin API):');
+                                .html('💡 Propiedades recomendadas para esta clase:');
                             $propListContainer.append($recoinSectionHeader);
 
                             recoinMissingProps.forEach(m => {
                                 let pid = m.property;
                                 let propLbl = (labelsMap[pid] || m.label || pid) + ` (${pid})`;
-                                let freqBadge = `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 Recoin: ${m.base_frequency}</span>`;
+                                let freqBadge = `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 ${m.base_frequency}</span>`;
                                 let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-recoin-${pid}`, checked: true });
                                 propCBs[pid] = $cb;
                                 let $itemLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'cursor': 'pointer'})
                                     .append($cb).append($('<span>').html(`${propLbl} ${freqBadge}`));
                                 $propListContainer.append($itemLabel);
                             });
-
-                            let $recoinCreditFooter = $('<div>').css({'font-size': '11px', 'color': '#54595d', 'margin-top': '4px', 'text-align': 'right', 'font-style': 'italic'})
-                                .html('Sugerencias basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
-                            $propListContainer.append($recoinCreditFooter);
                         }
 
                         $selectAllCheckbox.on('change', function() {
@@ -5110,6 +5106,10 @@ function searchWikidataItems(term) {
 
                         $resultArea.append($propListContainer);
                         $resultArea.append($duplicateNoticeBox);
+
+                        let $recoinCreditFooter = $('<div>').css({'font-size': '11px', 'color': '#54595d', 'margin-top': '8px', 'margin-bottom': '4px', 'text-align': 'center', 'font-style': 'italic'})
+                            .html('Sugerencias basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
+                        $resultArea.append($recoinCreditFooter);
 
                         $importConfirmBtn.on('click', function() {
                             let allAvailablePIDs = [...fetchedPropPIDs, ...recoinMissingProps.map(m => m.property)];
@@ -5409,7 +5409,7 @@ function searchWikidataItems(term) {
             recoinFreqMap = recoinFreqMap || {};
             let propLabel = labelsMap[pid] ? ` (${labelsMap[pid]})` : '';
             let freqStr = recoinFreqMap[pid] ? recoinFreqMap[pid] : '';
-            let freqBadge = freqStr ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:2px 6px; border-radius:3px; font-size:11px; margin-left:8px; font-weight:bold;">📊 Recoin: ${freqStr}</span>` : '';
+            let freqBadge = freqStr ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:2px 6px; border-radius:3px; font-size:11px; margin-left:8px; font-weight:bold;">📊 ${freqStr}</span>` : '';
             let uniqueRowId = Math.random().toString(36).substring(2, 9);
 
             let $row = $('<div>').addClass('cradle-prop-row-builder').css({
