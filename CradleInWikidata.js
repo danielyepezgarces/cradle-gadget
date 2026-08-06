@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.30
+ * Version: 1.15.31
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.30');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.31');
  */
 
 (function() {
@@ -791,6 +791,13 @@
             'cradle-copy-shex': 'Copy ShEx',
             'cradle-create-entityschema-btn': 'Publish EntitySchema on Wikidata',
             'cradle-user-menu-btn': 'Create new item with Cradle',
+            'cradle-constraint-mandatory': 'Mandatory value constraint: A value for this property should be provided.',
+            'cradle-constraint-single': 'Single value constraint: Only one value is allowed for this property.',
+            'cradle-constraint-type': 'Type constraint: Ensure value matches the required entity type.',
+            'cradle-constraint-format': 'Format constraint',
+            'cradle-constraint-inverse': 'Inverse property constraint.',
+            'cradle-constraint-distinct': 'Distinct values constraint.',
+            'cradle-constraint-mandatory-alert': 'Property $1 ($2) has a Wikidata mandatory value constraint.',
             'cradle-shex-valid': '✓ Valid ShEx syntax for Wikidata',
             'cradle-shex-invalid': '⚠ Invalid ShEx syntax:',
             'cradle-publishing-shex': 'Publishing EntitySchema to Wikidata...',
@@ -868,6 +875,13 @@
                     'cradle-copy-shex': 'Copiar ShEx',
                     'cradle-create-entityschema-btn': 'Publicar EntitySchema en Wikidata',
                     'cradle-user-menu-btn': 'Crear elemento nuevo con Cradle',
+                    'cradle-constraint-mandatory': 'Restricción de valor obligatorio: Se debe proporcionar un valor para esta propiedad.',
+                    'cradle-constraint-single': 'Restricción de valor único: Solo se permite un único valor para esta propiedad.',
+                    'cradle-constraint-type': 'Restricción de tipo de entidad: Verifique que el valor sea del tipo de entidad requerido.',
+                    'cradle-constraint-format': 'Restricción de formato',
+                    'cradle-constraint-inverse': 'Restricción de propiedad inversa.',
+                    'cradle-constraint-distinct': 'Restricción de valores distintos.',
+                    'cradle-constraint-mandatory-alert': 'La propiedad $1 ($2) tiene una restricción de valor obligatorio en Wikidata.',
                     'cradle-shex-valid': '✓ Sintaxis ShEx válida para Wikidata',
                     'cradle-shex-invalid': '⚠ Sintaxis ShEx no válida:',
                     'cradle-publishing-shex': 'Publicando EntitySchema en Wikidata...',
@@ -916,63 +930,45 @@
     }
 
     /**
-     * Creates a prominent blue Codex button in top header bar, permanently visible OUTSIDE any dropdown menu without duplicates.
+     * Creates a prominent blue Codex button in user personal bar using MediaWiki portlet link.
      */
     function setupUserMenuButton() {
-        $('#pt-cradle-create').remove(); // Deduplicate any previous instance
-
         let btnText = mw.msg('cradle-user-menu-btn');
-        let $elem = $('<div>').attr('id', 'pt-cradle-create').addClass('vector-user-links-main-item');
-        let $a = $('<a>').attr({
-            'href': mw.util.getUrl('Special:Cradle'),
-            'title': 'Crear un nuevo elemento de Wikidata usando esquemas de Cradle'
-        }).text(btnText);
-        $elem.append($a);
+        let portletLink = mw.util.addPortletLink(
+            'p-personal',
+            mw.util.getUrl('Special:Cradle'),
+            btnText,
+            'pt-cradle-create',
+            'Crear un nuevo elemento de Wikidata usando esquemas de Cradle',
+            null
+        );
 
-        $elem.css({
-            'display': 'inline-flex',
-            'align-items': 'center',
-            'align-self': 'center',
-            'flex-shrink': '0',
-            'margin': '0 8px 0 0'
-        });
-
-        $a.addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary').css({
-            'background-color': '#36c',
-            'color': '#ffffff !important',
-            'border': '1px solid #36c',
-            'border-radius': '2px',
-            'padding': '3px 10px',
-            'font-weight': 'bold',
-            'font-size': '0.8rem',
-            'line-height': '1.3',
-            'text-decoration': 'none',
-            'display': 'inline-flex',
-            'align-items': 'center',
-            'white-space': 'nowrap',
-            'gap': '4px',
-            'height': '28px',
-            'box-sizing': 'border-box',
-            'flex-shrink': '0'
-        });
-
-        // Target ONLY ONE single container OUTSIDE dropdown to avoid duplicate insertions
-        if ($('#p-vector-user-menu-overflow').length) {
-            $('#p-vector-user-menu-overflow').first().prepend($elem);
-        } else if ($('#vector-user-links-dropdown').length) {
-            $('#vector-user-links-dropdown').first().before($elem);
-        } else if ($('#p-personal ul').length) {
-            $('#p-personal ul').first().prepend($elem);
-        } else if ($('.vector-header-end').length) {
-            $('.vector-header-end').first().prepend($elem);
+        let $li = $(portletLink || '#pt-cradle-create');
+        if ($li.length) {
+            $li.find('a').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary').css({
+                'background-color': '#36c',
+                'color': '#ffffff !important',
+                'border': '1px solid #36c',
+                'border-radius': '2px',
+                'padding': '3px 8px',
+                'font-weight': 'bold',
+                'font-size': '0.8rem',
+                'line-height': '1.3',
+                'text-decoration': 'none',
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'white-space': 'nowrap',
+                'gap': '4px',
+                'height': '26px',
+                'box-sizing': 'border-box',
+                'margin': '2px 4px'
+            }).off('click.cradleNav').on('click.cradleNav', function(e) {
+                if (isSpecialCradle || isItemPage) {
+                    e.preventDefault();
+                    openEditor('create');
+                }
+            });
         }
-
-        $a.off('click.cradleNav').on('click.cradleNav', function(e) {
-            if (isSpecialCradle || isItemPage) {
-                e.preventDefault();
-                openEditor('create');
-            }
-        });
     }
 
     /**
@@ -1907,6 +1903,47 @@
     }
 
     /**
+     * Parses property constraints from Wikidata claims (P2302).
+     */
+    function parsePropertyConstraints(claims) {
+        let constraints = [];
+        if (!claims || !claims.P2302) return constraints;
+
+        claims.P2302.forEach(claim => {
+            if (claim.mainsnak && claim.mainsnak.snaktype === 'value' && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value) {
+                let constraintQid = claim.mainsnak.datavalue.value.id;
+                let cInfo = { qid: constraintQid, text: '' };
+
+                if (constraintQid === 'Q21503250') {
+                    cInfo.text = mw.msg('cradle-constraint-mandatory');
+                    cInfo.isMandatory = true;
+                } else if (constraintQid === 'Q21510865') {
+                    cInfo.text = mw.msg('cradle-constraint-single');
+                    cInfo.isSingle = true;
+                } else if (constraintQid === 'Q21503252') {
+                    cInfo.text = mw.msg('cradle-constraint-type');
+                } else if (constraintQid === 'Q21502404') {
+                    let regexVal = '';
+                    if (claim.qualifiers && claim.qualifiers.P1793 && claim.qualifiers.P1793[0] && claim.qualifiers.P1793[0].datavalue) {
+                        regexVal = claim.qualifiers.P1793[0].datavalue.value;
+                    }
+                    cInfo.text = mw.msg('cradle-constraint-format') + (regexVal ? ` (${regexVal})` : '');
+                    cInfo.regex = regexVal;
+                } else if (constraintQid === 'Q21510851') {
+                    cInfo.text = mw.msg('cradle-constraint-inverse');
+                } else if (constraintQid === 'Q21510862') {
+                    cInfo.text = mw.msg('cradle-constraint-distinct');
+                }
+
+                if (cInfo.text) {
+                    constraints.push(cInfo);
+                }
+            }
+        });
+        return constraints;
+    }
+
+    /**
      * Fetches property metadata.
      */
     function loadPropertiesMetadata(propIds) {
@@ -1975,7 +2012,8 @@
                             id: pid,
                             label: label,
                             description: desc,
-                            datatype: ent.datatype
+                            datatype: ent.datatype,
+                            constraints: parsePropertyConstraints(ent.claims)
                         };
                     });
                 }
@@ -2762,6 +2800,21 @@
             $cardHeader.append($label);
             if (meta.description) {
                 $cardHeader.append($('<p>').addClass('cradle-field-description').text(meta.description));
+            }
+            if (meta.constraints && meta.constraints.length > 0) {
+                meta.constraints.forEach(c => {
+                    let $cBox = $('<div>').addClass('cradle-constraint-badge').css({
+                        'font-size': '0.75rem',
+                        'color': '#856404',
+                        'background-color': '#fff3cd',
+                        'border': '1px solid #ffeeba',
+                        'border-radius': '3px',
+                        'padding': '3px 8px',
+                        'margin-top': '4px',
+                        'line-height': '1.3'
+                    }).text('⚠ Wikidata Constraint: ' + c.text);
+                    $cardHeader.append($cBox);
+                });
             }
             $card.append($cardHeader);
 
@@ -3736,7 +3789,7 @@ function searchWikidataItems(term) {
             }
         }
 
-        // Validate mandatory claims
+        // Validate mandatory claims & Wikidata constraints
         Object.keys(schemaProperties).forEach(pid => {
             let propDef = schemaProperties[pid];
             let rows = formState[pid];
@@ -3746,6 +3799,15 @@ function searchWikidataItems(term) {
             
             if (propDef.mandatory && activeClaimsCount === 0) {
                 mandatoryErrors.push(mw.msg('cradle-mandatory-error', meta.label, pid));
+            }
+
+            // Also check Wikidata mandatory constraint (P2302 -> Q21503250)
+            if (meta.constraints && meta.constraints.length > 0) {
+                meta.constraints.forEach(c => {
+                    if (c.isMandatory && activeClaimsCount === 0 && !propDef.mandatory) {
+                        mandatoryErrors.push(mw.msg('cradle-constraint-mandatory-alert', meta.label, pid));
+                    }
+                });
             }
         });
 
