@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.24.0
+ * Version: 1.24.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.24.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.24.1');
  */
 
 (function() {
@@ -1099,8 +1099,8 @@
             'Create items using Cradle templates or schemas'
         );
 
-        // Add blue 'Crear elemento nuevo con Cradle' button in user menu / personal bar
-        setupUserMenuButton();
+        // Add 'Crear elemento nuevo con Cradle' link to sidebar Navigation (p-navigation)
+        setupNavigationButton();
 
         // Add dedicated 'Esquemas' section to Wikidata sidebar
         setupSidebarSchemasSection();
@@ -1125,33 +1125,24 @@
     }
 
     /**
-     * Creates a prominent blue Codex button in user personal bar using MediaWiki portlet link.
+     * Adds 'Crear elemento nuevo con Cradle' to MediaWiki sidebar Navigation (p-navigation).
      */
-    function setupUserMenuButton() {
+    function setupNavigationButton() {
         let btnText = mw.msg('cradle-user-menu-btn');
         let portletLink = mw.util.addPortletLink(
-            'p-personal',
+            'p-navigation',
             mw.util.getUrl('Special:Cradle'),
             btnText,
-            'pt-cradle-create',
-            'Crear un nuevo elemento de Wikidata usando esquemas de Cradle',
-            null,
-            '#pt-uls'
+            'n-cradle-create',
+            'Crear un nuevo elemento de Wikidata usando esquemas de Cradle'
         );
 
-        let $li = $(portletLink || '#pt-cradle-create');
+        let $li = $(portletLink || '#n-cradle-create');
         if ($li.length) {
-            if ($('#pt-uls').length) {
-                $li.insertBefore('#pt-uls');
-            } else if ($('#p-personal ul').length) {
-                $('#p-personal ul').append($li);
-            }
-            $li.find('a').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary').css({
-                'margin': '2px 4px'
-            }).off('click.cradleNav').on('click.cradleNav', function(e) {
+            $li.find('a').off('click.cradleNav').on('click.cradleNav', function(e) {
                 if (isSpecialCradle || isItemPage) {
                     e.preventDefault();
-                    openEditor('create');
+                    openCradleDrawer();
                 }
             });
         }
