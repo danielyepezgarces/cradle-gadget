@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.24
+ * Version: 1.15.25
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.24');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.25');
  */
 
 (function() {
@@ -933,10 +933,12 @@
         $li.css({
             'display': 'inline-flex',
             'align-items': 'center',
+            'align-self': 'center',
             'flex-shrink': '0',
             'margin': '0 6px 0 0',
             'padding': '0',
-            'vertical-align': 'middle'
+            'height': 'auto',
+            'line-height': '1'
         });
 
         let $a = $li.find('a');
@@ -945,16 +947,17 @@
             'color': '#ffffff !important',
             'border': '1px solid #36c',
             'border-radius': '2px',
-            'padding': '3px 8px',
+            'padding': '2px 8px',
             'font-weight': 'bold',
-            'font-size': '0.8rem',
-            'line-height': '1.3',
+            'font-size': '0.775rem',
+            'line-height': '1.2',
             'text-decoration': 'none',
             'display': 'inline-flex',
             'align-items': 'center',
+            'align-self': 'center',
             'white-space': 'nowrap',
             'gap': '4px',
-            'height': '28px',
+            'height': '24px',
             'box-sizing': 'border-box',
             'flex-shrink': '0'
         });
