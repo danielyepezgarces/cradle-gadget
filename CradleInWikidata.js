@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.42
+ * Version: 1.15.43
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.42');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.43');
  */
 
 (function() {
@@ -1946,6 +1946,9 @@
                 } else if (constraintQid === 'Q21510865') {
                     cInfo.text = mw.msg('cradle-constraint-single');
                     cInfo.isSingle = true;
+                    if (claim.qualifiers && (claim.qualifiers.P2309 || claim.qualifiers.P2303 || claim.qualifiers.P2308)) {
+                        cInfo.hasScopeQualifier = true;
+                    }
                 } else if (constraintQid === 'Q21503252') {
                     cInfo.text = mw.msg('cradle-constraint-type');
                     cInfo.isType = true;
@@ -2551,10 +2554,13 @@
         }
 
         // 2. Property constraints from P2302 claims
+        let propDef = schemaProperties[pid] || {};
+        let isSchemaSingle = (propDef.max === 1);
+
         if (meta.constraints && meta.constraints.length > 0) {
             meta.constraints.forEach(c => {
-                // Single-value constraint (Q21510865): Violated if >1 active claims UNLESS exactly 1 claim is preferred
-                if (c.isSingle && activeRows.length > 1 && preferredRows.length !== 1) {
+                // Single-value constraint (Q21510865): Only if schema limits to 1 or no scope qualifiers exist
+                if (c.isSingle && (isSchemaSingle || !c.hasScopeQualifier) && activeRows.length > 1 && preferredRows.length !== 1) {
                     violations.push({
                         type: 'warning',
                         name: 'single-value constraint',
