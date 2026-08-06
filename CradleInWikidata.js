@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.23.1
+ * Version: 1.24.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.23.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.24.0');
  */
 
 (function() {
@@ -1072,7 +1072,11 @@
                     'cradle-shex-valid': '✓ Sintaxis ShEx válida para Wikidata',
                     'cradle-shex-invalid': '⚠ Sintaxis ShEx no válida:',
                     'cradle-publishing-shex': 'Publicando EntitySchema en Wikidata...',
-                    'cradle-publish-shex-success': '¡EntitySchema $1 publicado con éxito en Wikidata!'
+                    'cradle-publish-shex-success': '¡EntitySchema $1 publicado con éxito en Wikidata!',
+                    'cradle-sidebar-header': 'Esquemas',
+                    'cradle-sidebar-create-schema': 'Crear un esquema nuevo',
+                    'cradle-sidebar-recent-schemas': 'Cambios recientes de esquemas',
+                    'cradle-sidebar-random-schema': 'Esquema Aleatorio'
                 });
             }
             proceedInit();
@@ -1097,6 +1101,9 @@
 
         // Add blue 'Crear elemento nuevo con Cradle' button in user menu / personal bar
         setupUserMenuButton();
+
+        // Add dedicated 'Esquemas' section to Wikidata sidebar
+        setupSidebarSchemasSection();
 
         if (isSpecialCradle) {
             setupSpecialPage();
