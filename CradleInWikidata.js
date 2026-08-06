@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.20.3
+ * Version: 1.20.4
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.20.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.20.4');
  */
 
 (function() {
@@ -138,10 +138,14 @@
         let url = 'https://recoin.toolforge.org/getmissingattributes.php?lang=' + userLang + '&subject=' + cleanQID;
         $.ajax({
             url: url,
-            dataType: 'json',
-            method: 'GET'
+            dataType: 'jsonp',
+            timeout: 5000
         }).done(function(res) {
-            callback(res);
+            if (res && (res.completeness_percentage || res.missing_properties)) {
+                callback(res);
+            } else {
+                callback(null);
+            }
         }).fail(function() {
             callback(null);
         });
@@ -5107,9 +5111,11 @@ function searchWikidataItems(term) {
                         $resultArea.append($propListContainer);
                         $resultArea.append($duplicateNoticeBox);
 
-                        let $recoinCreditFooter = $('<div>').css({'font-size': '11px', 'color': '#54595d', 'margin-top': '8px', 'margin-bottom': '4px', 'text-align': 'center', 'font-style': 'italic'})
-                            .html('Sugerencias basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
-                        $resultArea.append($recoinCreditFooter);
+                        if (recoinData && recoinData.completeness_percentage) {
+                            let $recoinCreditFooter = $('<div>').css({'font-size': '11px', 'color': '#54595d', 'margin-top': '8px', 'margin-bottom': '4px', 'text-align': 'center', 'font-style': 'italic'})
+                                .html('Sugerencias basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
+                            $resultArea.append($recoinCreditFooter);
+                        }
 
                         $importConfirmBtn.on('click', function() {
                             let allAvailablePIDs = [...fetchedPropPIDs, ...recoinMissingProps.map(m => m.property)];
