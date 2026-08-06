@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.34
+ * Version: 1.15.35
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.34');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.35');
  */
 
 (function() {
@@ -2499,50 +2499,55 @@
     }
 
     /**
-     * Evaluates live Wikibase Quality Constraints (wbqc) on property values.
+     * Evaluates statement-level Wikibase Quality Constraints (wbqc) matching Wikibase exact rules.
      */
-    function evaluateLiveConstraints(pid, rows) {
+    function evaluateRowConstraints(pid, row, allRows) {
+        if (row.isDeleted) return [];
         let meta = propertyMetadata[pid];
-        if (!meta || !meta.constraints || !meta.constraints.length || !rows) return [];
+        if (!meta) return [];
 
         let reports = [];
-        let activeRows = rows.filter(r => !r.isDeleted);
-        let activeValues = activeRows.map(r => r.value).filter(v => !isEmptyValue(v, meta.datatype));
+        let isEmpty = isEmptyValue(row.value, row.datatype);
 
-        meta.constraints.forEach(c => {
-            // 1. Mandatory value constraint (Q21503250)
-            if (c.isMandatory && activeValues.length === 0) {
-                reports.push({
-                    type: 'warning',
-                    text: mw.msg('cradle-constraint-mandatory') || 'Restricción de valor obligatorio: Se debe proporcionar un valor para esta propiedad.'
-                });
-            }
+        // 1. References / citation-needed constraint
+        if (!isEmpty && (!row.references || row.references.length === 0)) {
+            reports.push({
+                type: 'suggestion',
+                name: 'citation-needed constraint',
+                message: `Statements for <a title="Property:${pid}" href="/wiki/Property:${pid}">${meta.label}</a> should have at least one reference.`,
+                helpUrl: 'https://www.wikidata.org/wiki/Special:MyLanguage/Help:Property_constraints_portal/Q54554025',
+                talkUrl: `//www.wikidata.org/wiki/Property_talk:${pid}`
+            });
+        }
 
-            // 2. Single value constraint (Q21510865)
-            if (c.isSingle && activeRows.length > 1) {
-                reports.push({
-                    type: 'violation',
-                    text: mw.msg('cradle-constraint-single') || 'Restricción de valor único: Solo se permite un único valor para esta propiedad.'
-                });
-            }
-
-            // 3. Format constraint (Q21502404 - Regex P1793)
-            if (c.regex) {
-                activeValues.forEach(val => {
-                    if (typeof val === 'string' && val.length > 0) {
-                        try {
-                            let reg = new RegExp(c.regex);
-                            if (!reg.test(val)) {
-                                reports.push({
-                                    type: 'violation',
-                                    text: (mw.msg('cradle-constraint-format') || 'Restricción de formato') + `: "${val}"`
-                                });
-                            }
-                        } catch (e) {}
-                    }
-                });
-            }
-        });
+        // 2. Property constraints from P2302 claims
+        if (meta.constraints && meta.constraints.length > 0) {
+            meta.constraints.forEach(c => {
+                if (c.isSingle && allRows.filter(r => !r.isDeleted).length > 1) {
+                    reports.push({
+                        type: 'warning',
+                        name: 'single-value constraint',
+                        message: `Only one value is allowed for property <a title="Property:${pid}" href="/wiki/Property:${pid}">${meta.label}</a>.`,
+                        helpUrl: 'https://www.wikidata.org/wiki/Special:MyLanguage/Help:Property_constraints_portal/Q21510865',
+                        talkUrl: `//www.wikidata.org/wiki/Property_talk:${pid}`
+                    });
+                }
+                if (c.regex && !isEmpty && typeof row.value === 'string') {
+                    try {
+                        let reg = new RegExp(c.regex);
+                        if (!reg.test(row.value)) {
+                            reports.push({
+                                type: 'violation',
+                                name: 'format constraint',
+                                message: `Value "${row.value}" does not match required format pattern (${c.regex}).`,
+                                helpUrl: 'https://www.wikidata.org/wiki/Special:MyLanguage/Help:Property_constraints_portal/Q21502404',
+                                talkUrl: `//www.wikidata.org/wiki/Property_talk:${pid}`
+                            });
+                        }
+                    } catch (e) {}
+                }
+            });
+        }
 
         return reports;
     }
@@ -2572,37 +2577,85 @@
             })
             .text(summaryText);
 
-        // 2. Update each card
+        // 2. Update each card & row indicators
         Object.keys(val.properties).forEach(pid => {
             let propVal = val.properties[pid];
             let $card = $(`#cradle-card-${pid}`);
             if (!$card.length) return;
 
-            // Update card border classes
             $card.removeClass('valid invalid optional-present optional-missing')
                  .addClass(propVal.itemClass);
 
-            // Update badge icon next to title
             $card.find('.cradle-card-validation-badge').html(propVal.badgeHtml);
 
-            // Update live Wikibase Quality Constraint (wbqc) reports container
-            let reports = evaluateLiveConstraints(pid, formState[pid]);
-            let $wbqcContainer = $(`#cradle-wbqc-reports-${pid}`);
-            if (!reports.length) {
-                if ($wbqcContainer.length) $wbqcContainer.remove();
-            } else {
-                if (!$wbqcContainer.length) {
-                    $wbqcContainer = $('<div>').attr('id', `cradle-wbqc-reports-${pid}`).css({'margin-top': '6px'});
-                    $(`#cradle-rows-${pid}`).after($wbqcContainer);
+            // Update live Wikibase Quality Constraint (wbqc) statement indicators
+            let rows = formState[pid] || [];
+            rows.forEach(row => {
+                let $indicators = $(`#cradle-indicators-${row.id}`);
+                if (!$indicators.length) return;
+                $indicators.empty();
+
+                let rowReports = evaluateRowConstraints(pid, row, rows);
+                if (rowReports.length > 0) {
+                    let primaryType = rowReports[0].type;
+                    let iconClass = primaryType === 'violation' ? 'oo-ui-icon-error' : (primaryType === 'warning' ? 'oo-ui-icon-alert' : 'oo-ui-icon-suggestion-constraint-violation');
+
+                    let $btn = $('<span>')
+                        .addClass(`wbqc-reports-button wikibase-snakview-indicator wbqc-constraint-${primaryType} oo-ui-widget oo-ui-widget-enabled oo-ui-buttonElement oo-ui-buttonElement-frameless oo-ui-buttonElement-size-medium oo-ui-iconElement oo-ui-buttonWidget oo-ui-popupButtonWidget`)
+                        .html(`<a class="oo-ui-buttonElement-button" role="button" title="There are some suggestions for improving this statement."><span class="oo-ui-iconElement-icon ${iconClass}"></span></a>`);
+
+                    $indicators.append($btn);
+
+                    $btn.off('click.wbqc').on('click.wbqc', function(e) {
+                        e.stopPropagation();
+                        $('.cradle-wbqc-popup').remove();
+
+                        let $popup = $('<div>').addClass('oo-ui-widget oo-ui-widget-enabled oo-ui-popupWidget oo-ui-popupWidget-anchored cradle-wbqc-popup')
+                            .css({
+                                'position': 'absolute',
+                                'z-index': '99999',
+                                'background': '#ffffff',
+                                'border': '1px solid #c8ccd1',
+                                'border-radius': '2px',
+                                'box-shadow': '0 2px 8px rgba(0,0,0,0.15)',
+                                'width': '320px',
+                                'padding': '12px',
+                                'font-size': '0.85rem'
+                            });
+
+                        let $head = $('<div>').addClass('oo-ui-popupWidget-head').css({
+                            'display': 'flex',
+                            'justify-content': 'space-between',
+                            'align-items': 'center',
+                            'border-bottom': '1px solid #eaecf0',
+                            'padding-bottom': '6px',
+                            'margin-bottom': '8px'
+                        }).html(`<strong>Suggestions</strong> <a class="cradle-popup-close" style="cursor:pointer; font-weight:bold; color:#54595d; text-decoration:none;">✕</a>`);
+
+                        $head.find('.cradle-popup-close').on('click', function() { $popup.remove(); });
+
+                        let $body = $('<div>').addClass('wbqc-reports-all');
+                        rowReports.forEach(rep => {
+                            let $reportBox = $('<div>').addClass(`wbqc-reports-status-${rep.type} wbqc-report`).css({'margin-bottom': '8px'});
+                            let $heading = $('<h4>').addClass('wbqc-report-heading').css({'margin': '0 0 4px 0', 'font-size': '0.85rem'})
+                                .html(`<a href="${rep.helpUrl}" target="_blank">${rep.name}</a> <small class="wbqc-report-heading-links"><a class="wbqc-constraint-type-help" title="Help page" href="${rep.helpUrl}" target="_blank">Help</a> <a class="wbqc-constraint-discuss" title="Discussion page" href="${rep.talkUrl}" target="_blank">Discuss</a></small>`);
+                            let $msg = $('<p>').css({'margin': '0', 'font-size': '0.8rem', 'color': '#202122'}).html(rep.message);
+                            $reportBox.append($heading).append($msg);
+                            $body.append($reportBox);
+                        });
+
+                        $popup.append($head).append($body);
+
+                        let pos = $btn.offset();
+                        $popup.css({
+                            'top': (pos.top + $btn.outerHeight() + 4) + 'px',
+                            'left': Math.max(10, pos.left - 150) + 'px'
+                        });
+
+                        $('body').append($popup);
+                    });
                 }
-                $wbqcContainer.empty();
-                reports.forEach(rep => {
-                    let $repBox = $('<div>')
-                        .addClass(`wbqc-reports-status wbqc-reports-status-${rep.type}`)
-                        .html(`<span>${rep.type === 'violation' ? '⛔' : '⚠'}</span> <span>${rep.text}</span>`);
-                    $wbqcContainer.append($repBox);
-                });
-            }
+            });
         });
     }
 
@@ -2923,7 +2976,9 @@
             }
 
             let $inputElement = createInputForDatatype(pid, row);
-            $row.append($inputElement);
+            let $indicators = $('<div>').addClass('wikibase-snakview-indicators').attr('id', `cradle-indicators-${row.id}`).css({'margin-left': '6px', 'display': 'inline-flex'});
+            let $inputWithIndicators = $('<div>').css({'display': 'flex', 'align-items': 'center', 'flex': '1'}).append($inputElement).append($indicators);
+            $row.append($inputWithIndicators);
 
             let $deleteBtn = $('<button>')
                 .addClass('cradle-btn-delete')
