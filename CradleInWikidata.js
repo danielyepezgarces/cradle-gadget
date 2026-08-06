@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.41
+ * Version: 1.15.42
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.41');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.42');
  */
 
 (function() {
@@ -1948,6 +1948,7 @@
                     cInfo.isSingle = true;
                 } else if (constraintQid === 'Q21503252') {
                     cInfo.text = mw.msg('cradle-constraint-type');
+                    cInfo.isType = true;
                 } else if (constraintQid === 'Q21502404') {
                     let regexVal = '';
                     if (claim.qualifiers && claim.qualifiers.P1793 && claim.qualifiers.P1793[0] && claim.qualifiers.P1793[0].datavalue) {
@@ -1957,11 +1958,24 @@
                     cInfo.regex = regexVal;
                 } else if (constraintQid === 'Q21510851') {
                     cInfo.text = mw.msg('cradle-constraint-inverse');
+                    cInfo.isInverse = true;
                 } else if (constraintQid === 'Q21510862') {
                     cInfo.text = mw.msg('cradle-constraint-distinct');
+                    cInfo.isDistinct = true;
                 } else if (constraintQid === 'Q54554025') {
                     cInfo.text = mw.msg('cradle-constraint-citation') || 'Statements should have at least one reference.';
                     cInfo.isCitationNeeded = true;
+                } else if (constraintQid === 'Q21510855') {
+                    let allowedValues = [];
+                    if (claim.qualifiers && claim.qualifiers.P2305) {
+                        claim.qualifiers.P2305.forEach(q => {
+                            if (q.datavalue && q.datavalue.value && q.datavalue.value.id) {
+                                allowedValues.push(q.datavalue.value.id);
+                            }
+                        });
+                    }
+                    cInfo.text = 'One-of constraint';
+                    cInfo.allowedValues = allowedValues;
                 }
 
                 if (cInfo.text) {
