@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.26.0
+ * Version: 1.26.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.26.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.26.1');
  */
 
 (function() {
@@ -1025,8 +1025,8 @@
                     'cradle-create-item': 'Crear elemento',
                     'cradle-cancel': 'Cancelar',
                     'cradle-select-predefined': '-- Selecciona un formulario predefinido --',
-                    'cradle-method-predefined': 'Método 1: Usar un formulario predefinido de Cradle',
-                    'cradle-method-schema': 'Método 2: Usar un ID de EntitySchema (ShEx)',
+                    'cradle-method-predefined': 'Usar un formulario predefinido de Cradle',
+                    'cradle-method-schema': 'Usar un ID de EntitySchema (ShEx)',
                     'cradle-schema-placeholder': 'Introduce el ID del EntitySchema (ej. E10)',
                     'cradle-load-schema': 'Cargar esquema',
                     'cradle-validation-error': 'Por favor, corrige los siguientes errores de validación:\n\n',
