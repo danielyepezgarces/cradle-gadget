@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.18.0
+ * Version: 1.18.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.18.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.18.1');
  */
 
 (function() {
@@ -4904,71 +4904,111 @@ function searchWikidataItems(term) {
                     }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas.`);
                     $resultArea.append($info);
 
-                    if (p31Candidates.length === 1) {
-                        selectedP31QID = p31Candidates[0].qid;
-                        $resultArea.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
-                            .html(`Clase/Elemento asociado detectado (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong>`));
-                    } else if (p31Candidates.length > 1) {
-                        let $p31Box = $('<div>').css({
-                            'display': 'flex', 'flex-direction': 'column', 'gap': '6px',
-                            'background': '#f8f9fa', 'border': '1px solid #c8ccd1',
-                            'padding': '10px', 'border-radius': '4px'
+                    // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
+                    let p31ClaimsMap = {};
+                    let p31FetchDone = function() {
+                        let $duplicateNoticeBox = $('<div>').css({'margin-top': '6px'});
+                        let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+                            .css({'margin-top': '8px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
+                            .html(ICONS.check + ` <span>Importar propiedades seleccionadas al diseñador</span>`);
+
+                        let $loadExistingSchemaBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive')
+                            .css({'margin-top': '8px', 'margin-left': '8px', 'display': 'none'});
+
+                        function updateSchemaExistenceCheck(chosenQID) {
+                            let schemaId = p31ClaimsMap[chosenQID];
+                            if (schemaId) {
+                                $duplicateNoticeBox.html(`
+                                    <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px;">
+                                        ⚠️ <strong>Este esquema ya existe:</strong> La clase seleccionada <strong>${labelsMap[chosenQID] || chosenQID} (${chosenQID})</strong> ya tiene registrado el <strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${schemaId}</a></strong> (declaración P12861).
+                                    </div>
+                                `).show();
+                                $importConfirmBtn.prop('disabled', true).addClass('cdx-button--disabled');
+                                $loadExistingSchemaBtn.html(ICONS.external + ` <span>Cargar EntitySchema ${schemaId} existente</span>`).off('click').on('click', function() {
+                                    $overlay.remove();
+                                    loadEntitySchema(schemaId);
+                                }).show();
+                            } else {
+                                $duplicateNoticeBox.empty().hide();
+                                $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
+                                $loadExistingSchemaBtn.hide();
+                            }
+                        }
+
+                        if (p31Candidates.length === 1) {
+                            selectedP31QID = p31Candidates[0].qid;
+                            let schemaId = p31ClaimsMap[selectedP31QID];
+                            let badgeHtml = schemaId
+                                ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px;">⚠️ Ya existe: <strong>${schemaId}</strong></span>`
+                                : '';
+                            $resultArea.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
+                                .html(`Clase/Elemento asociado detectado (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
+                        } else if (p31Candidates.length > 1) {
+                            let $p31Box = $('<div>').css({
+                                'display': 'flex', 'flex-direction': 'column', 'gap': '6px',
+                                'background': '#f8f9fa', 'border': '1px solid #c8ccd1',
+                                'padding': '10px', 'border-radius': '4px'
+                            });
+                            $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text('Seleccione la clase asociada (P31) para este esquema:'));
+
+                            selectedP31QID = p31Candidates[0].qid;
+                            p31Candidates.forEach((cand, idx) => {
+                                let schemaId = p31ClaimsMap[cand.qid];
+                                let radId = `p31-cand-${cand.qid}-${idx}`;
+                                let $rad = $('<input>').attr({
+                                    type: 'radio', name: 'p31-candidate', id: radId, value: cand.qid, checked: idx === 0
+                                }).on('change', function() {
+                                    selectedP31QID = cand.qid;
+                                    updateSchemaExistenceCheck(cand.qid);
+                                });
+                                let badgeHtml = schemaId
+                                    ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px;">⚠️ Ya existe: <strong>${schemaId}</strong></span>`
+                                    : '';
+                                let $lbl = $('<label>').attr('for', radId).css({'font-size': '13px', 'display': 'flex', 'align-items': 'center', 'gap': '6px', 'cursor': 'pointer'})
+                                    .append($rad).append($('<span>').html(`${cand.label} (${cand.qid}) ${badgeHtml}`));
+                                $p31Box.append($lbl);
+                            });
+                            $resultArea.append($p31Box);
+                        } else {
+                            selectedP31QID = qid;
+                        }
+
+                        // Checkboxes to select properties
+                        let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text('Selecciona las propiedades a importar:');
+                        $resultArea.append($propSelectorTitle);
+
+                        let $propListContainer = $('<div>').css({
+                            'display': 'flex', 'flex-direction': 'column', 'gap': '4px',
+                            'max-height': '150px', 'overflow-y': 'auto', 'border': '1px solid #c8ccd1',
+                            'padding': '8px', 'border-radius': '4px', 'background': '#fff'
                         });
-                        $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text('Seleccione la clase asociada (P31) para este esquema:'));
 
-                        selectedP31QID = p31Candidates[0].qid;
-                        p31Candidates.forEach((cand, idx) => {
-                            let radId = `p31-cand-${cand.qid}-${idx}`;
-                            let $rad = $('<input>').attr({
-                                type: 'radio', name: 'p31-candidate', id: radId, value: cand.qid, checked: idx === 0
-                            }).on('change', function() { selectedP31QID = cand.qid; });
-                            let $lbl = $('<label>').attr('for', radId).css({'font-size': '13px', 'display': 'flex', 'align-items': 'center', 'gap': '6px', 'cursor': 'pointer'})
-                                .append($rad).append($('<span>').text(`${cand.label} (${cand.qid})`));
-                            $p31Box.append($lbl);
-                        });
-                        $resultArea.append($p31Box);
-                    } else {
-                        selectedP31QID = qid;
-                    }
+                        let $selectAllCheckbox = $('<input>').attr({ type: 'checkbox', id: 'cradle-select-all-props', checked: true });
+                        let $selectAllRow = $('<div>').css({'font-weight': 'bold', 'margin-bottom': '4px', 'padding-bottom': '4px', 'border-bottom': '1px solid #eaecf0'})
+                            .append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px'}).append($selectAllCheckbox).append($('<span>').text('Seleccionar todas')));
+                        $propListContainer.append($selectAllRow);
 
-                    // Checkboxes to select properties
-                    let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text('Selecciona las propiedades a importar:');
-                    $resultArea.append($propSelectorTitle);
-
-                    let $propListContainer = $('<div>').css({
-                        'display': 'flex', 'flex-direction': 'column', 'gap': '4px',
-                        'max-height': '150px', 'overflow-y': 'auto', 'border': '1px solid #c8ccd1',
-                        'padding': '8px', 'border-radius': '4px', 'background': '#fff'
-                    });
-
-                    let $selectAllCheckbox = $('<input>').attr({ type: 'checkbox', id: 'cradle-select-all-props', checked: true });
-                    let $selectAllRow = $('<div>').css({'font-weight': 'bold', 'margin-bottom': '4px', 'padding-bottom': '4px', 'border-bottom': '1px solid #eaecf0'})
-                        .append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px'}).append($selectAllCheckbox).append($('<span>').text('Seleccionar todas')));
-                    $propListContainer.append($selectAllRow);
-
-                    let propCBs = {};
-                    fetchedPropPIDs.forEach(pid => {
-                        let lbl = labelsMap[pid] ? `${labelsMap[pid]} (${pid})` : pid;
-                        let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-${pid}`, checked: true });
-                        propCBs[pid] = $cb;
-                        let $itemLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'cursor': 'pointer'})
-                            .append($cb).append($('<span>').text(lbl));
-                        $propListContainer.append($itemLabel);
-                    });
-
-                    $selectAllCheckbox.on('change', function() {
-                        let isChecked = $(this).is(':checked');
+                        let propCBs = {};
                         fetchedPropPIDs.forEach(pid => {
-                            if (propCBs[pid]) propCBs[pid].prop('checked', isChecked);
+                            let lbl = labelsMap[pid] ? `${labelsMap[pid]} (${pid})` : pid;
+                            let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-${pid}`, checked: true });
+                            propCBs[pid] = $cb;
+                            let $itemLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'cursor': 'pointer'})
+                                .append($cb).append($('<span>').text(lbl));
+                            $propListContainer.append($itemLabel);
                         });
-                    });
 
-                    $resultArea.append($propListContainer);
+                        $selectAllCheckbox.on('change', function() {
+                            let isChecked = $(this).is(':checked');
+                            fetchedPropPIDs.forEach(pid => {
+                                if (propCBs[pid]) propCBs[pid].prop('checked', isChecked);
+                            });
+                        });
 
-                    let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-                        .css({'margin-top': '8px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
-                        .html(ICONS.check + ` <span>Importar propiedades seleccionadas al diseñador</span>`)
-                        .on('click', function() {
+                        $resultArea.append($propListContainer);
+                        $resultArea.append($duplicateNoticeBox);
+
+                        $importConfirmBtn.on('click', function() {
                             let selectedPIDs = fetchedPropPIDs.filter(pid => propCBs[pid] && propCBs[pid].is(':checked'));
                             if (selectedPIDs.length === 0) {
                                 mw.notify('Debe seleccionar al menos una propiedad para importar.', { type: 'warn' });
@@ -4979,7 +5019,44 @@ function searchWikidataItems(term) {
                                 onImportCallback(selectedP31QID, selectedPIDs, labelsMap);
                             }
                         });
-                    $resultArea.append($importConfirmBtn);
+
+                        let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center', 'flex-wrap': 'wrap'}).append($importConfirmBtn).append($loadExistingSchemaBtn);
+                        $resultArea.append($btnRow);
+
+                        // Trigger initial check for selected candidate
+                        if (selectedP31QID) {
+                            updateSchemaExistenceCheck(selectedP31QID);
+                        }
+                    };
+
+                    if (p31QIDs.length > 0) {
+                        let userLang = mw.config.get('wgUserLanguage') || 'en';
+                        let langsToFetch = userLang === 'en' ? 'en' : `${userLang}|en`;
+                        api.get({
+                            action: 'wbgetentities',
+                            ids: p31QIDs.join('|'),
+                            props: 'claims',
+                            languages: langsToFetch,
+                            format: 'json'
+                        }).done(function(p31Res) {
+                            if (p31Res && p31Res.entities) {
+                                p31QIDs.forEach(p31Id => {
+                                    if (p31Res.entities[p31Id] && p31Res.entities[p31Id].claims) {
+                                        let cMap = p31Res.entities[p31Id].claims;
+                                        if (cMap.P12861 && cMap.P12861.length > 0) {
+                                            let v = cMap.P12861[0].mainsnak?.datavalue?.value;
+                                            if (v) p31ClaimsMap[p31Id] = v;
+                                        }
+                                    }
+                                });
+                            }
+                            p31FetchDone();
+                        }).fail(function() {
+                            p31FetchDone();
+                        });
+                    } else {
+                        p31FetchDone();
+                    }
                 });
             }).fail(function() {
                 $searchBtn.prop('disabled', false).text('Cargar elemento');
