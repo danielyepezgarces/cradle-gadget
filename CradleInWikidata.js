@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.39
+ * Version: 1.15.40
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.39');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.40');
  */
 
 (function() {
@@ -2519,8 +2519,9 @@
         let activeRows = allRows.filter(r => !r.isDeleted && r.rank !== 'deprecated');
         let preferredRows = activeRows.filter(r => r.rank === 'preferred');
 
-        // 1. References / citation-needed -> Suggestion
-        if (!isEmpty && (!row.references || row.references.length === 0)) {
+        // 1. References / citation-needed -> Suggestion (Exempt commonsMedia, url, external-id, geo-shape, tabular-data, math)
+        let EXEMPT_CITATION_DATATYPES = ['commonsMedia', 'url', 'external-id', 'geo-shape', 'tabular-data', 'math', 'musical-notation'];
+        if (!isEmpty && (!row.references || row.references.length === 0) && !EXEMPT_CITATION_DATATYPES.includes(row.datatype)) {
             suggestions.push({
                 type: 'suggestion',
                 name: 'citation-needed constraint',
@@ -2688,10 +2689,19 @@
 
                         $popup.append($head).append($body);
 
-                        let pos = $btn.offset();
+                        let buttonOffset = $btn.offset();
+                        let popupWidth = 330;
+                        let windowWidth = $(window).width();
+
+                        let leftPos = buttonOffset.left - popupWidth + 30;
+                        if (leftPos + popupWidth > windowWidth - 15) {
+                            leftPos = windowWidth - popupWidth - 15;
+                        }
+                        leftPos = Math.max(10, leftPos);
+
                         $popup.css({
-                            'top': (pos.top + $btn.outerHeight() + 4) + 'px',
-                            'left': Math.max(10, pos.left - 150) + 'px'
+                            'top': (buttonOffset.top + $btn.outerHeight() + 4) + 'px',
+                            'left': leftPos + 'px'
                         });
 
                         $('body').append($popup);
