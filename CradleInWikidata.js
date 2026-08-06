@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.20.0
+ * Version: 1.20.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.20.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.20.1');
  */
 
 (function() {
@@ -4970,7 +4970,7 @@ function searchWikidataItems(term) {
                     if (recoinData && recoinData.completeness_percentage) {
                         let pct = parseFloat(recoinData.completeness_percentage).toFixed(1);
                         let lvl = recoinData.completeness_level || '?';
-                        recoinMetaHtml = `<div style="margin-top:4px; font-size:12px; color:#202122;">📊 <strong>Completitud de Recoin:</strong> ${pct}% (Nivel ${lvl}/5)</div>`;
+                        recoinMetaHtml = `<div style="margin-top:4px; font-size:12px; color:#202122;">📊 <strong>Completitud de Recoin:</strong> ${pct}% (Nivel ${lvl}/5) • <span style="font-size:11px; color:#54595d;">Sugerencias basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; text-decoration:underline;">Recoin</a></span></div>`;
                     }
 
                     let $info = $('<div>').css({
@@ -5095,6 +5095,10 @@ function searchWikidataItems(term) {
                                     .append($cb).append($('<span>').html(`${propLbl} ${freqBadge}`));
                                 $propListContainer.append($itemLabel);
                             });
+
+                            let $recoinCreditFooter = $('<div>').css({'font-size': '11px', 'color': '#54595d', 'margin-top': '4px', 'text-align': 'right', 'font-style': 'italic'})
+                                .html('Sugerencias basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
+                            $propListContainer.append($recoinCreditFooter);
                         }
 
                         $selectAllCheckbox.on('change', function() {
