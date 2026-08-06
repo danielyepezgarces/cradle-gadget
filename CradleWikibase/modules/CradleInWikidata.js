@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.21.2
+ * Version: 1.22.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.21.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.22.0');
  */
 
 (function() {
@@ -4956,7 +4956,10 @@ function searchWikidataItems(term) {
 
                     let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs];
 
-                    fetchLabelsInBatches(allQIDsToFetch, function(labelsMap) {
+                    fetchLabelsInBatches(allQIDsToFetch, function(labelsMap, datatypesMap) {
+                        // Exclude external identifier properties (datatype: external-id)
+                        fetchedPropPIDs = fetchedPropPIDs.filter(pid => datatypesMap[pid] !== 'external-id');
+
                         $resultArea.empty();
                         let ent = res.entities[qid];
                         let userLang = mw.config.get('wgUserLanguage') || 'en';
@@ -5336,8 +5339,10 @@ function searchWikidataItems(term) {
         // Helper to batch fetch labels for properties and items (with English fallback)
         function fetchLabelsInBatches(ids, callback) {
             let labels = {};
-            if (!ids || ids.length === 0) {
-                callback(labels);
+            let datatypes = {};
+            ids = ids.filter(id => id);
+            if (ids.length === 0) {
+                callback(labels, datatypes);
                 return;
             }
             let api = new mw.Api();
@@ -5354,7 +5359,7 @@ function searchWikidataItems(term) {
                 api.get({
                     action: 'wbgetentities',
                     ids: idsStr,
-                    props: 'labels',
+                    props: 'labels|datatype',
                     languages: langsToFetch,
                     format: 'json'
                 }).done(function(res) {
@@ -5364,17 +5369,25 @@ function searchWikidataItems(term) {
                                 let lObj = res.entities[id].labels || {};
                                 let lbl = (lObj[userLang] && lObj[userLang].value) || (lObj['en'] && lObj['en'].value);
                                 labels[id] = lbl || id;
+                                if (res.entities[id].datatype) {
+                                    datatypes[id] = res.entities[id].datatype;
+                                    if (id.startsWith('P')) {
+                                        propertyMetadata[id] = propertyMetadata[id] || {};
+                                        propertyMetadata[id].label = labels[id];
+                                        propertyMetadata[id].datatype = res.entities[id].datatype;
+                                    }
+                                }
                             } else {
                                 labels[id] = id;
                             }
                         });
                     }
                     pending--;
-                    if (pending === 0) callback(labels);
+                    if (pending === 0) callback(labels, datatypes);
                 }).fail(function() {
                     chunk.forEach(id => { labels[id] = id; });
                     pending--;
-                    if (pending === 0) callback(labels);
+                    if (pending === 0) callback(labels, datatypes);
                 });
             });
         }
