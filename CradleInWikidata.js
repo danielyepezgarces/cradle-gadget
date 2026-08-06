@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.21
+ * Version: 1.15.22
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.21');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.22');
  */
 
 (function() {
@@ -916,33 +916,18 @@
     }
 
     /**
-     * Creates a prominent blue Codex button in the user menu / personal tools bar for quick item creation with Cradle.
+     * Creates a prominent blue Codex button in top personal bar before ULS selector (#pt-uls) or username (#pt-userpage).
      */
     function setupUserMenuButton() {
         let btnText = mw.msg('cradle-user-menu-btn');
-        let portletLink = mw.util.addPortletLink(
-            'p-personal',
-            mw.util.getUrl('Special:Cradle'),
-            btnText,
-            'pt-cradle-create',
-            'Crear un nuevo elemento de Wikidata usando esquemas de Cradle',
-            null,
-            '#pt-preferences'
-        );
-
-        let $li = $(portletLink || '#pt-cradle-create');
+        let $li = $('#pt-cradle-create');
         if (!$li.length) {
-            $li = $('<li>').attr('id', 'pt-cradle-create');
-            if ($('#p-personal ul').length) {
-                $('#p-personal ul').prepend($li);
-            } else if ($('#vector-user-links-dropdown').length) {
-                $('#vector-user-links-dropdown').prepend($li);
-            } else if ($('#p-user-menu').length) {
-                $('#p-user-menu').prepend($li);
-            } else if ($('.mw-user-menu').length) {
-                $('.mw-user-menu').prepend($li);
-            }
-            $li.append($('<a>').attr('href', mw.util.getUrl('Special:Cradle')).text(btnText));
+            $li = $('<li>').attr('id', 'pt-cradle-create').addClass('mw-list-item');
+            let $a = $('<a>').attr({
+                'href': mw.util.getUrl('Special:Cradle'),
+                'title': 'Crear un nuevo elemento de Wikidata usando esquemas de Cradle'
+            }).text(btnText);
+            $li.append($a);
         }
 
         let $a = $li.find('a');
@@ -961,7 +946,18 @@
             'margin': '2px 6px'
         });
 
-        $a.on('click', function(e) {
+        // Insert BEFORE ULS selector (#pt-uls) or User page (#pt-userpage) or at start of top bar outside dropdowns
+        if ($('#pt-uls').length) {
+            $('#pt-uls').before($li);
+        } else if ($('#pt-userpage').length) {
+            $('#pt-userpage').before($li);
+        } else if ($('#p-personal ul').length) {
+            $('#p-personal ul').prepend($li);
+        } else if ($('#vector-user-links').length) {
+            $('#vector-user-links').prepend($li);
+        }
+
+        $a.off('click.cradleNav').on('click.cradleNav', function(e) {
             if (isSpecialCradle || isItemPage) {
                 e.preventDefault();
                 openEditor('create');
