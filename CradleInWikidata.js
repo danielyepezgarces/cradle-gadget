@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.16.5
+ * Version: 1.17.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.16.5');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.17.0');
  */
 
 (function() {
@@ -758,6 +758,8 @@
             'cradle-hardselect-placeholder': 'hardselect QIDs (comma-separated, e.g. Q5,Q6)',
             'cradle-softselect-placeholder': 'softselect QIDs (comma-separated, e.g. Q5,Q6)',
             'cradle-schema-title-required': 'Schema title is required!',
+            'cradle-schema-desc-placeholder': 'Schema description (e.g. Schema for football stadiums)...',
+            'cradle-schema-aliases-placeholder': 'Schema aliases (pipe-separated |, e.g. stadium | arena)...',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
             'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
             'cradle-schema-not-found': 'Could not find the schema on the page!',
@@ -4829,12 +4831,15 @@ function searchWikidataItems(term) {
                 let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs];
                 fetchLabelsInBatches(allQIDsToFetch, function(labelsMap) {
                     $resultArea.empty();
+                    let ent = res.entities[qid];
+                    let userLang = mw.config.get('wgUserLanguage') || 'en';
+                    let itemLabel = (ent.labels && (ent.labels[userLang]?.value || ent.labels['en']?.value)) || labelsMap[qid] || qid;
                     p31Candidates = p31QIDs.map(id => ({ qid: id, label: labelsMap[id] || id }));
 
                     let $info = $('<div>').css({
                         'background': '#eaf3ff', 'border': '1px solid #36c',
                         'padding': '8px 12px', 'border-radius': '4px', 'font-size': '13px'
-                    }).html(`<strong>${labelsMap[qid] || qid} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas.`);
+                    }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas.`);
                     $resultArea.append($info);
 
                     if (p31Candidates.length === 1) {
@@ -4864,13 +4869,52 @@ function searchWikidataItems(term) {
                         selectedP31QID = qid;
                     }
 
+                    // Checkboxes to select properties
+                    let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text('Selecciona las propiedades a importar:');
+                    $resultArea.append($propSelectorTitle);
+
+                    let $propListContainer = $('<div>').css({
+                        'display': 'flex', 'flex-direction': 'column', 'gap': '4px',
+                        'max-height': '150px', 'overflow-y': 'auto', 'border': '1px solid #c8ccd1',
+                        'padding': '8px', 'border-radius': '4px', 'background': '#fff'
+                    });
+
+                    let $selectAllCheckbox = $('<input>').attr({ type: 'checkbox', id: 'cradle-select-all-props', checked: true });
+                    let $selectAllRow = $('<div>').css({'font-weight': 'bold', 'margin-bottom': '4px', 'padding-bottom': '4px', 'border-bottom': '1px solid #eaecf0'})
+                        .append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px'}).append($selectAllCheckbox).append($('<span>').text('Seleccionar todas')));
+                    $propListContainer.append($selectAllRow);
+
+                    let propCBs = {};
+                    fetchedPropPIDs.forEach(pid => {
+                        let lbl = labelsMap[pid] ? `${labelsMap[pid]} (${pid})` : pid;
+                        let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-${pid}`, checked: true });
+                        propCBs[pid] = $cb;
+                        let $itemLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'cursor': 'pointer'})
+                            .append($cb).append($('<span>').text(lbl));
+                        $propListContainer.append($itemLabel);
+                    });
+
+                    $selectAllCheckbox.on('change', function() {
+                        let isChecked = $(this).is(':checked');
+                        fetchedPropPIDs.forEach(pid => {
+                            if (propCBs[pid]) propCBs[pid].prop('checked', isChecked);
+                        });
+                    });
+
+                    $resultArea.append($propListContainer);
+
                     let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
                         .css({'margin-top': '8px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
-                        .html(ICONS.check + ` <span>Importar ${fetchedPropPIDs.length} propiedades al diseñador</span>`)
+                        .html(ICONS.check + ` <span>Importar propiedades seleccionadas al diseñador</span>`)
                         .on('click', function() {
+                            let selectedPIDs = fetchedPropPIDs.filter(pid => propCBs[pid] && propCBs[pid].is(':checked'));
+                            if (selectedPIDs.length === 0) {
+                                mw.notify('Debe seleccionar al menos una propiedad para importar.', { type: 'warn' });
+                                return;
+                            }
                             $overlay.remove();
                             if (onImportCallback) {
-                                onImportCallback(selectedP31QID, fetchedPropPIDs, labelsMap);
+                                onImportCallback(selectedP31QID, selectedPIDs, labelsMap);
                             }
                         });
                     $resultArea.append($importConfirmBtn);
@@ -4915,7 +4959,55 @@ function searchWikidataItems(term) {
 
         let $targetItemInput = $('<input>').addClass('cradle-input').attr({
             'id': 'cradle-schema-target-item-input',
-            'placeholder': 'Ej: Q115471 (Estadio de fútbol) o Q5 (Humano)'
+            'placeholder': 'Ej: Q164027 (Estadio de fútbol) o Q5 (Humano)'
+        });
+        let $targetNoticeDiv = $('<div>').css({'margin-top': '4px'});
+
+        function checkTargetItemDuplicateSchema(qid) {
+            $targetNoticeDiv.empty();
+            let cleanQID = (qid || '').trim().toUpperCase();
+            if (!cleanQID || !/^Q\d+$/i.test(cleanQID)) return;
+
+            let schemaNames = Object.keys(customSchemas || {});
+            let foundCustom = null;
+            schemaNames.forEach(sName => {
+                let sData = customSchemas[sName];
+                if (sData && sData.targetItem && sData.targetItem.toUpperCase() === cleanQID) {
+                    foundCustom = sName;
+                }
+            });
+
+            if (foundCustom) {
+                $targetNoticeDiv.html(`
+                    <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:6px 10px; border-radius:4px; font-size:12px;">
+                        ⚠️ <strong>Esquema ya existente:</strong> El elemento <strong>${cleanQID}</strong> ya está asociado a tu esquema <em>"${foundCustom}"</em>.
+                    </div>
+                `);
+                return;
+            }
+
+            let api = new mw.Api();
+            api.get({
+                action: 'wbsearchentities',
+                search: cleanQID,
+                type: 'entityschema',
+                language: mw.config.get('wgUserLanguage') || 'en',
+                format: 'json'
+            }).done(function(res) {
+                let items = res.search || [];
+                if (items.length > 0) {
+                    let match = items[0];
+                    $targetNoticeDiv.html(`
+                        <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:6px 10px; border-radius:4px; font-size:12px;">
+                            ⚠️ <strong>EntitySchema existente en Wikidata:</strong> El elemento <strong>${cleanQID}</strong> ya cuenta con el esquema registrado <a href="/wiki/EntitySchema:${match.id}" target="_blank"><strong>${match.id}</strong> (${match.label || ''})</a>.
+                        </div>
+                    `);
+                }
+            });
+        }
+
+        $targetItemInput.on('change input', function() {
+            checkTargetItemDuplicateSchema($(this).val());
         });
 
         let $headerFieldsRow = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'margin-bottom': '12px'});
@@ -4934,6 +5026,7 @@ function searchWikidataItems(term) {
                 openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, labelsMap) {
                     if (importedTargetQID && !$targetItemInput.val().trim()) {
                         $targetItemInput.val(importedTargetQID);
+                        checkTargetItemDuplicateSchema(importedTargetQID);
                     }
                     let existingPIDs = [];
                     $propsList.children().each(function() { existingPIDs.push($(this).data('pid')); });
@@ -4947,8 +5040,10 @@ function searchWikidataItems(term) {
         $row1.append($openImporterBtn);
 
         // Row 2: Elemento asociado (directly below Título)
-        let $row2 = $('<div>').css({'display': 'flex', 'gap': '8px'});
-        $row2.append($('<div>').css({'width': '280px', 'max-width': '100%'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Elemento asociado')).append($targetItemInput));
+        let $row2 = $('<div>').css({'display': 'flex', 'flex-direction': 'column'});
+        let $row2Inner = $('<div>').css({'display': 'flex', 'gap': '8px'});
+        $row2Inner.append($('<div>').css({'width': '280px', 'max-width': '100%'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Elemento asociado')).append($targetItemInput));
+        $row2.append($row2Inner).append($targetNoticeDiv);
 
         $headerFieldsRow.append($row1).append($row2);
         $form.append($headerFieldsRow);
