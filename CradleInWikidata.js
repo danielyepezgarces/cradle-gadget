@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.38
+ * Version: 1.15.39
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.38');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.39');
  */
 
 (function() {
@@ -2154,6 +2154,7 @@
                             guid: claim.id,
                             value: value,
                             datatype: meta.datatype,
+                            rank: claim.rank || 'normal',
                             references: claim.references || [],
                             qualifiers: claim.qualifiers || {},
                             isDeleted: false
@@ -2381,6 +2382,7 @@
             guid: null,
             value: defaultValue,
             datatype: datatype,
+            rank: 'normal',
             references: [],
             qualifiers: {},
             isDeleted: false
@@ -2503,16 +2505,19 @@
     }
 
     /**
-     * Evaluates statement-level Wikibase Quality Constraints (wbqc) separated into Violations/Issues and Suggestions.
+     * Evaluates statement-level Wikibase Quality Constraints (wbqc) taking into account claim ranks (preferred/deprecated).
      */
     function evaluateRowConstraints(pid, row, allRows) {
-        if (row.isDeleted) return { violations: [], suggestions: [] };
+        if (row.isDeleted || row.rank === 'deprecated') return { violations: [], suggestions: [] };
         let meta = propertyMetadata[pid];
         if (!meta) return { violations: [], suggestions: [] };
 
         let violations = [];
         let suggestions = [];
         let isEmpty = isEmptyValue(row.value, row.datatype);
+
+        let activeRows = allRows.filter(r => !r.isDeleted && r.rank !== 'deprecated');
+        let preferredRows = activeRows.filter(r => r.rank === 'preferred');
 
         // 1. References / citation-needed -> Suggestion
         if (!isEmpty && (!row.references || row.references.length === 0)) {
@@ -2528,11 +2533,12 @@
         // 2. Property constraints from P2302 claims
         if (meta.constraints && meta.constraints.length > 0) {
             meta.constraints.forEach(c => {
-                if (c.isSingle && allRows.filter(r => !r.isDeleted).length > 1) {
+                // Single-value constraint (Q21510865): Violated if >1 active claims UNLESS exactly 1 claim is preferred
+                if (c.isSingle && activeRows.length > 1 && preferredRows.length !== 1) {
                     violations.push({
                         type: 'warning',
                         name: 'single-value constraint',
-                        message: `Only one value is allowed for property <a title="Property:${pid}" href="/wiki/Property:${pid}">${meta.label}</a>.`,
+                        message: `Only one value is allowed for property <a title="Property:${pid}" href="/wiki/Property:${pid}">${meta.label}</a> (or set preferred rank on one value).`,
                         helpUrl: 'https://www.wikidata.org/wiki/Special:MyLanguage/Help:Property_constraints_portal/Q21510865',
                         talkUrl: `//www.wikidata.org/wiki/Property_talk:${pid}`
                     });
