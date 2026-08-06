@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.19.1
+ * Version: 1.20.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.19.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.20.0');
  */
 
 (function() {
@@ -123,6 +123,28 @@
         } else {
             fetchSortedProperties(callback);
         }
+    }
+
+    /**
+     * Fetches missing property frequency recommendations from Recoin API (relative completeness indicator).
+     */
+    function fetchRecoinData(qid, callback) {
+        let cleanQID = (qid || '').trim().toUpperCase();
+        if (!cleanQID || !/^Q\d+$/i.test(cleanQID)) {
+            callback(null);
+            return;
+        }
+        let userLang = mw.config.get('wgUserLanguage') || 'en';
+        let url = 'https://recoin.toolforge.org/getmissingattributes.php?lang=' + userLang + '&subject=' + cleanQID;
+        $.ajax({
+            url: url,
+            dataType: 'json',
+            method: 'GET'
+        }).done(function(res) {
+            callback(res);
+        }).fail(function() {
+            callback(null);
+        });
     }
 
     /**
@@ -4881,20 +4903,31 @@ function searchWikidataItems(term) {
         $searchBtn.on('click', function() {
             let qid = $input.val().trim().toUpperCase();
             if (!qid || !/^Q\d+$/i.test(qid)) {
-                mw.notify('Por favor ingrese un QID válido (ej: Q164027)', { type: 'error' });
+                mw.notify('Por favor ingrese un QID válido (ej: Q164027 o Q483110)', { type: 'error' });
                 return;
             }
             $searchBtn.prop('disabled', true).text('Cargando...');
-            $resultArea.empty().append($('<div>').css({'color': '#54595d', 'font-size': '13px'}).text('Consultando Wikidata...'));
+            $resultArea.empty().append($('<div>').css({'color': '#54595d', 'font-size': '13px'}).text('Consultando Wikidata y Recoin API...'));
 
             let api = new mw.Api();
-            api.get({
+            let fetchEntitiesPromise = api.get({
                 action: 'wbgetentities',
                 ids: qid,
                 props: 'claims|labels',
                 languages: mw.config.get('wgUserLanguage') || 'en',
                 format: 'json'
-            }).done(function(res) {
+            });
+
+            let recoinData = null;
+            let fetchRecoinPromise = new Promise(resolve => {
+                fetchRecoinData(qid, function(data) {
+                    recoinData = data;
+                    resolve();
+                });
+            });
+
+            $.when(fetchEntitiesPromise, fetchRecoinPromise).done(function(resArgs) {
+                let res = resArgs[0] || resArgs;
                 $searchBtn.prop('disabled', false).text('Cargar elemento');
                 if (!res || !res.entities || !res.entities[qid] || !res.entities[qid].claims) {
                     $resultArea.html('<div style="color:#d33; font-size:13px;">No se encontraron propiedades en ' + qid + '</div>');
@@ -4902,6 +4935,17 @@ function searchWikidataItems(term) {
                 }
                 let claims = res.entities[qid].claims;
                 fetchedPropPIDs = sortPropertyIDs(Object.keys(claims));
+
+                let recoinFreqMap = {};
+                let recoinMissingProps = [];
+                if (recoinData && recoinData.missing_properties) {
+                    recoinData.missing_properties.forEach(m => {
+                        recoinFreqMap[m.property] = m.base_frequency;
+                        if (!fetchedPropPIDs.includes(m.property)) {
+                            recoinMissingProps.push(m);
+                        }
+                    });
+                }
 
                 let p31QIDs = [];
                 if (claims.P31) {
@@ -4912,7 +4956,9 @@ function searchWikidataItems(term) {
                     });
                 }
 
-                let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs];
+                let missingQIDs = recoinMissingProps.map(m => m.property);
+                let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs, ...missingQIDs];
+
                 fetchLabelsInBatches(allQIDsToFetch, function(labelsMap) {
                     $resultArea.empty();
                     let ent = res.entities[qid];
@@ -4920,10 +4966,17 @@ function searchWikidataItems(term) {
                     let itemLabel = (ent.labels && (ent.labels[userLang]?.value || ent.labels['en']?.value)) || labelsMap[qid] || qid;
                     p31Candidates = p31QIDs.map(id => ({ qid: id, label: labelsMap[id] || id }));
 
+                    let recoinMetaHtml = '';
+                    if (recoinData && recoinData.completeness_percentage) {
+                        let pct = parseFloat(recoinData.completeness_percentage).toFixed(1);
+                        let lvl = recoinData.completeness_level || '?';
+                        recoinMetaHtml = `<div style="margin-top:4px; font-size:12px; color:#202122;">📊 <strong>Completitud de Recoin:</strong> ${pct}% (Nivel ${lvl}/5)</div>`;
+                    }
+
                     let $info = $('<div>').css({
                         'background': '#eaf3ff', 'border': '1px solid #36c',
                         'padding': '8px 12px', 'border-radius': '4px', 'font-size': '13px'
-                    }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas.`);
+                    }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas.${recoinMetaHtml}`);
                     $resultArea.append($info);
 
                     // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
@@ -5015,17 +5068,38 @@ function searchWikidataItems(term) {
 
                         let propCBs = {};
                         fetchedPropPIDs.forEach(pid => {
-                            let lbl = labelsMap[pid] ? `${labelsMap[pid]} (${pid})` : pid;
+                            let propLbl = labelsMap[pid] ? `${labelsMap[pid]} (${pid})` : pid;
+                            let freqBadge = recoinFreqMap[pid]
+                                ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 Recoin: ${recoinFreqMap[pid]}</span>`
+                                : '';
                             let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-${pid}`, checked: true });
                             propCBs[pid] = $cb;
                             let $itemLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'cursor': 'pointer'})
-                                .append($cb).append($('<span>').text(lbl));
+                                .append($cb).append($('<span>').html(`${propLbl} ${freqBadge}`));
                             $propListContainer.append($itemLabel);
                         });
 
+                        // Add missing Recoin recommended properties section
+                        if (recoinMissingProps.length > 0) {
+                            let $recoinSectionHeader = $('<div>').css({'font-weight': 'bold', 'margin': '8px 0 4px 0', 'padding-top': '6px', 'border-top': '1px dashed #c8ccd1', 'color': '#36c', 'font-size': '12px'})
+                                .html('💡 Propiedades recomendadas para esta clase (Recoin API):');
+                            $propListContainer.append($recoinSectionHeader);
+
+                            recoinMissingProps.forEach(m => {
+                                let pid = m.property;
+                                let propLbl = (labelsMap[pid] || m.label || pid) + ` (${pid})`;
+                                let freqBadge = `<span style="background:#f3f6ff; color:#2a4b8d; border:1px solid #a2a9b1; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 Frecuencia: ${m.base_frequency}</span>`;
+                                let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-recoin-${pid}`, checked: true });
+                                propCBs[pid] = $cb;
+                                let $itemLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'cursor': 'pointer'})
+                                    .append($cb).append($('<span>').html(`${propLbl} ${freqBadge}`));
+                                $propListContainer.append($itemLabel);
+                            });
+                        }
+
                         $selectAllCheckbox.on('change', function() {
                             let isChecked = $(this).is(':checked');
-                            fetchedPropPIDs.forEach(pid => {
+                            Object.keys(propCBs).forEach(pid => {
                                 if (propCBs[pid]) propCBs[pid].prop('checked', isChecked);
                             });
                         });
@@ -5034,7 +5108,8 @@ function searchWikidataItems(term) {
                         $resultArea.append($duplicateNoticeBox);
 
                         $importConfirmBtn.on('click', function() {
-                            let selectedPIDs = fetchedPropPIDs.filter(pid => propCBs[pid] && propCBs[pid].is(':checked'));
+                            let allAvailablePIDs = [...fetchedPropPIDs, ...recoinMissingProps.map(m => m.property)];
+                            let selectedPIDs = allAvailablePIDs.filter(pid => propCBs[pid] && propCBs[pid].is(':checked'));
                             if (selectedPIDs.length === 0) {
                                 mw.notify('Debe seleccionar al menos una propiedad para importar.', { type: 'warn' });
                                 return;
