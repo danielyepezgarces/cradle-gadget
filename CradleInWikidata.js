@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.20.1
+ * Version: 1.20.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.20.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.20.2');
  */
 
 (function() {
@@ -5088,7 +5088,7 @@ function searchWikidataItems(term) {
                             recoinMissingProps.forEach(m => {
                                 let pid = m.property;
                                 let propLbl = (labelsMap[pid] || m.label || pid) + ` (${pid})`;
-                                let freqBadge = `<span style="background:#f3f6ff; color:#2a4b8d; border:1px solid #a2a9b1; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 Frecuencia: ${m.base_frequency}</span>`;
+                                let freqBadge = `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 Recoin: ${m.base_frequency}</span>`;
                                 let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-recoin-${pid}`, checked: true });
                                 propCBs[pid] = $cb;
                                 let $itemLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'cursor': 'pointer'})
@@ -5120,7 +5120,7 @@ function searchWikidataItems(term) {
                             }
                             $overlay.remove();
                             if (onImportCallback) {
-                                onImportCallback(selectedP31QID, selectedPIDs, labelsMap);
+                                onImportCallback(selectedP31QID, selectedPIDs, labelsMap, recoinFreqMap);
                             }
                         });
 
@@ -5296,7 +5296,7 @@ function searchWikidataItems(term) {
             .html(ICONS.download + ' <span>Importar desde elemento</span>')
             .on('click', function(e) {
                 e.preventDefault();
-                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, modalLabelsMap) {
+                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, modalLabelsMap, recoinFreqMap) {
                     if (importedTargetQID && !$targetItemInput.val().trim()) {
                         $targetItemInput.val(importedTargetQID);
                         checkTargetItemDuplicateSchema(importedTargetQID);
@@ -5315,7 +5315,7 @@ function searchWikidataItems(term) {
                         let mergedMap = Object.assign({}, modalLabelsMap || {}, freshLabelsMap || {});
                         newPIDs.forEach(pid => {
                             try {
-                                renderPropRow(pid, false, '', null, null, mergedMap);
+                                renderPropRow(pid, false, '', null, null, mergedMap, recoinFreqMap);
                             } catch (err) {
                                 console.error('[Cradle Importer Error]', err);
                             }
@@ -5404,9 +5404,12 @@ function searchWikidataItems(term) {
             });
         }
 
-        function renderPropRow(pid, mandatory, defaultValue, hardselectQIDs, softselectQIDs, labelsMap) {
+        function renderPropRow(pid, mandatory, defaultValue, hardselectQIDs, softselectQIDs, labelsMap, recoinFreqMap) {
             labelsMap = labelsMap || {};
+            recoinFreqMap = recoinFreqMap || {};
             let propLabel = labelsMap[pid] ? ` (${labelsMap[pid]})` : '';
+            let freqStr = recoinFreqMap[pid] ? recoinFreqMap[pid] : '';
+            let freqBadge = freqStr ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:2px 6px; border-radius:3px; font-size:11px; margin-left:8px; font-weight:bold;">📊 Recoin: ${freqStr}</span>` : '';
             let uniqueRowId = Math.random().toString(36).substring(2, 9);
 
             let $row = $('<div>').addClass('cradle-prop-row-builder').css({
@@ -5422,7 +5425,7 @@ function searchWikidataItems(term) {
 
             // Header line
             let $headerRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center'});
-            $headerRow.append($('<strong>').css({'font-size': '14px'}).text(pid + propLabel));
+            $headerRow.append($('<strong>').css({'font-size': '14px'}).html(pid + propLabel + ' ' + freqBadge));
             let $remove = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'color': '#d33', 'font-weight': 'bold'}).html(ICONS.close).on('click', function() {
                 $row.remove();
             });
