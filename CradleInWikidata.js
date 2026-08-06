@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.19.0
+ * Version: 1.19.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.19.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.19.1');
  */
 
 (function() {
@@ -4949,10 +4949,14 @@ function searchWikidataItems(term) {
                                 $editExistingSchemaBtn.html(ICONS.external + ` <span>Editar esquema ${schemaId} existente</span>`).off('click').on('click', function() {
                                     window.open('/wiki/EntitySchema:' + schemaId, '_blank');
                                 }).css('display', 'inline-flex');
+                                $btnRow.css({'justify-content': 'space-between'});
+                                $importConfirmBtn.css({'flex': '1'});
                             } else {
                                 $duplicateNoticeBox.empty().hide();
                                 $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
                                 $editExistingSchemaBtn.hide();
+                                $btnRow.css({'justify-content': 'center'});
+                                $importConfirmBtn.css({'flex': '0 1 auto'});
                             }
                         }
 
