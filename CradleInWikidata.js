@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.20.4
+ * Version: 1.21.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.20.4');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.21.0');
  */
 
 (function() {
@@ -128,20 +128,23 @@
     /**
      * Fetches missing property frequency recommendations from Recoin API (relative completeness indicator).
      */
-    function fetchRecoinData(qid, callback) {
-        let cleanQID = (qid || '').trim().toUpperCase();
+    /**
+     * Fetches property frequency statistics for an entity class from Recoin API (getbyclassid.php).
+     */
+    function fetchRecoinData(classQID, callback) {
+        let cleanQID = (classQID || '').trim().toUpperCase();
         if (!cleanQID || !/^Q\d+$/i.test(cleanQID)) {
             callback(null);
             return;
         }
         let userLang = mw.config.get('wgUserLanguage') || 'en';
-        let url = 'https://recoin.toolforge.org/getmissingattributes.php?lang=' + userLang + '&subject=' + cleanQID;
+        let url = 'https://recoin.toolforge.org/getbyclassid.php?lang=' + userLang + '&subject=' + cleanQID;
         $.ajax({
             url: url,
             dataType: 'jsonp',
             timeout: 5000
         }).done(function(res) {
-            if (res && (res.completeness_percentage || res.missing_properties)) {
+            if (res && res.Frequenct_properties && Array.isArray(res.Frequenct_properties)) {
                 callback(res);
             } else {
                 callback(null);
@@ -4914,24 +4917,13 @@ function searchWikidataItems(term) {
             $resultArea.empty().append($('<div>').css({'color': '#54595d', 'font-size': '13px'}).text('Consultando Wikidata y Recoin API...'));
 
             let api = new mw.Api();
-            let fetchEntitiesPromise = api.get({
+            api.get({
                 action: 'wbgetentities',
                 ids: qid,
                 props: 'claims|labels',
                 languages: mw.config.get('wgUserLanguage') || 'en',
                 format: 'json'
-            });
-
-            let recoinData = null;
-            let fetchRecoinPromise = new Promise(resolve => {
-                fetchRecoinData(qid, function(data) {
-                    recoinData = data;
-                    resolve();
-                });
-            });
-
-            $.when(fetchEntitiesPromise, fetchRecoinPromise).done(function(resArgs) {
-                let res = resArgs[0] || resArgs;
+            }).done(function(res) {
                 $searchBtn.prop('disabled', false).text('Cargar elemento');
                 if (!res || !res.entities || !res.entities[qid] || !res.entities[qid].claims) {
                     $resultArea.html('<div style="color:#d33; font-size:13px;">No se encontraron propiedades en ' + qid + '</div>');
@@ -4939,17 +4931,6 @@ function searchWikidataItems(term) {
                 }
                 let claims = res.entities[qid].claims;
                 fetchedPropPIDs = sortPropertyIDs(Object.keys(claims));
-
-                let recoinFreqMap = {};
-                let recoinMissingProps = [];
-                if (recoinData && recoinData.missing_properties) {
-                    recoinData.missing_properties.forEach(m => {
-                        recoinFreqMap[m.property] = m.base_frequency;
-                        if (!fetchedPropPIDs.includes(m.property)) {
-                            recoinMissingProps.push(m);
-                        }
-                    });
-                }
 
                 let p31QIDs = [];
                 if (claims.P31) {
@@ -4960,28 +4941,39 @@ function searchWikidataItems(term) {
                     });
                 }
 
-                let missingQIDs = recoinMissingProps.map(m => m.property);
-                let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs, ...missingQIDs];
-
-                fetchLabelsInBatches(allQIDsToFetch, function(labelsMap) {
-                    $resultArea.empty();
-                    let ent = res.entities[qid];
-                    let userLang = mw.config.get('wgUserLanguage') || 'en';
-                    let itemLabel = (ent.labels && (ent.labels[userLang]?.value || ent.labels['en']?.value)) || labelsMap[qid] || qid;
-                    p31Candidates = p31QIDs.map(id => ({ qid: id, label: labelsMap[id] || id }));
-
-                    let recoinMetaHtml = '';
-                    if (recoinData && recoinData.completeness_percentage) {
-                        let pct = parseFloat(recoinData.completeness_percentage).toFixed(1);
-                        let lvl = recoinData.completeness_level || '?';
-                        recoinMetaHtml = `<div style="margin-top:4px; font-size:12px; color:#202122;">📊 <strong>Completitud:</strong> ${pct}% (Nivel ${lvl}/5)</div>`;
+                let targetClassQID = p31QIDs.length > 0 ? p31QIDs[0] : qid;
+                fetchRecoinData(targetClassQID, function(recoinData) {
+                    let recoinFreqMap = {};
+                    let recoinMissingProps = [];
+                    if (recoinData && recoinData.Frequenct_properties) {
+                        recoinData.Frequenct_properties.forEach(m => {
+                            let pid = m['Property ID'] || m.property;
+                            let rawFreq = m.Frequency || m.frequency;
+                            if (pid && rawFreq !== undefined) {
+                                let freqStr = parseFloat(rawFreq).toFixed(1) + '%';
+                                recoinFreqMap[pid] = freqStr;
+                                if (!fetchedPropPIDs.includes(pid)) {
+                                    recoinMissingProps.push({ property: pid, base_frequency: freqStr });
+                                }
+                            }
+                        });
                     }
 
-                    let $info = $('<div>').css({
-                        'background': '#eaf3ff', 'border': '1px solid #36c',
-                        'padding': '8px 12px', 'border-radius': '4px', 'font-size': '13px'
-                    }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas.${recoinMetaHtml}`);
-                    $resultArea.append($info);
+                    let missingQIDs = recoinMissingProps.map(m => m.property);
+                    let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs, ...missingQIDs];
+
+                    fetchLabelsInBatches(allQIDsToFetch, function(labelsMap) {
+                        $resultArea.empty();
+                        let ent = res.entities[qid];
+                        let userLang = mw.config.get('wgUserLanguage') || 'en';
+                        let itemLabel = (ent.labels && (ent.labels[userLang]?.value || ent.labels['en']?.value)) || labelsMap[qid] || qid;
+                        p31Candidates = p31QIDs.map(id => ({ qid: id, label: labelsMap[id] || id }));
+
+                        let $info = $('<div>').css({
+                            'background': '#eaf3ff', 'border': '1px solid #36c',
+                            'padding': '8px 12px', 'border-radius': '4px', 'font-size': '13px'
+                        }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas en el elemento.`);
+                        $resultArea.append($info);
 
                     // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
                     let p31ClaimsMap = {};
@@ -5111,9 +5103,9 @@ function searchWikidataItems(term) {
                         $resultArea.append($propListContainer);
                         $resultArea.append($duplicateNoticeBox);
 
-                        if (recoinData && recoinData.completeness_percentage) {
+                        if (recoinData && recoinData.Frequenct_properties) {
                             let $recoinCreditFooter = $('<div>').css({'font-size': '11px', 'color': '#54595d', 'margin-top': '8px', 'margin-bottom': '4px', 'text-align': 'center', 'font-style': 'italic'})
-                                .html('Sugerencias basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
+                                .html('Frecuencia de propiedades según la clase basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
                             $resultArea.append($recoinCreditFooter);
                         }
 
@@ -5170,10 +5162,11 @@ function searchWikidataItems(term) {
                         p31FetchDone();
                     }
                 });
-            }).fail(function() {
-                $searchBtn.prop('disabled', false).text('Cargar elemento');
-                $resultArea.html('<div style="color:#d33; font-size:13px;">Error al conectar con Wikidata</div>');
             });
+        }).fail(function() {
+            $searchBtn.prop('disabled', false).text('Cargar elemento');
+            $resultArea.html('<div style="color:#d33; font-size:13px;">Error al conectar con Wikidata</div>');
+        });
         });
 
         $overlay.append($modal);
