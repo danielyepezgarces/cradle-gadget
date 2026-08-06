@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.25.1
+ * Version: 1.26.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.25.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.26.0');
  */
 
 (function() {
@@ -1075,8 +1075,10 @@
                     'cradle-publish-shex-success': '¡EntitySchema $1 publicado con éxito en Wikidata!',
                     'cradle-sidebar-header': 'Esquemas',
                     'cradle-sidebar-create-schema': 'Crear un esquema nuevo',
-                    'cradle-sidebar-recent-schemas': 'Cambios recientes de esquemas',
-                    'cradle-sidebar-random-schema': 'Esquema Aleatorio'
+                    'cradle-sidebar-recent-schemas': 'Cambios recientes',
+                    'cradle-sidebar-random-schema': 'Esquema aleatorio',
+                    'cradle-tab-create-item': 'Crear elementos',
+                    'cradle-tab-design-schema': 'Diseñar esquemas'
                 });
             }
             proceedInit();
@@ -1521,76 +1523,105 @@
     }
 
     /**
-     * Renders selection panel for Create / Selector mode (2 clear sections: Load ShEx vs Design ShEx).
+     * Renders selection panel with 2 tabs: 'Crear elementos' and 'Diseñar esquemas'.
      */
     function renderCreateOptionsSelector() {
         let $content = $('#cradle-content-area').empty();
         updateDrawerFooter(false);
 
-        let $container = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '16px'});
+        // Render 2 Tabs Header
+        let $tabsHeader = $('<div>').addClass('cradle-select-tabs');
 
-        // Section 1: Load Existing EntitySchema (ShEx)
-        let $loadBox = $('<div>').addClass('cradle-selector-box');
-        $loadBox.append($('<h4>').css({'margin': '0 0 6px 0', 'font-size': '14px', 'color': '#202122'})
-            .text(mw.msg('cradle-method-schema')));
-        $loadBox.append($('<p>').css({'margin': '0 0 10px 0', 'font-size': '12px', 'color': '#54595d'})
-            .text('Busca un EntitySchema existente (ej. E10) para cargar sus declaraciones y crear un nuevo elemento.'));
+        let tabs = [
+            { id: 'create', label: mw.msg('cradle-tab-create-item') || 'Crear elementos' },
+            { id: 'design', label: mw.msg('cradle-tab-design-schema') || 'Diseñar esquemas' }
+        ];
 
-        let $schemaInput = $('<input>')
-            .addClass('cradle-input')
-            .attr('type', 'text')
-            .attr('placeholder', mw.msg('cradle-schema-placeholder'));
+        let activeTab = mw.storage.get('cradle-active-tab') || 'create';
+        if (activeTab !== 'create' && activeTab !== 'design') {
+            activeTab = 'create';
+        }
 
-        let $schemaBtn = $('<button>')
-            .addClass('cradle-btn-secondary')
-            .text(mw.msg('cradle-load-schema'))
-            .on('click', function() {
-                let schemaId = $schemaInput.val().trim().toUpperCase();
-                if (schemaId) {
-                    if (!schemaId.startsWith('E')) {
-                        schemaId = 'E' + schemaId.replace(/\D/g, '');
-                    }
-                    loadAndDisplaySchema(schemaId);
-                }
-            });
-
-        let $group = $('<div>').css({'display': 'flex', 'gap': '8px'});
-        $schemaInput.css({'flex': '1'});
-        $group.append($schemaInput).append($schemaBtn);
-        $loadBox.append($group);
-
-        attachEntitySchemaAutocompleter($group, $schemaInput, function(schemaId) {
-            loadAndDisplaySchema(schemaId);
+        tabs.forEach(tab => {
+            let $tab = $('<button>')
+                .addClass('cradle-select-tab')
+                .text(tab.label)
+                .on('click', function() {
+                    mw.storage.set('cradle-active-tab', tab.id);
+                    renderCreateOptionsSelector();
+                });
+            if (activeTab === tab.id) {
+                $tab.addClass('active');
+            }
+            $tabsHeader.append($tab);
         });
+        $content.append($tabsHeader);
 
-        // Section 2: Design New EntitySchema (ShEx)
-        let $designBox = $('<div>').addClass('cradle-selector-box');
-        $designBox.append($('<h4>').css({'margin': '0 0 6px 0', 'font-size': '14px', 'color': '#202122'})
-            .text(mw.msg('cradle-schema-designer')));
-        $designBox.append($('<p>').css({'margin': '0 0 12px 0', 'font-size': '12px', 'color': '#54595d'})
-            .text('Diseña un nuevo esquema desde cero o importando propiedades de un elemento, y publícalo en Wikidata.'));
+        if (activeTab === 'create') {
+            // Tab 1: Load Existing EntitySchema (ShEx) to create an item
+            let $loadBox = $('<div>').addClass('cradle-selector-box');
+            $loadBox.append($('<h4>').css({'margin': '0 0 6px 0', 'font-size': '14px', 'color': '#202122'})
+                .text(mw.msg('cradle-method-schema')));
+            $loadBox.append($('<p>').css({'margin': '0 0 12px 0', 'font-size': '12px', 'color': '#54595d'})
+                .text('Busca un EntitySchema existente (ej. E10, Humano) para cargar sus declaraciones y crear un nuevo elemento.'));
 
-        let $createDesignerBtn = $('<button>')
-            .addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-            .css({
-                'width': '100%',
-                'display': 'inline-flex',
-                'align-items': 'center',
-                'justify-content': 'center',
-                'gap': '6px',
-                'min-height': '38px',
-                'font-weight': 'bold',
-                'font-size': '14px',
-                'box-sizing': 'border-box'
-            })
-            .html(ICONS.plus + ' <span>' + (mw.msg('cradle-create-shex-designer') || 'Diseñar / Crear nuevo EntitySchema (ShEx)') + '</span>')
-            .on('click', function() {
-                renderSchemaDesigner();
+            let $schemaInput = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-schema-placeholder'));
+
+            let $schemaBtn = $('<button>')
+                .addClass('cradle-btn-secondary')
+                .text(mw.msg('cradle-load-schema'))
+                .on('click', function() {
+                    let schemaId = $schemaInput.val().trim().toUpperCase();
+                    if (schemaId) {
+                        if (!schemaId.startsWith('E')) {
+                            schemaId = 'E' + schemaId.replace(/\D/g, '');
+                        }
+                        loadAndDisplaySchema(schemaId);
+                    }
+                });
+
+            let $group = $('<div>').css({'display': 'flex', 'gap': '8px'});
+            $schemaInput.css({'flex': '1'});
+            $group.append($schemaInput).append($schemaBtn);
+            $loadBox.append($group);
+
+            attachEntitySchemaAutocompleter($group, $schemaInput, function(schemaId) {
+                loadAndDisplaySchema(schemaId);
             });
-        $designBox.append($createDesignerBtn);
 
-        $container.append($loadBox).append($designBox);
-        $content.append($container);
+            $content.append($loadBox);
+        } else if (activeTab === 'design') {
+            // Tab 2: Design New EntitySchema (ShEx)
+            let $designBox = $('<div>').addClass('cradle-selector-box');
+            $designBox.append($('<h4>').css({'margin': '0 0 6px 0', 'font-size': '14px', 'color': '#202122'})
+                .text(mw.msg('cradle-schema-designer')));
+            $designBox.append($('<p>').css({'margin': '0 0 14px 0', 'font-size': '12px', 'color': '#54595d'})
+                .text('Diseña un nuevo esquema desde cero o importando propiedades de un elemento existente para publicarlo en Wikidata como un EntitySchema (ShEx).'));
+
+            let $createDesignerBtn = $('<button>')
+                .addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+                .css({
+                    'width': '100%',
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'justify-content': 'center',
+                    'gap': '6px',
+                    'min-height': '38px',
+                    'font-weight': 'bold',
+                    'font-size': '14px',
+                    'box-sizing': 'border-box'
+                })
+                .html(ICONS.plus + ' <span>' + (mw.msg('cradle-create-shex-designer') || 'Diseñar / Crear nuevo EntitySchema (ShEx)') + '</span>')
+                .on('click', function() {
+                    renderSchemaDesigner();
+                });
+            $designBox.append($createDesignerBtn);
+
+            $content.append($designBox);
+        }
     }
 
     /**
