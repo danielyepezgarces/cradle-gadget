@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.18.5
+ * Version: 1.19.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.18.5');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.19.0');
  */
 
 (function() {
@@ -112,6 +112,17 @@
         }).fail(function() {
             if (callback) callback();
         });
+    }
+
+    /**
+     * Ensures MediaWiki:Wikibase-SortedProperties is loaded before executing callback.
+     */
+    function ensureSortedProperties(callback) {
+        if (sortedPropertiesLoaded) {
+            if (callback) callback();
+        } else {
+            fetchSortedProperties(callback);
+        }
     }
 
     /**
@@ -4890,7 +4901,7 @@ function searchWikidataItems(term) {
                     return;
                 }
                 let claims = res.entities[qid].claims;
-                fetchedPropPIDs = Object.keys(claims);
+                fetchedPropPIDs = sortPropertyIDs(Object.keys(claims));
 
                 let p31QIDs = [];
                 if (claims.P31) {
@@ -5211,7 +5222,7 @@ function searchWikidataItems(term) {
                     // Clear previous property rows so new import starts fresh
                     $propsList.empty();
 
-                    let newPIDs = importedPIDs || [];
+                    let newPIDs = sortPropertyIDs(importedPIDs || []);
                     if (newPIDs.length === 0) {
                         mw.notify('No hay propiedades seleccionadas para importar.', { type: 'info' });
                         return;
