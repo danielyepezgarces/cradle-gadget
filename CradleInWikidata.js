@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.17.0
+ * Version: 1.17.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.17.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.17.1');
  */
 
 (function() {
@@ -4979,30 +4979,66 @@ function searchWikidataItems(term) {
 
             if (foundCustom) {
                 $targetNoticeDiv.html(`
-                    <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:6px 10px; border-radius:4px; font-size:12px;">
-                        ⚠️ <strong>Esquema ya existente:</strong> El elemento <strong>${cleanQID}</strong> ya está asociado a tu esquema <em>"${foundCustom}"</em>.
+                    <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px;">
+                        ⚠️ <strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya está asociado a tu esquema local <em>"${foundCustom}"</em>.
                     </div>
                 `);
                 return;
             }
 
             let api = new mw.Api();
+            let userLang = mw.config.get('wgUserLanguage') || 'en';
+            let langs = userLang === 'en' ? 'en' : `${userLang}|en`;
+
+            // Query entity to check claims.P12861 (EntitySchema ID)
             api.get({
-                action: 'wbsearchentities',
-                search: cleanQID,
-                type: 'entityschema',
-                language: mw.config.get('wgUserLanguage') || 'en',
+                action: 'wbgetentities',
+                ids: cleanQID,
+                props: 'claims|labels',
+                languages: langs,
                 format: 'json'
             }).done(function(res) {
-                let items = res.search || [];
-                if (items.length > 0) {
-                    let match = items[0];
-                    $targetNoticeDiv.html(`
-                        <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:6px 10px; border-radius:4px; font-size:12px;">
-                            ⚠️ <strong>EntitySchema existente en Wikidata:</strong> El elemento <strong>${cleanQID}</strong> ya cuenta con el esquema registrado <a href="/wiki/EntitySchema:${match.id}" target="_blank"><strong>${match.id}</strong> (${match.label || ''})</a>.
-                        </div>
-                    `);
+                if (res && res.entities && res.entities[cleanQID]) {
+                    let ent = res.entities[cleanQID];
+                    let claims = ent.claims || {};
+                    let existingSchemaId = null;
+
+                    if (claims.P12861 && claims.P12861.length > 0) {
+                        let c = claims.P12861[0];
+                        if (c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value) {
+                            existingSchemaId = c.mainsnak.datavalue.value;
+                        }
+                    }
+
+                    if (existingSchemaId) {
+                        let itemLabel = (ent.labels && (ent.labels[userLang]?.value || ent.labels['en']?.value)) || cleanQID;
+                        $targetNoticeDiv.html(`
+                            <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px;">
+                                ⚠️ <strong>Este esquema ya existe:</strong> El elemento <strong>${itemLabel} (${cleanQID})</strong> ya tiene asociado el EntitySchema <strong><a href="/wiki/EntitySchema:${existingSchemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">${existingSchemaId}</a></strong> (declaración P12861).
+                            </div>
+                        `);
+                        return;
+                    }
                 }
+
+                // Fallback: Search Wikidata EntitySchemas via MediaWiki API
+                api.get({
+                    action: 'wbsearchentities',
+                    search: cleanQID,
+                    type: 'entityschema',
+                    language: userLang,
+                    format: 'json'
+                }).done(function(resSearch) {
+                    let items = resSearch.search || [];
+                    if (items.length > 0) {
+                        let match = items[0];
+                        $targetNoticeDiv.html(`
+                            <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px;">
+                                ⚠️ <strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya cuenta con el esquema registrado <a href="/wiki/EntitySchema:${match.id}" target="_blank"><strong>${match.id}</strong> (${match.label || ''})</a>.
+                            </div>
+                        `);
+                    }
+                });
             });
         }
 
@@ -5062,7 +5098,7 @@ function searchWikidataItems(term) {
         let $propsList = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '8px'});
         $propertiesDiv.append($propsList);
 
-        // Helper to batch fetch labels for properties and items
+        // Helper to batch fetch labels for properties and items (with English fallback)
         function fetchLabelsInBatches(ids, callback) {
             let labels = {};
             if (ids.length === 0) {
@@ -5075,20 +5111,23 @@ function searchWikidataItems(term) {
                 chunks.push(ids.slice(i, i + 50));
             }
             let pending = chunks.length;
+            let userLang = mw.config.get('wgUserLanguage') || 'en';
+            let langsToFetch = userLang === 'en' ? 'en' : `${userLang}|en`;
+
             chunks.forEach(chunk => {
                 api.get({
                     action: 'wbgetentities',
                     ids: chunk,
                     props: 'labels',
-                    languages: mw.config.get('wgUserLanguage') || 'en',
+                    languages: langsToFetch,
                     format: 'json'
                 }).done(function(res) {
                     if (res.entities) {
-                        let lang = mw.config.get('wgUserLanguage') || 'en';
                         chunk.forEach(id => {
                             if (res.entities[id] && res.entities[id].labels) {
-                                let lbl = res.entities[id].labels[lang] || res.entities[id].labels['en'];
-                                labels[id] = lbl ? lbl.value : '';
+                                let lObj = res.entities[id].labels;
+                                let lbl = (lObj[userLang] && lObj[userLang].value) || (lObj['en'] && lObj['en'].value);
+                                labels[id] = lbl || id;
                             }
                         });
                     }
