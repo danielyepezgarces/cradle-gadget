@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.16.4
+ * Version: 1.16.5
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.16.4');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.16.5');
  */
 
 (function() {
@@ -4780,7 +4780,7 @@ function searchWikidataItems(term) {
         $modal.append($headRow);
 
         let $inputGroup = $('<div>').css({'display': 'flex', 'gap': '8px'});
-        let $input = $('<input>').addClass('cradle-input').attr('placeholder', 'QID del elemento (ej: Q8682 Santiago Bernabéu o Q1203)').css({'flex': '1'});
+        let $input = $('<input>').addClass('cradle-input').attr('placeholder', 'QID del elemento (ej: Q164027 Santiago Bernabéu o Q1203)').css({'flex': '1'});
         let $searchBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive').text('Cargar elemento');
         $inputGroup.append($input).append($searchBtn);
         $modal.append($inputGroup);
@@ -4795,7 +4795,7 @@ function searchWikidataItems(term) {
         $searchBtn.on('click', function() {
             let qid = $input.val().trim().toUpperCase();
             if (!qid || !/^Q\d+$/i.test(qid)) {
-                mw.notify('Por favor ingrese un QID válido (ej: Q8682)', { type: 'error' });
+                mw.notify('Por favor ingrese un QID válido (ej: Q164027)', { type: 'error' });
                 return;
             }
             $searchBtn.prop('disabled', true).text('Cargando...');
