@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.25
+ * Version: 1.15.26
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.25');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.26');
  */
 
 (function() {
@@ -916,30 +916,35 @@
     }
 
     /**
-     * Creates a prominent blue Codex button in top personal bar strictly OUTSIDE any dropdown menu without overlapping ULS.
+     * Creates a prominent blue Codex button in vector-menu-content of user-menu-preferences portlet.
      */
     function setupUserMenuButton() {
         let btnText = mw.msg('cradle-user-menu-btn');
-        let $li = $('#pt-cradle-create');
+        let portletLink = mw.util.addPortletLink(
+            'p-personal',
+            mw.util.getUrl('Special:Cradle'),
+            btnText,
+            'pt-cradle-create',
+            'Crear un nuevo elemento de Wikidata usando esquemas de Cradle',
+            null,
+            '#pt-preferences'
+        );
+
+        let $li = $(portletLink || '#pt-cradle-create');
         if (!$li.length) {
-            $li = $('<li>').attr('id', 'pt-cradle-create').addClass('mw-list-item vector-tab-noicon');
+            $li = $('<li>').attr('id', 'pt-cradle-create').addClass('mw-list-item');
             let $a = $('<a>').attr({
                 'href': mw.util.getUrl('Special:Cradle'),
                 'title': 'Crear un nuevo elemento de Wikidata usando esquemas de Cradle'
             }).text(btnText);
             $li.append($a);
-        }
 
-        $li.css({
-            'display': 'inline-flex',
-            'align-items': 'center',
-            'align-self': 'center',
-            'flex-shrink': '0',
-            'margin': '0 6px 0 0',
-            'padding': '0',
-            'height': 'auto',
-            'line-height': '1'
-        });
+            // Target vector-menu-content list inside personal tools portlet
+            let $menuList = $('#p-personal .vector-menu-content-list, #p-user-menu-preferences .vector-menu-content-list, .mw-portlet-p-personal .vector-menu-content-list, #p-personal ul');
+            if ($menuList.length) {
+                $menuList.prepend($li);
+            }
+        }
 
         let $a = $li.find('a');
         $a.addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary').css({
@@ -947,43 +952,19 @@
             'color': '#ffffff !important',
             'border': '1px solid #36c',
             'border-radius': '2px',
-            'padding': '2px 8px',
+            'padding': '3px 8px',
             'font-weight': 'bold',
-            'font-size': '0.775rem',
-            'line-height': '1.2',
+            'font-size': '0.8rem',
+            'line-height': '1.3',
             'text-decoration': 'none',
             'display': 'inline-flex',
             'align-items': 'center',
-            'align-self': 'center',
             'white-space': 'nowrap',
             'gap': '4px',
-            'height': '24px',
+            'height': '26px',
             'box-sizing': 'border-box',
-            'flex-shrink': '0'
+            'margin': '2px 4px'
         });
-
-        // Target Vector 2022 header bar OUTSIDE dropdown
-        let $outsideContainer = $('#p-vector-user-menu-overflow, #vector-user-menu-overflow, #vector-user-links-main, .vector-user-links-main, #p-personal-extra');
-        
-        if ($outsideContainer.length) {
-            let $uls = $outsideContainer.find('#pt-uls, .uls-trigger, #p-lang-btn');
-            if ($uls.length) {
-                $uls.before($li);
-            } else {
-                $outsideContainer.prepend($li);
-            }
-        } else if ($('#pt-uls').length && !$('#pt-uls').closest('#vector-user-links-dropdown, .vector-user-menu-dropdown, .vector-menu-content').length) {
-            $('#pt-uls').before($li);
-        } else {
-            let $dropdown = $('#vector-user-links-dropdown, .vector-user-menu-dropdown, #p-user-menu-dropdown');
-            if ($dropdown.length) {
-                $dropdown.before($li);
-            } else if ($('#p-personal ul').length) {
-                $('#p-personal ul').prepend($li);
-            } else {
-                $('#pt-userpage').before($li);
-            }
-        }
 
         $a.off('click.cradleNav').on('click.cradleNav', function(e) {
             if (isSpecialCradle || isItemPage) {
