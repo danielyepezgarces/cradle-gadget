@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.43
+ * Version: 1.16.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.43');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.16.0');
  */
 
 (function() {
@@ -4434,21 +4434,28 @@ function searchWikidataItems(term) {
     /**
      * Generates rich Wikidata-standard ShEx (Shape Expression) code for an EntitySchema.
      */
-    function generateShExCode(title, propRows, propertyLabels) {
+    function generateShExCode(title, propRows, propertyLabels, targetItem) {
         let cleanTitle = (title || 'custom_shape').toLowerCase().replace(/[^a-z0-9_]/g, '');
         if (!cleanTitle) cleanTitle = 'custom_shape';
+        let targetQID = (targetItem || '').trim().toUpperCase();
 
-        let lines = [
-            `PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>`,
-            `PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>`,
-            `PREFIX wd: <http://www.wikidata.org/entity/>`,
-            `PREFIX wdt: <http://www.wikidata.org/prop/direct/>`,
-            `PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>`,
-            ``,
-            `start = @<${cleanTitle}>`,
-            ``,
-            `<${cleanTitle}> EXTRA wdt:P31 {`
-        ];
+        let lines = [];
+        if (targetQID && /^Q\d+$/i.test(targetQID)) {
+            lines.push(`# targetItem: ${targetQID}`);
+            lines.push(`# Associated Item / Target Class: ${targetQID}`);
+        }
+        lines.push(`# Schema: ${title || cleanTitle}`);
+        lines.push(`# Generated with Cradle Schema Designer`);
+        lines.push(``);
+        lines.push(`PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>`);
+        lines.push(`PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>`);
+        lines.push(`PREFIX wd: <http://www.wikidata.org/entity/>`);
+        lines.push(`PREFIX wdt: <http://www.wikidata.org/prop/direct/>`);
+        lines.push(`PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>`);
+        lines.push(``);
+        lines.push(`start = @<${cleanTitle}>`);
+        lines.push(``);
+        lines.push(`<${cleanTitle}> EXTRA wdt:P31 {`);
 
         let propMap = propertyLabels || propertyMetadata || {};
 
@@ -4615,8 +4622,8 @@ function searchWikidataItems(term) {
     /**
      * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata via MediaWiki API.
      */
-    function openShExExportModal(title, propRows, labelsMap) {
-        let shexText = generateShExCode(title, propRows, labelsMap);
+    function openShExExportModal(title, propRows, labelsMap, targetItem) {
+        let shexText = generateShExCode(title, propRows, labelsMap, targetItem);
 
         let $overlay = $('<div>').addClass('cradle-modal-overlay').css({
             'position': 'fixed',
@@ -4776,12 +4783,99 @@ function searchWikidataItems(term) {
             'placeholder': mw.msg('cradle-schema-aliases-placeholder') || 'Alias del esquema (separados por plecas |)...'
         });
 
+        let $targetItemInput = $('<input>').addClass('cradle-input').attr({
+            'id': 'cradle-schema-target-item-input',
+            'placeholder': 'Ej: Q5 (Humano)'
+        });
+
         let $headerFieldsRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap', 'margin-bottom': '12px'});
-        $headerFieldsRow.append($('<div>').css({'flex': '1', 'min-width': '140px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title'))).append($titleInput));
-        $headerFieldsRow.append($('<div>').css({'flex': '1.5', 'min-width': '160px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Descripción')).append($descInput));
-        $headerFieldsRow.append($('<div>').css({'flex': '1', 'min-width': '140px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Alias (|)')).append($aliasesInput));
+        $headerFieldsRow.append($('<div>').css({'flex': '1', 'min-width': '130px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title'))).append($titleInput));
+        $headerFieldsRow.append($('<div>').css({'flex': '1.4', 'min-width': '150px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Descripción')).append($descInput));
+        $headerFieldsRow.append($('<div>').css({'flex': '1', 'min-width': '120px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Elemento (QID)')).append($targetItemInput));
+        $headerFieldsRow.append($('<div>').css({'flex': '1', 'min-width': '120px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Alias (|)')).append($aliasesInput));
 
         $form.append($headerFieldsRow);
+
+        // Property Importer Box
+        let $importerBox = $('<div>').css({
+            'display': 'flex',
+            'gap': '8px',
+            'align-items': 'center',
+            'background': '#f8f9fa',
+            'border': '1px solid #c8ccd1',
+            'border-radius': '4px',
+            'padding': '8px 12px',
+            'margin-bottom': '8px'
+        });
+
+        let $importItemInput = $('<input>').addClass('cradle-input').attr({
+            'id': 'cradle-schema-import-item-input',
+            'placeholder': 'QID del elemento para importar propiedades (ej: Q1203)'
+        }).css({'flex': '1', 'height': '32px'});
+
+        let $importItemBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet')
+            .css({'height': '32px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '4px'})
+            .html(ICONS.download + ' <span>Importar propiedades de elemento</span>')
+            .on('click', function(e) {
+                e.preventDefault();
+                let qid = $importItemInput.val().trim().toUpperCase();
+                if (!qid || !/^Q\d+$/i.test(qid)) {
+                    mw.notify('Por favor ingrese un QID válido (ej: Q1203)', { type: 'error' });
+                    return;
+                }
+
+                $importItemBtn.prop('disabled', true).text('Importando...');
+
+                if (!$targetItemInput.val().trim()) {
+                    $targetItemInput.val(qid);
+                }
+
+                let api = new mw.Api();
+                api.get({
+                    action: 'wbgetentities',
+                    ids: qid,
+                    props: 'claims|labels',
+                    languages: mw.config.get('wgUserLanguage') || 'en',
+                    format: 'json'
+                }).done(function(res) {
+                    $importItemBtn.prop('disabled', false).html(ICONS.download + ' <span>Importar propiedades de elemento</span>');
+                    if (!res || !res.entities || !res.entities[qid] || !res.entities[qid].claims) {
+                        mw.notify('No se encontraron propiedades en ' + qid, { type: 'warn' });
+                        return;
+                    }
+                    let claims = res.entities[qid].claims;
+                    let propIds = Object.keys(claims);
+                    if (propIds.length === 0) {
+                        mw.notify('El elemento ' + qid + ' no tiene propiedades/declaraciones', { type: 'warn' });
+                        return;
+                    }
+
+                    let existingPIDs = [];
+                    $propsList.children().each(function() {
+                        existingPIDs.push($(this).data('pid'));
+                    });
+                    let newPIDs = propIds.filter(p => !existingPIDs.includes(p));
+
+                    if (newPIDs.length === 0) {
+                        mw.notify('Todas las propiedades de ' + qid + ' ya están cargadas en la lista', { type: 'info' });
+                        return;
+                    }
+
+                    fetchLabelsInBatches(newPIDs, function(labelsMap) {
+                        newPIDs.forEach(pid => {
+                            renderPropRow(pid, false, '', null, null, labelsMap);
+                        });
+                        mw.notify(`¡Se importaron ${newPIDs.length} propiedades desde ${qid}!`, { type: 'success' });
+                        $importItemInput.val('');
+                    });
+                }).fail(function() {
+                    $importItemBtn.prop('disabled', false).html(ICONS.download + ' <span>Importar propiedades de elemento</span>');
+                    mw.notify('Error al consultar Wikidata para ' + qid, { type: 'error' });
+                });
+            });
+
+        $importerBox.append($importItemInput).append($importItemBtn);
+        $form.append($importerBox);
 
         let $propertiesDiv = $('<div>').css({
             'display': 'flex',
@@ -5244,7 +5338,11 @@ function searchWikidataItems(term) {
                 mw.notify(mw.msg('cradle-schema-title-required'), { type: 'error' });
                 return;
             }
+            let targetQID = $targetItemInput.val().trim().toUpperCase();
             let wikitext = '== ' + name + ' ==\n';
+            if (targetQID && /^Q\d+$/i.test(targetQID)) {
+                wikitext += '# targetItem: ' + targetQID + '\n';
+            }
 
             let hasProps = false;
             $propsList.children().each(function() {
@@ -5285,6 +5383,7 @@ function searchWikidataItems(term) {
             .text(mw.msg('cradle-export-shex'))
             .on('click', function() {
                 let name = $titleInput.val().trim() || 'CustomSchema';
+                let targetQID = $targetItemInput.val().trim();
                 let propRows = gatherDesignerProps();
                 if (propRows.length === 0) {
                     mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
@@ -5292,7 +5391,7 @@ function searchWikidataItems(term) {
                 }
                 let pids = propRows.map(r => r.pid);
                 fetchLabelsInBatches(pids, function(labelsMap) {
-                    openShExExportModal(name, propRows, labelsMap);
+                    openShExExportModal(name, propRows, labelsMap, targetQID);
                 });
             });
 
