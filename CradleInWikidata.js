@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.17.2
+ * Version: 1.17.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.17.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.17.3');
  */
 
 (function() {
@@ -5059,14 +5059,17 @@ function searchWikidataItems(term) {
             .html(ICONS.download + ' <span>Importar desde elemento</span>')
             .on('click', function(e) {
                 e.preventDefault();
-                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, labelsMap) {
+                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, modalLabelsMap) {
                     if (importedTargetQID && !$targetItemInput.val().trim()) {
                         $targetItemInput.val(importedTargetQID);
                         checkTargetItemDuplicateSchema(importedTargetQID);
                     }
                     let existingPIDs = [];
-                    $propsList.children().each(function() { existingPIDs.push($(this).data('pid')); });
-                    let newPIDs = importedPIDs.filter(p => !existingPIDs.includes(p));
+                    $propsList.children().each(function() {
+                        let p = $(this).data('pid');
+                        if (p) existingPIDs.push(p);
+                    });
+                    let newPIDs = (importedPIDs || []).filter(p => !existingPIDs.includes(p));
 
                     if (newPIDs.length === 0) {
                         mw.notify('No hay propiedades nuevas para importar.', { type: 'info' });
@@ -5074,9 +5077,13 @@ function searchWikidataItems(term) {
                     }
 
                     fetchLabelsInBatches(newPIDs, function(freshLabelsMap) {
-                        let mergedMap = Object.assign({}, labelsMap, freshLabelsMap);
+                        let mergedMap = Object.assign({}, modalLabelsMap || {}, freshLabelsMap || {});
                         newPIDs.forEach(pid => {
-                            renderPropRow(pid, false, '', null, null, mergedMap);
+                            try {
+                                renderPropRow(pid, false, '', null, null, mergedMap);
+                            } catch (err) {
+                                console.error('[Cradle Importer Error]', err);
+                            }
                         });
                         mw.notify(`¡Se importaron ${newPIDs.length} propiedades!`, { type: 'success' });
                     });
@@ -5153,6 +5160,7 @@ function searchWikidataItems(term) {
         }
 
         function renderPropRow(pid, mandatory, defaultValue, hardselectQIDs, softselectQIDs, labelsMap) {
+            labelsMap = labelsMap || {};
             let propLabel = labelsMap[pid] ? ` (${labelsMap[pid]})` : '';
             let uniqueRowId = Math.random().toString(36).substring(2, 9);
 
