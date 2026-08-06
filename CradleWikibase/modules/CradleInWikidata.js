@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.20
+ * Version: 1.15.21
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.20');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.21');
  */
 
 (function() {
@@ -790,6 +790,7 @@
             'cradle-shex-preview': 'Generated ShEx (EntitySchema)',
             'cradle-copy-shex': 'Copy ShEx',
             'cradle-create-entityschema-btn': 'Publish EntitySchema on Wikidata',
+            'cradle-user-menu-btn': 'Create new item with Cradle',
             'cradle-shex-valid': '✓ Valid ShEx syntax for Wikidata',
             'cradle-shex-invalid': '⚠ Invalid ShEx syntax:',
             'cradle-publishing-shex': 'Publishing EntitySchema to Wikidata...',
@@ -866,6 +867,7 @@
                     'cradle-shex-preview': 'Código ShEx generado (EntitySchema)',
                     'cradle-copy-shex': 'Copiar ShEx',
                     'cradle-create-entityschema-btn': 'Publicar EntitySchema en Wikidata',
+                    'cradle-user-menu-btn': 'Crear elemento nuevo con Cradle',
                     'cradle-shex-valid': '✓ Sintaxis ShEx válida para Wikidata',
                     'cradle-shex-invalid': '⚠ Sintaxis ShEx no válida:',
                     'cradle-publishing-shex': 'Publicando EntitySchema en Wikidata...',
@@ -891,6 +893,9 @@
             'Create items using Cradle templates or schemas'
         );
 
+        // Add blue 'Crear elemento nuevo con Cradle' button in user menu / personal bar
+        setupUserMenuButton();
+
         if (isSpecialCradle) {
             setupSpecialPage();
         } else if (isItemPage) {
@@ -908,6 +913,60 @@
                 return [];
             });
         }
+    }
+
+    /**
+     * Creates a prominent blue Codex button in the user menu / personal tools bar for quick item creation with Cradle.
+     */
+    function setupUserMenuButton() {
+        let btnText = mw.msg('cradle-user-menu-btn');
+        let portletLink = mw.util.addPortletLink(
+            'p-personal',
+            mw.util.getUrl('Special:Cradle'),
+            btnText,
+            'pt-cradle-create',
+            'Crear un nuevo elemento de Wikidata usando esquemas de Cradle',
+            null,
+            '#pt-preferences'
+        );
+
+        let $li = $(portletLink || '#pt-cradle-create');
+        if (!$li.length) {
+            $li = $('<li>').attr('id', 'pt-cradle-create');
+            if ($('#p-personal ul').length) {
+                $('#p-personal ul').prepend($li);
+            } else if ($('#vector-user-links-dropdown').length) {
+                $('#vector-user-links-dropdown').prepend($li);
+            } else if ($('#p-user-menu').length) {
+                $('#p-user-menu').prepend($li);
+            } else if ($('.mw-user-menu').length) {
+                $('.mw-user-menu').prepend($li);
+            }
+            $li.append($('<a>').attr('href', mw.util.getUrl('Special:Cradle')).text(btnText));
+        }
+
+        let $a = $li.find('a');
+        $a.addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary').css({
+            'background-color': '#36c',
+            'color': '#ffffff !important',
+            'border': '1px solid #36c',
+            'border-radius': '2px',
+            'padding': '4px 10px',
+            'font-weight': 'bold',
+            'font-size': '0.825rem',
+            'text-decoration': 'none',
+            'display': 'inline-flex',
+            'align-items': 'center',
+            'gap': '4px',
+            'margin': '2px 6px'
+        });
+
+        $a.on('click', function(e) {
+            if (isSpecialCradle || isItemPage) {
+                e.preventDefault();
+                openEditor('create');
+            }
+        });
     }
 
     /**
