@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.16.1
+ * Version: 1.16.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.16.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.16.2');
  */
 
 (function() {
@@ -4945,7 +4945,7 @@ function searchWikidataItems(term) {
 
         // Row 2: Target Item QID (directly below title)
         let $targetRow = $('<div>').css({'display': 'flex', 'gap': '8px'});
-        $targetRow.append($('<div>').css({'flex': '1'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Elemento / Clase asociada (QID)')).append($targetItemInput));
+        $targetRow.append($('<div>').css({'flex': '1'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Elemento asociado')).append($targetItemInput));
         
         // Row 3: Description + Aliases
         let $metaRow = $('<div>').css({'display': 'flex', 'gap': '8px'});
