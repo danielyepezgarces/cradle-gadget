@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.21.0
+ * Version: 1.21.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.21.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.21.1');
  */
 
 (function() {
@@ -4944,23 +4944,17 @@ function searchWikidataItems(term) {
                 let targetClassQID = p31QIDs.length > 0 ? p31QIDs[0] : qid;
                 fetchRecoinData(targetClassQID, function(recoinData) {
                     let recoinFreqMap = {};
-                    let recoinMissingProps = [];
                     if (recoinData && recoinData.Frequenct_properties) {
                         recoinData.Frequenct_properties.forEach(m => {
                             let pid = m['Property ID'] || m.property;
                             let rawFreq = m.Frequency || m.frequency;
                             if (pid && rawFreq !== undefined) {
-                                let freqStr = parseFloat(rawFreq).toFixed(1) + '%';
-                                recoinFreqMap[pid] = freqStr;
-                                if (!fetchedPropPIDs.includes(pid)) {
-                                    recoinMissingProps.push({ property: pid, base_frequency: freqStr });
-                                }
+                                recoinFreqMap[pid] = parseFloat(rawFreq).toFixed(1) + '%';
                             }
                         });
                     }
 
-                    let missingQIDs = recoinMissingProps.map(m => m.property);
-                    let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs, ...missingQIDs];
+                    let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs];
 
                     fetchLabelsInBatches(allQIDsToFetch, function(labelsMap) {
                         $resultArea.empty();
@@ -4975,157 +4969,138 @@ function searchWikidataItems(term) {
                         }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas en el elemento.`);
                         $resultArea.append($info);
 
-                    // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
-                    let p31ClaimsMap = {};
-                    let p31FetchDone = function() {
-                        let $duplicateNoticeBox = $('<div>').css({'margin-top': '6px'});
-                        let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-                            .css({'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'})
-                            .html(ICONS.check + ` <span>Importar propiedades seleccionadas al diseñador</span>`);
+                        // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
+                        let p31ClaimsMap = {};
+                        let p31FetchDone = function() {
+                            let $duplicateNoticeBox = $('<div>').css({'margin-top': '6px'});
+                            let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+                                .css({'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'})
+                                .html(ICONS.check + ` <span>Importar propiedades seleccionadas al diseñador</span>`);
 
-                        let $editExistingSchemaBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive')
-                            .css({'display': 'none', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'});
+                            let $editExistingSchemaBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive')
+                                .css({'display': 'none', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'});
 
-                        function updateSchemaExistenceCheck(chosenQID) {
-                            let schemaId = p31ClaimsMap[chosenQID];
-                            if (schemaId) {
-                                $duplicateNoticeBox.html(`
-                                    <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px;">
-                                        ⚠️ <strong>Este esquema ya existe:</strong> La clase seleccionada <strong>${labelsMap[chosenQID] || chosenQID} (${chosenQID})</strong> ya tiene registrado el <strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${schemaId}</a></strong> (declaración P12861).
-                                    </div>
-                                `).show();
-                                $importConfirmBtn.prop('disabled', true).addClass('cdx-button--disabled');
-                                $editExistingSchemaBtn.html(ICONS.external + ` <span>Editar esquema ${schemaId} existente</span>`).off('click').on('click', function() {
-                                    window.open('/wiki/EntitySchema:' + schemaId, '_blank');
-                                }).css('display', 'inline-flex');
-                                $btnRow.css({'justify-content': 'space-between'});
-                                $importConfirmBtn.css({'flex': '1'});
-                            } else {
-                                $duplicateNoticeBox.empty().hide();
-                                $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
-                                $editExistingSchemaBtn.hide();
-                                $btnRow.css({'justify-content': 'center'});
-                                $importConfirmBtn.css({'flex': '0 1 auto'});
+                            function updateSchemaExistenceCheck(chosenQID) {
+                                let schemaId = p31ClaimsMap[chosenQID];
+                                if (schemaId) {
+                                    $duplicateNoticeBox.html(`
+                                        <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px;">
+                                            ⚠️ <strong>Este esquema ya existe:</strong> La clase seleccionada <strong>${labelsMap[chosenQID] || chosenQID} (${chosenQID})</strong> ya tiene registrado el <strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${schemaId}</a></strong> (declaración P12861).
+                                        </div>
+                                    `).show();
+                                    $importConfirmBtn.prop('disabled', true).addClass('cdx-button--disabled');
+                                    $editExistingSchemaBtn.html(ICONS.external + ` <span>Editar esquema ${schemaId} existente</span>`).off('click').on('click', function() {
+                                        window.open('/wiki/EntitySchema:' + schemaId, '_blank');
+                                    }).css('display', 'inline-flex');
+                                    $btnRow.css({'justify-content': 'space-between'});
+                                    $importConfirmBtn.css({'flex': '1'});
+                                } else {
+                                    $duplicateNoticeBox.empty().hide();
+                                    $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
+                                    $editExistingSchemaBtn.hide();
+                                    $btnRow.css({'justify-content': 'center'});
+                                    $importConfirmBtn.css({'flex': '0 1 auto'});
+                                }
                             }
-                        }
 
-                        if (p31Candidates.length === 1) {
-                            selectedP31QID = p31Candidates[0].qid;
-                            let schemaId = p31ClaimsMap[selectedP31QID];
-                            let badgeHtml = schemaId
-                                ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px;">⚠️ Ya existe: <strong>${schemaId}</strong></span>`
-                                : '';
-                            $resultArea.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
-                                .html(`Clase/Elemento asociado detectado (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
-                        } else if (p31Candidates.length > 1) {
-                            let $p31Box = $('<div>').css({
-                                'display': 'flex', 'flex-direction': 'column', 'gap': '6px',
-                                'background': '#f8f9fa', 'border': '1px solid #c8ccd1',
-                                'padding': '10px', 'border-radius': '4px'
-                            });
-                            $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text('Seleccione la clase asociada (P31) para este esquema:'));
-
-                            selectedP31QID = p31Candidates[0].qid;
-                            p31Candidates.forEach((cand, idx) => {
-                                let schemaId = p31ClaimsMap[cand.qid];
-                                let radId = `p31-cand-${cand.qid}-${idx}`;
-                                let $rad = $('<input>').attr({
-                                    type: 'radio', name: 'p31-candidate', id: radId, value: cand.qid, checked: idx === 0
-                                }).on('change', function() {
-                                    selectedP31QID = cand.qid;
-                                    updateSchemaExistenceCheck(cand.qid);
-                                });
+                            if (p31Candidates.length === 1) {
+                                selectedP31QID = p31Candidates[0].qid;
+                                let schemaId = p31ClaimsMap[selectedP31QID];
                                 let badgeHtml = schemaId
                                     ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px;">⚠️ Ya existe: <strong>${schemaId}</strong></span>`
                                     : '';
-                                let $lbl = $('<label>').attr('for', radId).css({'font-size': '13px', 'display': 'flex', 'align-items': 'center', 'gap': '6px', 'cursor': 'pointer'})
-                                    .append($rad).append($('<span>').html(`${cand.label} (${cand.qid}) ${badgeHtml}`));
-                                $p31Box.append($lbl);
+                                $resultArea.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
+                                    .html(`Clase/Elemento asociado detectado (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
+                            } else if (p31Candidates.length > 1) {
+                                let $p31Box = $('<div>').css({
+                                    'display': 'flex', 'flex-direction': 'column', 'gap': '6px',
+                                    'background': '#f8f9fa', 'border': '1px solid #c8ccd1',
+                                    'padding': '10px', 'border-radius': '4px'
+                                });
+                                $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text('Seleccione la clase asociada (P31) para este esquema:'));
+
+                                selectedP31QID = p31Candidates[0].qid;
+                                p31Candidates.forEach((cand, idx) => {
+                                    let schemaId = p31ClaimsMap[cand.qid];
+                                    let radId = `p31-cand-${cand.qid}-${idx}`;
+                                    let $rad = $('<input>').attr({
+                                        type: 'radio', name: 'p31-candidate', id: radId, value: cand.qid, checked: idx === 0
+                                    }).on('change', function() {
+                                        selectedP31QID = cand.qid;
+                                        updateSchemaExistenceCheck(cand.qid);
+                                    });
+                                    let badgeHtml = schemaId
+                                        ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px;">⚠️ Ya existe: <strong>${schemaId}</strong></span>`
+                                        : '';
+                                    let $lbl = $('<label>').attr('for', radId).css({'font-size': '13px', 'display': 'flex', 'align-items': 'center', 'gap': '6px', 'cursor': 'pointer'})
+                                        .append($rad).append($('<span>').html(`${cand.label} (${cand.qid}) ${badgeHtml}`));
+                                    $p31Box.append($lbl);
+                                });
+                                $resultArea.append($p31Box);
+                            } else {
+                                selectedP31QID = qid;
+                            }
+
+                            // Checkboxes to select properties
+                            let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text('Selecciona las propiedades a importar:');
+                            $resultArea.append($propSelectorTitle);
+
+                            let $propListContainer = $('<div>').css({
+                                'display': 'flex', 'flex-direction': 'column', 'gap': '4px',
+                                'max-height': '150px', 'overflow-y': 'auto', 'border': '1px solid #c8ccd1',
+                                'padding': '8px', 'border-radius': '4px', 'background': '#fff'
                             });
-                            $resultArea.append($p31Box);
-                        } else {
-                            selectedP31QID = qid;
-                        }
 
-                        // Checkboxes to select properties
-                        let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text('Selecciona las propiedades a importar:');
-                        $resultArea.append($propSelectorTitle);
+                            let $selectAllCheckbox = $('<input>').attr({ type: 'checkbox', id: 'cradle-select-all-props', checked: true });
+                            let $selectAllRow = $('<div>').css({'font-weight': 'bold', 'margin-bottom': '4px', 'padding-bottom': '4px', 'border-bottom': '1px solid #eaecf0'})
+                                .append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px'}).append($selectAllCheckbox).append($('<span>').text('Seleccionar todas')));
+                            $propListContainer.append($selectAllRow);
 
-                        let $propListContainer = $('<div>').css({
-                            'display': 'flex', 'flex-direction': 'column', 'gap': '4px',
-                            'max-height': '150px', 'overflow-y': 'auto', 'border': '1px solid #c8ccd1',
-                            'padding': '8px', 'border-radius': '4px', 'background': '#fff'
-                        });
-
-                        let $selectAllCheckbox = $('<input>').attr({ type: 'checkbox', id: 'cradle-select-all-props', checked: true });
-                        let $selectAllRow = $('<div>').css({'font-weight': 'bold', 'margin-bottom': '4px', 'padding-bottom': '4px', 'border-bottom': '1px solid #eaecf0'})
-                            .append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px'}).append($selectAllCheckbox).append($('<span>').text('Seleccionar todas')));
-                        $propListContainer.append($selectAllRow);
-
-                        let propCBs = {};
-                        fetchedPropPIDs.forEach(pid => {
-                            let propLbl = labelsMap[pid] ? `${labelsMap[pid]} (${pid})` : pid;
-                            let freqBadge = recoinFreqMap[pid]
-                                ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 ${recoinFreqMap[pid]}</span>`
-                                : '';
-                            let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-${pid}`, checked: true });
-                            propCBs[pid] = $cb;
-                            let $itemLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'cursor': 'pointer'})
-                                .append($cb).append($('<span>').html(`${propLbl} ${freqBadge}`));
-                            $propListContainer.append($itemLabel);
-                        });
-
-                        // Add missing Recoin recommended properties section
-                        if (recoinMissingProps.length > 0) {
-                            let $recoinSectionHeader = $('<div>').css({'font-weight': 'bold', 'margin': '8px 0 4px 0', 'padding-top': '6px', 'border-top': '1px dashed #c8ccd1', 'color': '#36c', 'font-size': '12px'})
-                                .html('💡 Propiedades recomendadas para esta clase:');
-                            $propListContainer.append($recoinSectionHeader);
-
-                            recoinMissingProps.forEach(m => {
-                                let pid = m.property;
-                                let propLbl = (labelsMap[pid] || m.label || pid) + ` (${pid})`;
-                                let freqBadge = `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 ${m.base_frequency}</span>`;
-                                let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-recoin-${pid}`, checked: true });
+                            let propCBs = {};
+                            fetchedPropPIDs.forEach(pid => {
+                                let propLbl = labelsMap[pid] ? `${labelsMap[pid]} (${pid})` : pid;
+                                let freqBadge = recoinFreqMap[pid]
+                                    ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; font-weight:bold;">📊 ${recoinFreqMap[pid]}</span>`
+                                    : '';
+                                let $cb = $('<input>').attr({ type: 'checkbox', id: `cb-import-${pid}`, checked: true });
                                 propCBs[pid] = $cb;
                                 let $itemLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'cursor': 'pointer'})
                                     .append($cb).append($('<span>').html(`${propLbl} ${freqBadge}`));
                                 $propListContainer.append($itemLabel);
                             });
-                        }
 
-                        $selectAllCheckbox.on('change', function() {
-                            let isChecked = $(this).is(':checked');
-                            Object.keys(propCBs).forEach(pid => {
-                                if (propCBs[pid]) propCBs[pid].prop('checked', isChecked);
+                            $selectAllCheckbox.on('change', function() {
+                                let isChecked = $(this).is(':checked');
+                                fetchedPropPIDs.forEach(pid => {
+                                    if (propCBs[pid]) propCBs[pid].prop('checked', isChecked);
+                                });
                             });
-                        });
 
-                        $resultArea.append($propListContainer);
-                        $resultArea.append($duplicateNoticeBox);
+                            $resultArea.append($propListContainer);
+                            $resultArea.append($duplicateNoticeBox);
 
-                        if (recoinData && recoinData.Frequenct_properties) {
-                            let $recoinCreditFooter = $('<div>').css({'font-size': '11px', 'color': '#54595d', 'margin-top': '8px', 'margin-bottom': '4px', 'text-align': 'center', 'font-style': 'italic'})
-                                .html('Frecuencia de propiedades según la clase basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
-                            $resultArea.append($recoinCreditFooter);
-                        }
-
-                        $importConfirmBtn.on('click', function() {
-                            let allAvailablePIDs = [...fetchedPropPIDs, ...recoinMissingProps.map(m => m.property)];
-                            let selectedPIDs = allAvailablePIDs.filter(pid => propCBs[pid] && propCBs[pid].is(':checked'));
-                            if (selectedPIDs.length === 0) {
-                                mw.notify('Debe seleccionar al menos una propiedad para importar.', { type: 'warn' });
-                                return;
+                            if (recoinData && recoinData.Frequenct_properties) {
+                                let $recoinCreditFooter = $('<div>').css({'font-size': '11px', 'color': '#54595d', 'margin-top': '8px', 'margin-bottom': '4px', 'text-align': 'center', 'font-style': 'italic'})
+                                    .html('Frecuencia de propiedades según la clase basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
+                                $resultArea.append($recoinCreditFooter);
                             }
-                            $overlay.remove();
-                            if (onImportCallback) {
-                                onImportCallback(selectedP31QID, selectedPIDs, labelsMap, recoinFreqMap);
-                            }
-                        });
 
-                        let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'stretch', 'width': '100%', 'margin-top': '10px'})
-                            .append($importConfirmBtn)
-                            .append($editExistingSchemaBtn);
-                        $resultArea.append($btnRow);
+                            $importConfirmBtn.on('click', function() {
+                                let selectedPIDs = fetchedPropPIDs.filter(pid => propCBs[pid] && propCBs[pid].is(':checked'));
+                                if (selectedPIDs.length === 0) {
+                                    mw.notify('Debe seleccionar al menos una propiedad para importar.', { type: 'warn' });
+                                    return;
+                                }
+                                $overlay.remove();
+                                if (onImportCallback) {
+                                    onImportCallback(selectedP31QID, selectedPIDs, labelsMap, recoinFreqMap);
+                                }
+                            });
+
+                            let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'stretch', 'width': '100%', 'margin-top': '10px'})
+                                .append($importConfirmBtn)
+                                .append($editExistingSchemaBtn);
+                            $resultArea.append($btnRow);
 
                         // Trigger initial check for selected candidate
                         if (selectedP31QID) {
