@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.26.1
+ * Version: 1.26.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.26.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.26.2');
  */
 
 (function() {
@@ -1134,7 +1134,7 @@
         let recentText = mw.msg('cradle-sidebar-recent-schemas') || 'Cambios recientes';
         let randomText = mw.msg('cradle-sidebar-random-schema') || 'Esquema aleatorio';
 
-        let createUrl = mw.util.getUrl('Special:Cradle');
+        let createUrl = mw.util.getUrl('Special:Cradle') + '#design';
         let recentUrl = mw.util.getUrl('Special:RecentChanges', { namespace: 640 });
         let randomUrl = mw.util.getUrl('Special:Random/EntitySchema');
 
@@ -1154,9 +1154,12 @@
 
         let $liCreate = $('<li>').attr('id', 'n-cradle-newschema').addClass('mw-list-item')
             .append($('<a>').attr('href', createUrl).append($('<span>').text(createText)).on('click', function(e) {
+                mw.storage.set('cradle-active-tab', 'design');
                 if (isSpecialCradle || isItemPage) {
                     e.preventDefault();
+                    window.location.hash = 'design';
                     openCradleDrawer();
+                    renderCreateOptionsSelector();
                 }
             }));
 
@@ -1537,7 +1540,10 @@
             { id: 'design', label: mw.msg('cradle-tab-design-schema') || 'Diseñar esquemas' }
         ];
 
-        let activeTab = mw.storage.get('cradle-active-tab') || 'create';
+        let activeTab = mw.storage.get('cradle-active-tab');
+        if (window.location.hash === '#design' || window.location.search.includes('tab=design')) {
+            activeTab = 'design';
+        }
         if (activeTab !== 'create' && activeTab !== 'design') {
             activeTab = 'create';
         }
