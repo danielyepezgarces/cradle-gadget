@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.23.0
+ * Version: 1.23.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.23.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.23.1');
  */
 
 (function() {
@@ -210,6 +210,51 @@
         .cradle-edit-heading-btn:hover {
             background-color: var(--background-color-progressive-hover, #447ff5);
             border-color: var(--border-color-progressive-hover, #447ff5);
+        }
+
+        /* Cradle Portlet Button in User Personal Menu (p-personal) & Vector 2022 Dropdown */
+        #pt-cradle-create a {
+            background-color: #36c;
+            color: #ffffff !important;
+            border: 1px solid #36c;
+            border-radius: 2px;
+            padding: 3px 8px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            line-height: 1.3;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            gap: 4px;
+            height: 26px;
+            box-sizing: border-box;
+            margin: 2px 4px;
+        }
+        #pt-cradle-create a:hover {
+            background-color: #447ff5;
+            border-color: #447ff5;
+            color: #ffffff !important;
+        }
+
+        /* Clean contrast when rendered inside Vector dropdowns / mw-user-preferences menu */
+        .vector-user-menu #pt-cradle-create a,
+        .vector-dropdown #pt-cradle-create a,
+        .mw-user-preferences #pt-cradle-create a,
+        .vector-menu-content #pt-cradle-create a {
+            background-color: transparent !important;
+            color: #36c !important;
+            border: none !important;
+            padding: 6px 12px !important;
+            height: auto !important;
+            font-weight: bold !important;
+        }
+        .vector-user-menu #pt-cradle-create a:hover,
+        .vector-dropdown #pt-cradle-create a:hover,
+        .mw-user-preferences #pt-cradle-create a:hover,
+        .vector-menu-content #pt-cradle-create a:hover {
+            background-color: #eaf3ff !important;
+            color: #1e3f8a !important;
         }
 
         /* Drawer Overlay */
@@ -1091,23 +1136,10 @@
         if ($li.length) {
             if ($('#pt-uls').length) {
                 $li.insertBefore('#pt-uls');
+            } else if ($('#p-personal ul').length) {
+                $('#p-personal ul').append($li);
             }
             $li.find('a').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary').css({
-                'background-color': '#36c',
-                'color': '#ffffff !important',
-                'border': '1px solid #36c',
-                'border-radius': '2px',
-                'padding': '3px 8px',
-                'font-weight': 'bold',
-                'font-size': '0.8rem',
-                'line-height': '1.3',
-                'text-decoration': 'none',
-                'display': 'inline-flex',
-                'align-items': 'center',
-                'white-space': 'nowrap',
-                'gap': '4px',
-                'height': '26px',
-                'box-sizing': 'border-box',
                 'margin': '2px 4px'
             }).off('click.cradleNav').on('click.cradleNav', function(e) {
                 if (isSpecialCradle || isItemPage) {
