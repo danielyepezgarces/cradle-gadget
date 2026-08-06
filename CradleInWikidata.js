@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.24.1
+ * Version: 1.24.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.24.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.24.2');
  */
 
 (function() {
@@ -1099,9 +1099,6 @@
             'Create items using Cradle templates or schemas'
         );
 
-        // Add 'Crear elemento nuevo con Cradle' link to sidebar Navigation (p-navigation)
-        setupNavigationButton();
-
         // Add dedicated 'Esquemas' section to Wikidata sidebar
         setupSidebarSchemasSection();
 
@@ -1125,26 +1122,60 @@
     }
 
     /**
-     * Adds 'Crear elemento nuevo con Cradle' to MediaWiki sidebar Navigation (p-navigation).
+     * Adds a dedicated "Esquemas" section to the Wikidata sidebar matching Wikibase Lexeme portlet structure.
      */
-    function setupNavigationButton() {
-        let btnText = mw.msg('cradle-user-menu-btn');
-        let portletLink = mw.util.addPortletLink(
-            'p-navigation',
-            mw.util.getUrl('Special:Cradle'),
-            btnText,
-            'n-cradle-create',
-            'Crear un nuevo elemento de Wikidata usando esquemas de Cradle'
-        );
+    function setupSidebarSchemasSection() {
+        if ($('#p-cradle-schemas').length) return;
 
-        let $li = $(portletLink || '#n-cradle-create');
-        if ($li.length) {
-            $li.find('a').off('click.cradleNav').on('click.cradleNav', function(e) {
+        let sectionHeader = mw.msg('cradle-sidebar-header') || 'Esquemas';
+        let createText = mw.msg('cradle-sidebar-create-schema') || 'Crear un esquema nuevo';
+        let recentText = mw.msg('cradle-sidebar-recent-schemas') || 'Cambios recientes';
+        let randomText = mw.msg('cradle-sidebar-random-schema') || 'Esquema aleatorio';
+
+        let createUrl = mw.util.getUrl('Special:Cradle');
+        let recentUrl = mw.util.getUrl('Special:RecentChanges', { namespace: 640 });
+        let randomUrl = mw.util.getUrl('Special:Random/EntitySchema');
+
+        let $sidebar = $('#mw-panel, #p-navigation, .vector-main-menu-content, #mw-navigation').first();
+        if (!$sidebar.length) return;
+
+        let $portlet = $('<div>')
+            .addClass('vector-menu mw-portlet mw-portlet-cradle-schemas portal')
+            .attr('id', 'p-cradle-schemas');
+
+        let $heading = $('<div>')
+            .addClass('vector-menu-heading mw-portlet-heading')
+            .text(sectionHeader);
+
+        let $body = $('<div>').addClass('vector-menu-content mw-portlet-body');
+        let $ul = $('<ul>').addClass('vector-menu-content-list body');
+
+        let $liCreate = $('<li>').attr('id', 'n-cradle-newschema').addClass('mw-list-item')
+            .append($('<a>').attr('href', createUrl).append($('<span>').text(createText)).on('click', function(e) {
                 if (isSpecialCradle || isItemPage) {
                     e.preventDefault();
                     openCradleDrawer();
                 }
-            });
+            }));
+
+        let $liRecent = $('<li>').attr('id', 'n-cradle-recentchanges-schemas').addClass('mw-list-item')
+            .append($('<a>').attr('href', recentUrl).append($('<span>').text(recentText)));
+
+        let $liRandom = $('<li>').attr('id', 'n-cradle-randomschema').addClass('mw-list-item')
+            .append($('<a>').attr('href', randomUrl).append($('<span>').text(randomText)));
+
+        $ul.append($liCreate).append($liRecent).append($liRandom);
+        $body.append($ul);
+        $portlet.append($heading).append($body);
+
+        if ($('#p-wikibase-lexeme-lexicographical-data').length) {
+            $portlet.insertAfter('#p-wikibase-lexeme-lexicographical-data');
+        } else if ($('#p-navigation').length) {
+            $portlet.insertAfter('#p-navigation');
+        } else if ($('#p-tb').length) {
+            $portlet.insertBefore('#p-tb');
+        } else {
+            $sidebar.append($portlet);
         }
     }
 
