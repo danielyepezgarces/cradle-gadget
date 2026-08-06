@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.18.2
+ * Version: 1.18.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.18.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.18.3');
  */
 
 (function() {
@@ -4923,8 +4923,8 @@ function searchWikidataItems(term) {
                             .css({'margin-top': '8px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
                             .html(ICONS.check + ` <span>Importar propiedades seleccionadas al diseñador</span>`);
 
-                        let $loadExistingSchemaBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive')
-                            .css({'margin-top': '8px', 'margin-left': '8px', 'display': 'none'});
+                        let $editExistingSchemaBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive')
+                            .css({'display': 'none', 'align-items': 'center', 'gap': '6px', 'flex': '1'});
 
                         function updateSchemaExistenceCheck(chosenQID) {
                             let schemaId = p31ClaimsMap[chosenQID];
@@ -4935,14 +4935,13 @@ function searchWikidataItems(term) {
                                     </div>
                                 `).show();
                                 $importConfirmBtn.prop('disabled', true).addClass('cdx-button--disabled');
-                                $loadExistingSchemaBtn.html(ICONS.external + ` <span>Cargar EntitySchema ${schemaId} existente</span>`).off('click').on('click', function() {
-                                    $overlay.remove();
-                                    loadEntitySchema(schemaId);
-                                }).show();
+                                $editExistingSchemaBtn.html(ICONS.external + ` <span>Editar esquema ${schemaId} existente</span>`).off('click').on('click', function() {
+                                    window.open('/wiki/EntitySchema:' + schemaId, '_blank');
+                                }).css('display', 'inline-flex');
                             } else {
                                 $duplicateNoticeBox.empty().hide();
                                 $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
-                                $loadExistingSchemaBtn.hide();
+                                $editExistingSchemaBtn.hide();
                             }
                         }
 
@@ -5031,7 +5030,9 @@ function searchWikidataItems(term) {
                             }
                         });
 
-                        let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center', 'flex-wrap': 'wrap'}).append($importConfirmBtn).append($loadExistingSchemaBtn);
+                        let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center', 'width': '100%', 'margin-top': '10px'})
+                            .append($importConfirmBtn.css({'flex': '1'}))
+                            .append($editExistingSchemaBtn);
                         $resultArea.append($btnRow);
 
                         // Trigger initial check for selected candidate
@@ -5109,7 +5110,7 @@ function searchWikidataItems(term) {
 
         let $targetItemInput = $('<input>').addClass('cradle-input').attr({
             'id': 'cradle-schema-target-item-input',
-            'placeholder': 'Ej: Q164027 (Estadio de fútbol) o Q5 (Humano)'
+            'placeholder': 'Ej: Q483110 (Estadio) o Q5 (Humano)'
         });
         let $targetNoticeDiv = $('<div>').css({'margin-top': '4px'});
 
@@ -5193,16 +5194,12 @@ function searchWikidataItems(term) {
             checkTargetItemDuplicateSchema($(this).val());
         });
 
-        let $headerFieldsRow = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'margin-bottom': '12px'});
+        // Header Title Row with Importer button on top right
+        let $headerTitleRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '4px'});
+        $headerTitleRow.append($('<h3>').css({'margin': '0'}).text(mw.msg('cradle-schema-designer')));
 
-        // Row 1: Título, Descripción, Alias (|) in ONE flex row + Importer button
-        let $row1 = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap', 'align-items': 'center'});
-        $row1.append($('<div>').css({'flex': '1', 'min-width': '140px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title'))).append($titleInput));
-        $row1.append($('<div>').css({'flex': '1.5', 'min-width': '160px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Descripción')).append($descInput));
-        $row1.append($('<div>').css({'flex': '1', 'min-width': '130px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Alias (|)')).append($aliasesInput));
-        
         let $openImporterBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet')
-            .css({'height': '36px', 'margin-top': '20px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
+            .css({'height': '32px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
             .html(ICONS.download + ' <span>Importar desde elemento</span>')
             .on('click', function(e) {
                 e.preventDefault();
@@ -5211,15 +5208,13 @@ function searchWikidataItems(term) {
                         $targetItemInput.val(importedTargetQID);
                         checkTargetItemDuplicateSchema(importedTargetQID);
                     }
-                    let existingPIDs = [];
-                    $propsList.children().each(function() {
-                        let p = $(this).data('pid');
-                        if (p) existingPIDs.push(p);
-                    });
-                    let newPIDs = (importedPIDs || []).filter(p => !existingPIDs.includes(p));
+                    
+                    // Clear previous property rows so new import starts fresh
+                    $propsList.empty();
 
+                    let newPIDs = importedPIDs || [];
                     if (newPIDs.length === 0) {
-                        mw.notify('No hay propiedades nuevas para importar.', { type: 'info' });
+                        mw.notify('No hay propiedades seleccionadas para importar.', { type: 'info' });
                         return;
                     }
 
@@ -5236,7 +5231,16 @@ function searchWikidataItems(term) {
                     });
                 });
             });
-        $row1.append($openImporterBtn);
+        $headerTitleRow.append($openImporterBtn);
+        $form.append($headerTitleRow);
+
+        let $headerFieldsRow = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'margin-bottom': '12px'});
+
+        // Row 1: Título, Descripción, Alias (|) in FULL width flex row
+        let $row1 = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap', 'align-items': 'center'});
+        $row1.append($('<div>').css({'flex': '1', 'min-width': '140px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title'))).append($titleInput));
+        $row1.append($('<div>').css({'flex': '1.5', 'min-width': '160px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Descripción')).append($descInput));
+        $row1.append($('<div>').css({'flex': '1', 'min-width': '130px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Alias (|)')).append($aliasesInput));
 
         // Row 2: Elemento asociado (directly below Título)
         let $row2 = $('<div>').css({'display': 'flex', 'flex-direction': 'column'});
