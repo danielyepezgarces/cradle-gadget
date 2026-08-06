@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.31
+ * Version: 1.15.32
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.31');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.32');
  */
 
 (function() {
@@ -791,6 +791,7 @@
             'cradle-copy-shex': 'Copy ShEx',
             'cradle-create-entityschema-btn': 'Publish EntitySchema on Wikidata',
             'cradle-user-menu-btn': 'Create new item with Cradle',
+            'cradle-constraints-title': 'Wikidata constraints ($1)',
             'cradle-constraint-mandatory': 'Mandatory value constraint: A value for this property should be provided.',
             'cradle-constraint-single': 'Single value constraint: Only one value is allowed for this property.',
             'cradle-constraint-type': 'Type constraint: Ensure value matches the required entity type.',
@@ -875,6 +876,7 @@
                     'cradle-copy-shex': 'Copiar ShEx',
                     'cradle-create-entityschema-btn': 'Publicar EntitySchema en Wikidata',
                     'cradle-user-menu-btn': 'Crear elemento nuevo con Cradle',
+                    'cradle-constraints-title': 'Restricciones de Wikidata ($1)',
                     'cradle-constraint-mandatory': 'Restricción de valor obligatorio: Se debe proporcionar un valor para esta propiedad.',
                     'cradle-constraint-single': 'Restricción de valor único: Solo se permite un único valor para esta propiedad.',
                     'cradle-constraint-type': 'Restricción de tipo de entidad: Verifique que el valor sea del tipo de entidad requerido.',
@@ -2802,19 +2804,49 @@
                 $cardHeader.append($('<p>').addClass('cradle-field-description').text(meta.description));
             }
             if (meta.constraints && meta.constraints.length > 0) {
-                meta.constraints.forEach(c => {
-                    let $cBox = $('<div>').addClass('cradle-constraint-badge').css({
-                        'font-size': '0.75rem',
-                        'color': '#856404',
-                        'background-color': '#fff3cd',
-                        'border': '1px solid #ffeeba',
-                        'border-radius': '3px',
-                        'padding': '3px 8px',
-                        'margin-top': '4px',
-                        'line-height': '1.3'
-                    }).text('⚠ Wikidata Constraint: ' + c.text);
-                    $cardHeader.append($cBox);
+                let count = meta.constraints.length;
+                let titleText = mw.msg('cradle-constraints-title', count);
+
+                let $cToggle = $('<div>').addClass('cradle-constraint-toggle').css({
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '6px',
+                    'font-size': '0.75rem',
+                    'font-weight': 'bold',
+                    'color': '#856404',
+                    'background-color': '#fff3cd',
+                    'border': '1px solid #ffeeba',
+                    'border-radius': '3px',
+                    'padding': '3px 8px',
+                    'margin-top': '6px',
+                    'cursor': 'pointer',
+                    'user-select': 'none',
+                    'width': 'fit-content'
+                }).html(`<span>ⓘ ${titleText}</span> <span class="cradle-arrow" style="font-size:0.65rem;">▼</span>`);
+
+                let $cList = $('<div>').addClass('cradle-constraint-list').css({
+                    'display': 'none',
+                    'margin-top': '4px',
+                    'padding': '6px 10px',
+                    'background': '#fdf8e6',
+                    'border': '1px solid #f5e7b8',
+                    'border-radius': '3px',
+                    'font-size': '0.75rem',
+                    'color': '#444'
                 });
+
+                meta.constraints.forEach(c => {
+                    let $item = $('<div>').css({'margin-bottom': '4px', 'line-height': '1.3'}).html(`<strong>•</strong> ${c.text}`);
+                    $cList.append($item);
+                });
+
+                $cToggle.on('click', function() {
+                    $cList.slideToggle(150);
+                    let $arrow = $(this).find('.cradle-arrow');
+                    $arrow.text($arrow.text() === '▼' ? '▲' : '▼');
+                });
+
+                $cardHeader.append($cToggle).append($cList);
             }
             $card.append($cardHeader);
 
