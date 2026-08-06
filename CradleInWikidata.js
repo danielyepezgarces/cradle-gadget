@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.24.3
+ * Version: 1.25.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.24.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.25.0');
  */
 
 (function() {
@@ -1521,120 +1521,64 @@
     }
 
     /**
-     * Renders selection panel for Create mode (Template or Schema).
+     * Renders selection panel for Create / Selector mode (100% ShEx EntitySchema).
      */
     function renderCreateOptionsSelector() {
         let $content = $('#cradle-content-area').empty();
         updateDrawerFooter(false);
+
+        let $boxSchema = $('<div>').addClass('cradle-selector-box');
         
-        $content.append($('<div>').css({'text-align': 'center', 'margin-top': '20px'})
-            .append($('<div>').addClass('cradle-spinner').css({'border-top-color': 'var(--border-color-progressive, #36c)'}))
-            .append($('<p>').text(mw.msg('cradle-loading-templates')))
-        );
-
-        loadCradleWikitext().then(wikitext => {
-            cradleTemplates = parseCradleWikitext(wikitext);
-            $content.empty();
-
-            // Render Tabs Header using dedicated responsive classes
-            let $tabsHeader = $('<div>').addClass('cradle-select-tabs');
-
-            let tabs = [
-                { id: 'shex', label: mw.msg('cradle-tab-shex') },
-                { id: 'predefined', label: mw.msg('cradle-tab-predefined') }
-            ];
-
-            let activeTab = mw.storage.get('cradle-active-tab') || 'shex';
-            if (activeTab !== 'shex' && activeTab !== 'predefined') {
-                activeTab = 'shex';
-            }
-
-            tabs.forEach(tab => {
-                let $tab = $('<button>')
-                    .addClass('cradle-select-tab')
-                    .text(tab.label)
-                    .on('click', function() {
-                        mw.storage.set('cradle-active-tab', tab.id);
-                        renderCreateOptionsSelector();
-                    });
-                if (activeTab === tab.id) {
-                    $tab.addClass('active');
-                }
-                $tabsHeader.append($tab);
+        let $createDesignerBtn = $('<button>')
+            .addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+            .css({
+                'width': '100%',
+                'margin-bottom': '16px',
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                'gap': '6px',
+                'min-height': '38px',
+                'font-weight': 'bold',
+                'font-size': '14px',
+                'box-sizing': 'border-box'
+            })
+            .html(ICONS.plus + ' <span>' + (mw.msg('cradle-create-shex-designer') || 'Diseñar / Crear nuevo EntitySchema (ShEx)') + '</span>')
+            .on('click', function() {
+                renderSchemaDesigner();
             });
-            $content.append($tabsHeader);
+        $boxSchema.append($createDesignerBtn);
 
-            // Tab Panels
-            if (activeTab === 'shex') {
-                let $boxSchema = $('<div>').addClass('cradle-selector-box');
-                
-                let $createDesignerBtn = $('<button>')
-                    .addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-                    .css({'width': '100%', 'margin-bottom': '12px', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'min-height': '36px'})
-                    .html(ICONS.plus + ' <span>' + (mw.msg('cradle-create-shex-designer') || 'Diseñar / Crear nuevo EntitySchema (ShEx)') + '</span>')
-                    .on('click', function() {
-                        renderSchemaDesigner();
-                    });
-                $boxSchema.append($createDesignerBtn);
+        $boxSchema.append($('<p>').css({'margin-top': '4px', 'font-weight': 'bold', 'font-size': '13px'}).text(mw.msg('cradle-method-schema')));
+        
+        let $schemaInput = $('<input>')
+            .addClass('cradle-input')
+            .attr('type', 'text')
+            .attr('placeholder', mw.msg('cradle-schema-placeholder'));
 
-                $boxSchema.append($('<p>').css({'margin-top': '8px', 'font-weight': 'bold'}).text(mw.msg('cradle-method-schema')));
-                
-                let $schemaInput = $('<input>')
-                    .addClass('cradle-input')
-                    .attr('type', 'text')
-                    .attr('placeholder', mw.msg('cradle-schema-placeholder'));
-
-                let $schemaBtn = $('<button>')
-                    .addClass('cradle-btn-secondary')
-                    .text(mw.msg('cradle-load-schema'))
-                    .on('click', function() {
-                        let schemaId = $schemaInput.val().trim().toUpperCase();
-                        if (schemaId) {
-                            if (!schemaId.startsWith('E')) {
-                                schemaId = 'E' + schemaId.replace(/\D/g, '');
-                            }
-                            loadAndDisplaySchema(schemaId);
-                        }
-                    });
-
-                let $group = $('<div>').css({'display': 'flex', 'gap': '8px', 'margin-top': '8px'});
-                $schemaInput.css({'flex': '1'});
-                $group.append($schemaInput).append($schemaBtn);
-                $boxSchema.append($group);
-
-                attachEntitySchemaAutocompleter($group, $schemaInput, function(schemaId) {
-                    loadAndDisplaySchema(schemaId);
-                });
-                $content.append($boxSchema);
-            } else if (activeTab === 'predefined') {
-                let $box = $('<div>').addClass('cradle-selector-box');
-                $box.append($('<p>').css({'margin-top': '0', 'font-weight': 'bold'}).text(mw.msg('cradle-method-predefined')));
-                
-                let $select = $('<select>').addClass('cradle-select');
-                $select.append($('<option>').val('').text(mw.msg('cradle-select-predefined')));
-                
-                Object.keys(cradleTemplates).sort().forEach(key => {
-                    let t = cradleTemplates[key];
-                    let label = t.labels[mw.config.get('wgUserLanguage')] || t.title;
-                    $select.append($('<option>').val(key).text(label));
-                });
-                $box.append($select);
-                $content.append($box);
-                
-                $select.on('change', function() {
-                    let key = $select.val();
-                    if (key) {
-                        loadAndDisplayTemplate(key);
+        let $schemaBtn = $('<button>')
+            .addClass('cradle-btn-secondary')
+            .text(mw.msg('cradle-load-schema'))
+            .on('click', function() {
+                let schemaId = $schemaInput.val().trim().toUpperCase();
+                if (schemaId) {
+                    if (!schemaId.startsWith('E')) {
+                        schemaId = 'E' + schemaId.replace(/\D/g, '');
                     }
-                });
-            }
-        }).catch(err => {
-            console.error(err);
-            $content.empty().append($('<div>').addClass('cradle-selector-box').css('border-color', 'var(--color-destructive, #d33)')
-                .append($('<p>').css({'color': 'var(--color-destructive, #d33)', 'font-weight': 'bold'}).text('Error loading predefined templates'))
-                .append($('<p>').text(err.message))
-            );
+                    loadAndDisplaySchema(schemaId);
+                }
+            });
+
+        let $group = $('<div>').css({'display': 'flex', 'gap': '8px', 'margin-top': '8px'});
+        $schemaInput.css({'flex': '1'});
+        $group.append($schemaInput).append($schemaBtn);
+        $boxSchema.append($group);
+
+        attachEntitySchemaAutocompleter($group, $schemaInput, function(schemaId) {
+            loadAndDisplaySchema(schemaId);
         });
+
+        $content.append($boxSchema);
     }
 
     /**
