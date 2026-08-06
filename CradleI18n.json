@@ -119,7 +119,9 @@
     "cradle-rank-deprecated": "Deprecated",
     "cradle-native-schema-title": "EntitySchema Compliance",
     "cradle-missing-required-prop": "Required by schema (missing)",
-    "cradle-missing-optional-prop": "Optional schema property"
+    "cradle-missing-optional-prop": "Optional schema property",
+    "cradle-schema-desc-placeholder": "Schema description (e.g. Schema for football stadiums)...",
+    "cradle-schema-aliases-placeholder": "Schema aliases (pipe-separated |, e.g. stadium | arena)..."
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -241,6 +243,8 @@
     "cradle-rank-deprecated": "En desuso",
     "cradle-native-schema-title": "Cumplimiento de EntitySchema",
     "cradle-missing-required-prop": "Requerida por esquema (faltante)",
-    "cradle-missing-optional-prop": "Propiedad opcional del esquema"
+    "cradle-missing-optional-prop": "Propiedad opcional del esquema",
+    "cradle-schema-desc-placeholder": "Descripción del esquema (ej. Esquema para estadios de fútbol)...",
+    "cradle-schema-aliases-placeholder": "Alias del esquema separados por plecas (ej. estadio | cancha)..."
   }
 }
