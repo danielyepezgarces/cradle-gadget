@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.22.0
+ * Version: 1.23.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.22.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.23.0');
  */
 
 (function() {
@@ -886,7 +886,7 @@
             'cradle-preset-none': 'No predefined values',
             'cradle-tab-predefined': 'Predefined Forms',
             'cradle-tab-shex': 'EntitySchema (ShEx)',
-            'cradle-tab-custom': 'Custom Schemas',
+            'cradle-create-shex-designer': 'Design / Create new EntitySchema (ShEx)',
             'cradle-detected-schemas': 'Detected schemas for this item:',
             'cradle-or-enter-schema': 'Or enter another EntitySchema ID:',
             'cradle-search-value-placeholder': 'Search QID to add...',
@@ -1083,11 +1083,15 @@
             btnText,
             'pt-cradle-create',
             'Crear un nuevo elemento de Wikidata usando esquemas de Cradle',
-            null
+            null,
+            '#pt-uls'
         );
 
         let $li = $(portletLink || '#pt-cradle-create');
         if ($li.length) {
+            if ($('#pt-uls').length) {
+                $li.insertBefore('#pt-uls');
+            }
             $li.find('a').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary').css({
                 'background-color': '#36c',
                 'color': '#ffffff !important',
@@ -1475,12 +1479,14 @@
             let $tabsHeader = $('<div>').addClass('cradle-select-tabs');
 
             let tabs = [
-                { id: 'predefined', label: mw.msg('cradle-tab-predefined') },
                 { id: 'shex', label: mw.msg('cradle-tab-shex') },
-                { id: 'custom', label: mw.msg('cradle-tab-custom') }
+                { id: 'predefined', label: mw.msg('cradle-tab-predefined') }
             ];
 
-            let activeTab = mw.storage.get('cradle-active-tab') || 'predefined';
+            let activeTab = mw.storage.get('cradle-active-tab') || 'shex';
+            if (activeTab !== 'shex' && activeTab !== 'predefined') {
+                activeTab = 'shex';
+            }
 
             tabs.forEach(tab => {
                 let $tab = $('<button>')
@@ -1498,138 +1504,19 @@
             $content.append($tabsHeader);
 
             // Tab Panels
-            if (activeTab === 'predefined') {
-                let $box = $('<div>').addClass('cradle-selector-box');
-                $box.append($('<p>').css({'margin-top': '0', 'font-weight': 'bold'}).text(mw.msg('cradle-method-predefined')));
-                
-                let $select = $('<select>').addClass('cradle-select');
-                $select.append($('<option>').val('').text(mw.msg('cradle-select-predefined')));
-                
-                Object.keys(cradleTemplates).sort().forEach(key => {
-                    let t = cradleTemplates[key];
-                    let label = t.labels[mw.config.get('wgUserLanguage')] || t.title;
-                    $select.append($('<option>').val(key).text(label));
-                });
-                $box.append($select);
-                $content.append($box);
-                
-                $select.on('change', function() {
-                    let key = $select.val();
-                    if (key) {
-                        loadAndDisplayTemplate(key);
-                    }
-                });
-            } else if (activeTab === 'custom') {
-                let $customBox = $('<div>').addClass('cradle-selector-box');
-                $customBox.append($('<p>').css({'margin-top': '0', 'font-weight': 'bold'}).text(mw.msg('cradle-custom-schemas')));
-                
-                let $customList = $('<div>').css({'max-height': '200px', 'overflow-y': 'auto', 'margin-bottom': '10px'});
-                $customBox.append($customList);
-
-                let userName = mw.config.get('wgUserName');
-                if (userName) {
-                    let $createBtn = $('<button>')
-                        .addClass('cradle-btn-secondary')
-                        .css({'width': '100%', 'margin-bottom': '10px', 'font-weight': 'bold', 'background': '#36c', 'color': '#fff'})
-                        .text(mw.msg('cradle-create-schema'))
-                        .on('click', function() {
-                            renderSchemaDesigner();
-                        });
-                    $customBox.prepend($createBtn);
-
-                    fetchUserSchemas(function(sections) {
-                        $customList.empty();
-                        let keys = Object.keys(sections);
-                        if (keys.length === 0) {
-                            $customList.append($('<p>').css({'font-style': 'italic', 'color': '#72777d'}).text(mw.msg('cradle-no-custom-schemas')));
-                        } else {
-                            keys.forEach(key => {
-                                let schemaName = key;
-                                let $row = $('<div>').css({
-                                    'display': 'flex',
-                                    'justify-content': 'space-between',
-                                    'align-items': 'center',
-                                    'padding': '6px 0',
-                                    'border-bottom': '1px solid #eaecf0'
-                                });
-                                $row.append($('<span>').text(schemaName));
-                                
-                                let $actions = $('<div>').css({'display': 'flex', 'gap': '4px'});
-                                let $load = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'font-size': '12px'}).text(mw.msg('cradle-btn-load')).on('click', function() {
-                                    let data = parseCradleWikitext(sections[schemaName]);
-                                    cradleTemplates[schemaName.toLowerCase().replace(/ /g, '_')] = {
-                                        title: schemaName,
-                                        labels: data.labels,
-                                        props: data.props
-                                    };
-                                    loadAndDisplayTemplate(schemaName.toLowerCase().replace(/ /g, '_'));
-                                });
-                                let $edit = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'font-size': '12px'}).text(mw.msg('cradle-btn-edit')).on('click', function() {
-                                    let data = parseCradleWikitext(sections[schemaName]);
-                                    renderSchemaDesigner(schemaName, data);
-                                });
-                                let $del = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'font-size': '12px', 'color': '#d33'}).text(mw.msg('cradle-btn-delete')).on('click', function() {
-                                    if (confirm(mw.msg('cradle-delete-schema-confirm', schemaName))) {
-                                        deleteSchemaFromPage(schemaName);
-                                    }
-                                });
-                                $actions.append($load).append($edit).append($del);
-                                $row.append($actions);
-                                $customList.append($row);
-                            });
-                        }
-                    });
-                } else {
-                    $customList.append($('<p>').css({'font-style': 'italic', 'color': '#72777d'}).text(mw.msg('cradle-login-required-schema')));
-                }
-                $content.append($customBox);
-
-                let $communityBox = $('<div>').addClass('cradle-selector-box').css({'margin-top': '15px'});
-                $communityBox.append($('<p>').css({'margin-top': '0', 'font-weight': 'bold'}).text(mw.msg('cradle-search-community')));
-                
-                let $searchGroup = $('<div>').css({'display': 'flex', 'gap': '8px'});
-                let $searchBar = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-search-placeholder-community'));
-                let $searchBtn = $('<button>').addClass('cradle-btn-secondary').text(mw.msg('cradle-search-btn'));
-                $searchGroup.append($searchBar).append($searchBtn);
-                $communityBox.append($searchGroup);
-                
-                let $resultsDiv = $('<div>').css({'margin-top': '10px', 'max-height': '200px', 'overflow-y': 'auto'});
-                $communityBox.append($resultsDiv);
-                
-                $searchBtn.on('click', function() {
-                    let query = $searchBar.val().trim();
-                    $resultsDiv.empty().append($('<p>').text(mw.msg('cradle-searching')));
-                    searchCommunitySchemas(query, function(results) {
-                        $resultsDiv.empty();
-                        if (results.length === 0) {
-                            $resultsDiv.append($('<p>').css({'font-style': 'italic', 'color': '#72777d'}).text(mw.msg('cradle-no-results')));
-                        } else {
-                            results.forEach(res => {
-                                let $row = $('<div>').css({
-                                    'display': 'flex',
-                                    'justify-content': 'space-between',
-                                    'align-items': 'center',
-                                    'padding': '6px 0',
-                                    'border-bottom': '1px solid #eaecf0'
-                                });
-                                $row.append($('<div>')
-                                    .append($('<strong>').text(res.name))
-                                    .append($('<span>').css({'font-size': '11px', 'color': '#72777d', 'margin-left': '8px'}).text('by ' + res.author))
-                                );
-                                
-                                let $loadComm = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'font-size': '12px'}).text(mw.msg('cradle-btn-load')).on('click', function() {
-                                    loadAndDisplayUserSchema(res.title, res.name);
-                                });
-                                $row.append($loadComm);
-                                $resultsDiv.append($row);
-                            });
-                        }
-                    });
-                });
-                $content.append($communityBox);
-            } else if (activeTab === 'shex') {
+            if (activeTab === 'shex') {
                 let $boxSchema = $('<div>').addClass('cradle-selector-box');
-                $boxSchema.append($('<p>').css({'margin-top': '0', 'font-weight': 'bold'}).text(mw.msg('cradle-method-schema')));
+                
+                let $createDesignerBtn = $('<button>')
+                    .addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+                    .css({'width': '100%', 'margin-bottom': '12px', 'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'min-height': '36px'})
+                    .html(ICONS.plus + ' <span>' + (mw.msg('cradle-create-shex-designer') || 'Diseñar / Crear nuevo EntitySchema (ShEx)') + '</span>')
+                    .on('click', function() {
+                        renderSchemaDesigner();
+                    });
+                $boxSchema.append($createDesignerBtn);
+
+                $boxSchema.append($('<p>').css({'margin-top': '8px', 'font-weight': 'bold'}).text(mw.msg('cradle-method-schema')));
                 
                 let $schemaInput = $('<input>')
                     .addClass('cradle-input')
@@ -1658,6 +1545,27 @@
                     loadAndDisplaySchema(schemaId);
                 });
                 $content.append($boxSchema);
+            } else if (activeTab === 'predefined') {
+                let $box = $('<div>').addClass('cradle-selector-box');
+                $box.append($('<p>').css({'margin-top': '0', 'font-weight': 'bold'}).text(mw.msg('cradle-method-predefined')));
+                
+                let $select = $('<select>').addClass('cradle-select');
+                $select.append($('<option>').val('').text(mw.msg('cradle-select-predefined')));
+                
+                Object.keys(cradleTemplates).sort().forEach(key => {
+                    let t = cradleTemplates[key];
+                    let label = t.labels[mw.config.get('wgUserLanguage')] || t.title;
+                    $select.append($('<option>').val(key).text(label));
+                });
+                $box.append($select);
+                $content.append($box);
+                
+                $select.on('change', function() {
+                    let key = $select.val();
+                    if (key) {
+                        loadAndDisplayTemplate(key);
+                    }
+                });
             }
         }).catch(err => {
             console.error(err);
@@ -5798,49 +5706,17 @@ function searchWikidataItems(term) {
             renderCreateOptionsSelector();
         });
 
-        let $saveBtn = $('<button>').addClass('cradle-btn-primary').text(mw.msg('cradle-save-schema')).on('click', function() {
-            let name = $titleInput.val().trim();
-            if (!name) {
-                mw.notify(mw.msg('cradle-schema-title-required'), { type: 'error' });
-                return;
-            }
-            let targetQID = $targetItemInput.val().trim().toUpperCase();
-            let wikitext = '== ' + name + ' ==\n';
-            if (targetQID && /^Q\d+$/i.test(targetQID)) {
-                wikitext += '# targetItem: ' + targetQID + '\n';
-            }
-
-            let hasProps = false;
-            $propsList.children().each(function() {
-                let rowData = $(this).data('get_data')();
-                let pid = rowData.pid;
-                let cardVal = rowData.cardinality;
-                let mandatory = rowData.mandatory;
-                let allowMultiple = rowData.allowMultiple;
-                let hSel = rowData.hardselect;
-                let sSel = rowData.softselect;
-
-                let parts = [];
-                if (hSel) parts.push('hardselect:' + hSel);
-                if (sSel) parts.push('softselect:' + sSel);
-                if (mandatory) parts.push('mandatory');
-                if (allowMultiple) parts.push('multiple');
-
-                wikitext += '; ' + pid;
-                if (parts.length > 0) {
-                    wikitext += ' : ' + parts.join(' | ');
-                }
-                wikitext += '\n';
-                hasProps = true;
-            });
-
-            if (!hasProps) {
+        let $saveBtn = $('<button>').addClass('cradle-btn-primary').text(mw.msg('cradle-create-entityschema-btn')).on('click', function() {
+            let name = $titleInput.val().trim() || 'CustomSchema';
+            let targetQID = $targetItemInput.val().trim();
+            let propRows = gatherDesignerProps();
+            if (propRows.length === 0) {
                 mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
                 return;
             }
-
-            saveOrUpdateSchema(name, wikitext, function() {
-                renderCreateOptionsSelector();
+            let pids = propRows.map(r => r.pid);
+            fetchLabelsInBatches(pids, function(labelsMap) {
+                openShExExportModal(name, propRows, labelsMap, targetQID);
             });
         });
 
