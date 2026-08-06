@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.15.37
+ * Version: 1.15.38
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.37');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.15.38');
  */
 
 (function() {
@@ -2154,6 +2154,8 @@
                             guid: claim.id,
                             value: value,
                             datatype: meta.datatype,
+                            references: claim.references || [],
+                            qualifiers: claim.qualifiers || {},
                             isDeleted: false
                         });
                     }
@@ -2379,6 +2381,8 @@
             guid: null,
             value: defaultValue,
             datatype: datatype,
+            references: [],
+            qualifiers: {},
             isDeleted: false
         };
     }
