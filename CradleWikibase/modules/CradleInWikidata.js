@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.26.3
+ * Version: 1.27.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.26.3');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.27.0');
  */
 
 (function() {
@@ -1540,10 +1540,18 @@
             { id: 'design', label: mw.msg('cradle-tab-design-schema') || 'Diseñar esquemas' }
         ];
 
-        let activeTab = mw.storage.get('cradle-active-tab');
-        if (!activeTab && (window.location.hash === '#design' || window.location.search.includes('tab=design'))) {
+        let hash = window.location.hash.toLowerCase();
+        let search = window.location.search.toLowerCase();
+        let activeTab = null;
+
+        if (hash === '#design' || hash === '#designschema' || hash === '#design-schema' || search.includes('tab=design')) {
             activeTab = 'design';
+        } else if (hash === '#create' || hash === '#createitem' || hash === '#create-item' || search.includes('tab=create')) {
+            activeTab = 'create';
+        } else {
+            activeTab = mw.storage.get('cradle-active-tab');
         }
+
         if (activeTab !== 'create' && activeTab !== 'design') {
             activeTab = 'create';
         }
@@ -1554,12 +1562,11 @@
                 .text(tab.label)
                 .on('click', function() {
                     mw.storage.set('cradle-active-tab', tab.id);
-                    if (window.location.hash === '#design') {
-                        if (history.replaceState) {
-                            history.replaceState(null, null, window.location.pathname + window.location.search);
-                        } else {
-                            window.location.hash = '';
-                        }
+                    let newHash = tab.id === 'design' ? '#design' : '#create';
+                    if (history.replaceState) {
+                        history.replaceState(null, null, window.location.pathname + window.location.search + newHash);
+                    } else {
+                        window.location.hash = newHash;
                     }
                     renderCreateOptionsSelector();
                 });
