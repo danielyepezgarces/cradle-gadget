@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.26.2
+ * Version: 1.26.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.26.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.26.3');
  */
 
 (function() {
@@ -1541,7 +1541,7 @@
         ];
 
         let activeTab = mw.storage.get('cradle-active-tab');
-        if (window.location.hash === '#design' || window.location.search.includes('tab=design')) {
+        if (!activeTab && (window.location.hash === '#design' || window.location.search.includes('tab=design'))) {
             activeTab = 'design';
         }
         if (activeTab !== 'create' && activeTab !== 'design') {
@@ -1554,6 +1554,13 @@
                 .text(tab.label)
                 .on('click', function() {
                     mw.storage.set('cradle-active-tab', tab.id);
+                    if (window.location.hash === '#design') {
+                        if (history.replaceState) {
+                            history.replaceState(null, null, window.location.pathname + window.location.search);
+                        } else {
+                            window.location.hash = '';
+                        }
+                    }
                     renderCreateOptionsSelector();
                 });
             if (activeTab === tab.id) {
