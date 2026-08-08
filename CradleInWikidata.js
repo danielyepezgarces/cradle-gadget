@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.34.0
+ * Version: 1.35.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.34.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.35.0');
  */
 
 (function() {
@@ -629,19 +629,34 @@
             color: #202122;
         }
 
-        /* References */
+        /* References Container & Header */
         .cradle-wikibase-references {
             padding: 8px 12px;
             margin-top: 8px;
             margin-left: 24px;
             background-color: #f8f9fa;
             font-size: 0.8rem;
+            border-radius: 2px;
+            border: 1px dashed #c8ccd1;
         }
         
         .cradle-reference-header {
             color: #0645ad;
             cursor: pointer;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        .cradle-reference-block {
+            border-bottom: 1px dashed #c8ccd1;
+            padding-bottom: 6px;
+            margin-bottom: 6px;
+        }
+        .cradle-reference-block:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
         }
 
         .cradle-reference-row {
@@ -652,6 +667,7 @@
         .cradle-reference-prop {
             width: 140px;
             color: #0645ad;
+            font-weight: bold;
         }
 
         .cradle-reference-val {
@@ -3509,16 +3525,20 @@
             let $refBox = $('<div>').addClass('cradle-wikibase-references');
             let refList = row.references || [];
             let refCount = refList.length;
-            let $refHeader = $('<div>').addClass('cradle-reference-header')
-                .text(refCount > 0 ? `▼ ${refCount} referencia(s)` : '▶ 0 referencias');
+            let refHeaderText = refCount === 1 ? `▼ 1 referencia` : (refCount > 0 ? `▼ ${refCount} referencias` : '▶ 0 referencias');
+            let $refHeader = $('<div>').addClass('cradle-reference-header').text(refHeaderText);
             
             let $refContent = $('<div>').css({'display': refCount > 0 ? 'block' : 'none'});
             $refHeader.on('click', function() {
                 $refContent.toggle();
-                $(this).text($refContent.is(':visible') ? `▼ ${row.references.length} referencia(s)` : `▶ ${row.references.length} referencias`);
+                let isVis = $refContent.is(':visible');
+                let count = (row.references || []).length;
+                let text = count === 1 ? '1 referencia' : `${count} referencias`;
+                $(this).text(isVis ? `▼ ${text}` : `▶ ${text}`);
             });
 
             refList.forEach((refObj, rIdx) => {
+                let $refBlock = $('<div>').addClass('cradle-reference-block');
                 let refSnaks = refObj.snaks || refObj;
                 Object.keys(refSnaks).forEach(rPid => {
                     if (!propertyMetadata[rPid] || !propertyMetadata[rPid].label || propertyMetadata[rPid].label === rPid) {
@@ -3537,9 +3557,10 @@
                         let $rProp = $('<div>').addClass('cradle-reference-prop').text(rMeta.label || rPid);
                         let $rVal = $('<div>').addClass('cradle-reference-val').text(formattedRefVal);
                         $rRow.append($rProp).append($rVal);
-                        $refContent.append($rRow);
+                        $refBlock.append($rRow);
                     });
                 });
+                $refContent.append($refBlock);
             });
 
             let $addRefLink = $('<a>').addClass('cradle-add-reference-link').text('+ ' + (mw.msg('cradle-add-reference') || 'añadir referencia'))
