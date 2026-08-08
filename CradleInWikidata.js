@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.30.0
+ * Version: 1.31.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.30.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.31.0');
  */
 
 (function() {
@@ -275,16 +275,17 @@
             pointer-events: auto;
         }
 
-        /* Wikimedia-styled flat side panel */
+        /* Wikimedia-styled flat side panel — Spacious 720px Drawer (matching Beta width) */
         .cradle-drawer {
             position: fixed;
             top: 0;
-            right: -480px;
-            width: 440px;
+            right: -720px;
+            width: 720px;
+            max-width: 95vw;
             height: 100vh;
             background-color: var(--background-color-base, #ffffff);
             border-left: 1px solid var(--border-color-base, #a2a9b1);
-            box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.25);
             z-index: 10001;
             transition: right 0.25s cubic-bezier(0.2, 0.8, 0.4, 1);
             display: flex;
@@ -432,12 +433,38 @@
             width: 100%;
         }
 
+        /* Property Group Boxes — Dynamic Validation States */
         .cradle-wikibase-statementgroupview {
             display: flex;
             flex-direction: row;
-            border: 2px solid #99cc99;
+            border: 2px solid #c8ccd1;
             margin-bottom: 16px;
             position: relative;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .cradle-wikibase-statementgroupview.valid {
+            border: 2px solid #00af89;
+        }
+
+        .cradle-wikibase-statementgroupview.invalid {
+            border: 2px solid #d33;
+            background-color: rgba(211, 51, 51, 0.02);
+        }
+
+        .cradle-wikibase-statementgroupview.optional-present {
+            border: 2px solid #36c;
+        }
+
+        .cradle-wikibase-statementgroupview.optional-missing {
+            border: 2px solid #fc3;
+            background-color: #fef8ee;
+        }
+
+        .cradle-card-validation-badge {
+            display: inline-block;
+            margin-right: 4px;
+            font-size: 0.9rem;
         }
 
         /* Left column: property label (160px) */
@@ -3332,15 +3359,15 @@
 
         rows.forEach((row, index) => {
             let $row = $('<div>')
-                .addClass('wikibase-statementview listview-item')
+                .addClass('cradle-wikibase-statementview cradle-listview-item')
                 .attr('id', `cradle-row-${row.id}`);
 
             if (row.isDeleted) {
                 $row.addClass('deleted');
             }
 
-            // Rank Selector Column
-            let $rankWrapper = $('<div>').addClass('wikibase-statementview-rankselector');
+            // 1. Rank Selector Column
+            let $rankWrapper = $('<div>').addClass('cradle-wikibase-statementview-rankselector');
             let $rankUp = $('<span>').addClass('cradle-rank-up').text('▵').attr('title', 'Aumentar rango').on('click', function() {
                 row.rank = row.rank === 'normal' ? 'preferred' : (row.rank === 'deprecated' ? 'normal' : 'preferred');
                 renderPropertyRows(pid);
@@ -3354,14 +3381,14 @@
             $rankWrapper.append($rankUp).append($rankCircle).append($rankDown);
             $row.append($rankWrapper);
 
-            // Mainsnak Container
-            let $mainsnakContainer = $('<div>').addClass('wikibase-statementview-mainsnak-container');
-            let $mainsnak = $('<div>').addClass('wikibase-statementview-mainsnak');
-            let $snakview = $('<div>').addClass('wikibase-snakview wb-edit');
-            let $snakValueContainer = $('<div>').addClass('wikibase-snakview-value-container');
-            let $snakBody = $('<div>').addClass('wikibase-snakview-body');
-            let $snakValue = $('<div>').addClass('wikibase-snakview-value');
-            let $valueView = $('<div>').addClass('valueview-value');
+            // 2. Mainsnak Container
+            let $mainsnakContainer = $('<div>').addClass('cradle-wikibase-statementview-mainsnak-container');
+            let $mainsnak = $('<div>').addClass('cradle-wikibase-statementview-mainsnak');
+            let $snakview = $('<div>').addClass('cradle-wikibase-snakview cradle-wb-edit');
+            let $snakValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container');
+            let $snakBody = $('<div>').addClass('cradle-wikibase-snakview-body');
+            let $snakValue = $('<div>').addClass('cradle-wikibase-snakview-value');
+            let $valueView = $('<div>').addClass('cradle-valueview-value');
             
             $valueView.append(createInputForDatatype(pid, row));
             $snakValue.append($valueView);
@@ -3372,8 +3399,8 @@
             $mainsnakContainer.append($mainsnak);
             $row.append($mainsnakContainer);
 
-            // Delete button
-            let $toolbarContainer = $('<div>').addClass('wikibase-toolbar-container');
+            // 3. Delete button
+            let $toolbarContainer = $('<div>').addClass('cradle-wikibase-toolbar-container');
             let $deleteBtn = $('<button>')
                 .addClass('cradle-btn-icon')
                 .html(row.isDeleted ? ICONS.undo : ICONS.trash)
