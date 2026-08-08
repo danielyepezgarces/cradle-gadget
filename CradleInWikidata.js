@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.31.0
+ * Version: 1.32.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.31.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.32.0');
  */
 
 (function() {
@@ -3390,17 +3390,96 @@
             let $snakValue = $('<div>').addClass('cradle-wikibase-snakview-value');
             let $valueView = $('<div>').addClass('cradle-valueview-value');
             
-            $valueView.append(createInputForDatatype(pid, row));
+            let $inputElem = createInputForDatatype(pid, row);
+            $valueView.append($inputElem);
             $snakValue.append($valueView);
             $snakBody.append($snakValue);
             $snakValueContainer.append($snakBody);
             $snakview.append($snakValueContainer);
             $mainsnak.append($snakview);
             $mainsnakContainer.append($mainsnak);
+
+            // Render Qualifiers Section if qualifiers exist or are defined
+            let qualPids = Object.keys(row.qualifiers || {});
+            if (qualPids.length > 0 || (propDef && propDef.qualifiers && propDef.qualifiers.length > 0)) {
+                let $qualBox = $('<div>').addClass('cradle-wikibase-qualifiers');
+                let displayQualPids = qualPids.length > 0 ? qualPids : (propDef.qualifiers || []);
+                displayQualPids.forEach(qPid => {
+                    let qMeta = propertyMetadata[qPid] || { label: qPid };
+                    let qVals = (row.qualifiers && row.qualifiers[qPid]) ? row.qualifiers[qPid] : [''];
+                    qVals.forEach((qVal, qIdx) => {
+                        let $qRow = $('<div>').addClass('cradle-qualifier-row');
+                        let $qProp = $('<div>').addClass('cradle-qualifier-prop').text(qMeta.label || qPid);
+                        let $qValDiv = $('<div>').addClass('cradle-qualifier-val');
+                        let $qInput = $('<input>')
+                            .addClass('cradle-input')
+                            .attr('type', 'text')
+                            .val(typeof qVal === 'object' ? (qVal.text || qVal.id || '') : qVal)
+                            .on('change input', function() {
+                                if (!row.qualifiers) row.qualifiers = {};
+                                row.qualifiers[qPid] = [$(this).val()];
+                                liveUpdateValidation();
+                            });
+                        $qValDiv.append($qInput);
+                        $qRow.append($qProp).append($qValDiv);
+                        $qualBox.append($qRow);
+                    });
+                });
+                $mainsnakContainer.append($qualBox);
+            }
+
+            // Render References Section
+            let $refBox = $('<div>').addClass('cradle-wikibase-references');
+            let refList = row.references || [];
+            let refCount = refList.length;
+            let $refHeader = $('<div>').addClass('cradle-reference-header')
+                .text(refCount > 0 ? `▼ ${refCount} referencia(s)` : '▶ 0 referencias');
+            
+            let $refContent = $('<div>').css({'display': refCount > 0 ? 'block' : 'none'});
+            $refHeader.on('click', function() {
+                $refContent.toggle();
+                $(this).text($refContent.is(':visible') ? `▼ ${row.references.length} referencia(s)` : `▶ ${row.references.length} referencias`);
+            });
+
+            refList.forEach((refObj, rIdx) => {
+                let refSnaks = refObj.snaks || refObj;
+                Object.keys(refSnaks).forEach(rPid => {
+                    let rMeta = propertyMetadata[rPid] || { label: rPid };
+                    let snakArr = Array.isArray(refSnaks[rPid]) ? refSnaks[rPid] : [refSnaks[rPid]];
+                    snakArr.forEach(s => {
+                        let rText = typeof s === 'object' ? (s.datavalue ? (s.datavalue.value.text || s.datavalue.value) : (s.text || '')) : s;
+                        let $rRow = $('<div>').addClass('cradle-reference-row');
+                        let $rProp = $('<div>').addClass('cradle-reference-prop').text(rMeta.label || rPid);
+                        let $rVal = $('<div>').addClass('cradle-reference-val').text(typeof rText === 'string' ? rText : JSON.stringify(rText));
+                        $rRow.append($rProp).append($rVal);
+                        $refContent.append($rRow);
+                    });
+                });
+            });
+
+            let $addRefLink = $('<a>').addClass('cradle-add-reference-link').text('+ ' + (mw.msg('cradle-add-reference') || 'añadir referencia'))
+                .on('click', function(e) {
+                    e.preventDefault();
+                    if (!row.references) row.references = [];
+                    row.references.push({ snaks: { P248: [{ datavalue: { value: '' } }] } });
+                    renderPropertyRows(pid);
+                });
+
+            $refBox.append($refHeader).append($refContent).append($addRefLink);
+            $mainsnakContainer.append($refBox);
+
             $row.append($mainsnakContainer);
 
-            // 3. Delete button
+            // 3. Toolbar Container with Edit and Delete buttons
             let $toolbarContainer = $('<div>').addClass('cradle-wikibase-toolbar-container');
+            let $editBtn = $('<button>')
+                .addClass('cradle-btn-icon')
+                .html('✏️')
+                .attr('title', mw.msg('cradle-edit-tab') || 'Editar')
+                .on('click', function() {
+                    let $inp = $valueView.find('input, select, textarea').first();
+                    if ($inp.length) $inp.focus().select();
+                });
             let $deleteBtn = $('<button>')
                 .addClass('cradle-btn-icon')
                 .html(row.isDeleted ? ICONS.undo : ICONS.trash)
@@ -3408,7 +3487,7 @@
                 .on('click', function() {
                     toggleDeleteRow(pid, row.id);
                 });
-            $toolbarContainer.append($deleteBtn);
+            $toolbarContainer.append($editBtn).append($deleteBtn);
             $row.append($toolbarContainer);
 
             $container.append($row);
@@ -3435,8 +3514,41 @@
      * Creates appropriate jQuery inputs for a datatype.
      */
     function createInputForDatatype(pid, row) {
-        let propDef = schemaProperties[pid];
+        let propDef = schemaProperties[pid] || {};
         
+        // Support for dropdown select when predefined values / hardselect / softselect / allowedValues exist
+        let allowedList = propDef.hardselect || propDef.softselect || propDef.allowedValues || propDef.values;
+        if (allowedList && Array.isArray(allowedList) && allowedList.length > 0) {
+            let $select = $('<select>').addClass('cradle-select').css({
+                'width': '100%',
+                'height': '32px',
+                'padding': '4px 6px',
+                'border': '1px solid #a2a9b1',
+                'border-radius': '2px',
+                'font-size': '0.875rem'
+            });
+            
+            function buildOptions() {
+                $select.empty().append($('<option>').val('').text('-- ' + (mw.msg('cradle-select') || 'Seleccionar') + ' --'));
+                allowedList.forEach(opt => {
+                    let optVal = typeof opt === 'object' ? (opt.id || opt.value) : opt;
+                    let optLabel = typeof opt === 'object' ? (opt.label || opt.name || optVal) : (softselectLabels[optVal] || optVal);
+                    let labelText = (optLabel && optLabel !== optVal) ? `${optLabel} (${optVal})` : optVal;
+                    $select.append($('<option>').val(optVal).text(labelText));
+                });
+                if (row.value) {
+                    $select.val(typeof row.value === 'object' ? row.value.id : row.value);
+                }
+            }
+
+            buildOptions();
+            $select.on('change', function() {
+                row.value = $select.val();
+                liveUpdateValidation();
+            });
+            return $select;
+        }
+
         // 1. wikibase-item & wikibase-property datatype
         if (row.datatype === 'wikibase-item' || row.datatype === 'wikibase-property') {
             if (propDef && propDef.hardselect && propDef.hardselect.length > 0) {
