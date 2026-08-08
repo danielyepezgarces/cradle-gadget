@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Cradle Drawer — Componente Estable</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --color-base: #202122;
+            --color-subtle: #54595d;
+            --color-link: #0645ad;
+            --color-link-hover: #3366cc;
+            --background-color-base: #ffffff;
+            --background-color-neutral-subtle: #f8f9fa;
+            --border-color-base: #a2a9b1;
+            --border-color-subtle: #c8ccd1;
+            --border-color-progressive: #36c;
+            --color-success: #00af89;
+            --color-destructive: #d33;
+            --color-warning: #fc3;
+            --background-color-warning-subtle: #fef8ee;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #0b0f13;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Drawer Overlay */
+        .cradle-drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(2px);
+            z-index: 10000;
+        }
+
+        /* Wikimedia-styled flat side panel — Cradle Stable 640px Drawer */
+        .cradle-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 640px;
+            height: 100vh;
+            background-color: var(--background-color-base, #ffffff);
+            border-left: 1px solid var(--border-color-base, #a2a9b1);
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.25);
+            z-index: 10001;
+            display: flex;
+            flex-direction: column;
+            color: var(--color-base, #202122);
+        }
+
+        /* Header styling */
+        .cradle-header {
+            padding: 16px 20px;
+            background-color: var(--background-color-neutral-subtle, #f8f9fa);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color-base, #a2a9b1);
+        }
+
+        .cradle-title-area {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .cradle-title {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: var(--color-base, #202122);
+        }
+
+        .cradle-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color-base, #a2a9b1);
+            margin-top: 10px;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .cradle-tab {
+            padding: 8px 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--color-subtle, #54595d);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.15s;
+        }
+
+        .cradle-tab:hover {
+            color: var(--color-link, #0645ad);
+        }
+
+        .cradle-tab.active {
+            color: var(--color-link, #0645ad);
+            border-bottom-color: var(--color-link, #0645ad);
+        }
+
+        .cradle-close-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-subtle, #54595d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 2px;
+            transition: background-color 0.1s;
+        }
+
+        .cradle-close-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+            color: var(--color-base, #202122);
+        }
+
+        /* Content panel */
+        .cradle-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            background-color: var(--background-color-base, #ffffff);
+        }
+
+        /* Validation Summary Box */
+        #cradle-validation-summary-box {
+            padding: 8px 12px;
+            border-radius: 2px;
+            margin-bottom: 12px;
+            font-size: 0.875rem;
+            font-weight: bold;
+            border: 1px solid var(--color-success, #00af89);
+            background-color: rgba(0, 175, 137, 0.08);
+            color: var(--color-success, #00af89);
+        }
+
+        /* Wikibase exact layout — 2 column flexbox */
+        .wikibase-statementgrouplistview {
+            width: 100%;
+        }
+
+        .wikibase-statementgroupview {
+            display: flex;
+            flex-direction: row;
+            border: 2px solid #99cc99;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        /* Left column: property label (160px) */
+        .wikibase-statementgroupview-property {
+            width: 160px;
+            flex-shrink: 0;
+            background: #f8f9fa;
+            border-right: 1px solid #c8ccd1;
+            padding: 10px;
+            box-sizing: border-box;
+            align-self: stretch;
+        }
+
+        .wikibase-statementgroupview-property-label {
+            word-wrap: break-word;
+            font-size: 0.875rem;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+
+        .wikibase-statementgroupview-property-label a {
+            color: #0645ad;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .wikibase-statementgroupview-property-label a:hover {
+            text-decoration: underline;
+        }
+
+        .cradle-prop-pid {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: normal;
+            color: #54595d;
+            margin-top: 2px;
+        }
+
+        .cradle-prop-desc {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: normal;
+            color: #54595d;
+            margin-top: 4px;
+        }
+
+        .cradle-card-validation-badge {
+            display: none;
+        }
+
+        /* Right column: statement list */
+        .wikibase-statementlistview {
+            flex: 1;
+            min-width: 0;
+            background: #ffffff;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .wikibase-statementlistview-listview {
+            padding: 8px;
+        }
+
+        .wikibase-statementview {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .wikibase-statementview:last-child {
+            margin-bottom: 0;
+        }
+
+        .wikibase-statementview-rankselector {
+            flex-shrink: 0;
+            width: 24px;
+            margin-right: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            color: #a2a9b1;
+            font-size: 0.75rem;
+            line-height: 1;
+            margin-top: 2px;
+        }
+
+        .wikibase-statementview-rankselector .rank-up,
+        .wikibase-statementview-rankselector .rank-down {
+            cursor: pointer;
+            color: #a2a9b1;
+        }
+        
+        .wikibase-statementview-rankselector .rank-circle {
+            font-size: 0.85rem;
+            margin: 2px 0;
+            color: #72777d;
+        }
+
+        .wikibase-statementview-mainsnak-container {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .wikibase-snakview {
+            padding: 2px 0;
+        }
+
+        .wikibase-snakview-value-container {
+            min-height: 1.6em;
+        }
+
+        .wikibase-snakview-body {
+            width: 100%;
+        }
+
+        .valueview-value input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 4px 6px;
+            border: 1px solid transparent;
+            background: #fff;
+            color: #202122;
+            font-size: 0.875rem;
+            font-family: inherit;
+            border-radius: 0;
+            height: 28px;
+        }
+
+        .valueview-value input:focus {
+            border-color: #36c;
+            box-shadow: inset 0 0 0 1px #36c;
+            outline: none;
+        }
+        
+        /* Qualifiers */
+        .wikibase-qualifiers {
+            border: 2px solid #3366cc;
+            padding: 4px 8px;
+            margin-left: 20px;
+            background-color: #ffffff;
+            font-size: 0.8rem;
+        }
+        
+        .qualifier-row {
+            display: flex;
+            margin-bottom: 4px;
+        }
+        
+        .qualifier-prop {
+            width: 120px;
+            color: #0645ad;
+        }
+        
+        .qualifier-val {
+            flex: 1;
+            color: #202122;
+        }
+
+        /* References */
+        .wikibase-references {
+            border: 2px solid #dd3333;
+            padding: 4px 8px;
+            margin-top: 8px;
+            background-color: #f8f9fa;
+            font-size: 0.8rem;
+        }
+        
+        .reference-header {
+            color: #0645ad;
+            cursor: pointer;
+            margin-bottom: 4px;
+        }
+
+        .reference-row {
+            display: flex;
+            margin-bottom: 4px;
+        }
+
+        .reference-prop {
+            width: 140px;
+            color: #0645ad;
+        }
+
+        .reference-val {
+            flex: 1;
+            color: #202122;
+        }
+        
+        .add-reference-link {
+            text-align: right;
+            font-size: 0.75rem;
+            color: #0645ad;
+            cursor: pointer;
+            margin-top: 4px;
+            display: block;
+        }
+        .add-reference-link:hover {
+            text-decoration: underline;
+        }
+
+        .wikibase-toolbar-container {
+            flex-shrink: 0;
+            padding-top: 4px;
+            margin-left: 8px;
+        }
+
+        .cradle-btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #54595d;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-size: 0.85rem;
+            opacity: 0.6;
+        }
+
+        .cradle-btn-icon:hover {
+            color: #d33;
+            opacity: 1;
+            background: #fef0f0;
+        }
+
+        .wikibase-toolbar-wrapper {
+            background: #eaecf0;
+            padding: 4px 10px;
+            text-align: right;
+            border-top: 1px solid #eaecf0;
+        }
+
+        .cradle-addstatement-link {
+            font-size: 0.75rem;
+            color: #0645ad;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .cradle-addstatement-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Buttons */
+        .cradle-btn-primary {
+            background-color: var(--border-color-progressive, #36c);
+            color: #ffffff;
+            border: 1px solid var(--border-color-progressive, #36c);
+            border-radius: 2px;
+            padding: 8px 16px;
+            font-weight: bold;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .cradle-btn-primary:hover {
+            background-color: var(--color-link-hover, #447ff5);
+        }
+
+        .cradle-btn-secondary {
+            background-color: #ffffff;
+            color: #202122;
+            border: 1px solid #a2a9b1;
+            padding: 8px 16px;
+            font-weight: bold;
+            font-size: 0.875rem;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .cradle-btn-secondary:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Footer */
+        .cradle-footer {
+            padding: 16px 20px;
+            background-color: var(--background-color-neutral-subtle, #f8f9fa);
+            border-top: 1px solid var(--border-color-base, #a2a9b1);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+<!-- Overlay -->
+<div class="cradle-drawer-overlay"></div>
+<!-- Cradle Drawer Component -->
+<div class="cradle-drawer">
+<!-- Header -->
+<div class="cradle-header">
+<div class="cradle-title-area">
+<h2 class="cradle-title">Cradle Form Editor</h2>
+<div class="cradle-tabs">
+<div class="cradle-tab active">Editar este elemento</div>
+<div class="cradle-tab">Crear elemento nuevo</div>
+</div>
+</div>
+<button class="cradle-close-btn" title="Cerrar">×</button>
+</div>
+<!-- Body / Content Area -->
+<div class="cradle-content" id="cradle-content-area">
+<!-- Back Button Panel -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+<button class="cradle-btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;">
+                    ← <span>Cambiar esquema</span>
+</button>
+</div>
+<!-- Active Schema Title -->
+<div style="margin-bottom: 20px; padding-bottom: 8px;">
+<h2 style="font-size: 1.25rem; margin: 0; font-weight: bold; color: #202122;">
+<a href="https://www.wikidata.org/wiki/EntitySchema:E10" style="color: #0645ad; text-decoration: none;" target="_blank">Humano (E10)</a>
+</h2>
+</div>
+<!-- Validation Summary Banner -->
+<div id="cradle-validation-summary-box">
+                Resultado de la validación para E10: 2 de 2 obligatorias, y 1 de 2 opcionales presentes.
+            </div>
+<!-- Wikibase Statement Group List -->
+<div class="wikibase-statementgrouplistview">
+<!-- Group 1: P31 (instancia de) -->
+<div class="wikibase-statementgroupview">
+<div class="wikibase-statementgroupview-property">
+<div class="wikibase-statementgroupview-property-label" dir="auto">
+<a href="https://www.wikidata.org/wiki/Property:P31" target="_blank">instancia de</a>
+<span class="cradle-prop-pid">P31 *</span>
+<span class="cradle-prop-desc">la entidad pertenece a este tipo</span>
+</div>
+</div>
+<div class="wikibase-statementlistview">
+<div class="wikibase-statementlistview-listview">
+<div class="wikibase-statementview listview-item">
+<div class="wikibase-statementview-rankselector">
+<span class="rank-up">▵</span>
+<span class="rank-circle">●</span>
+<span class="rank-down">▿</span>
+</div>
+<div class="wikibase-statementview-mainsnak-container">
+<div class="wikibase-statementview-mainsnak">
+<div class="wikibase-snakview wb-edit">
+<div class="wikibase-snakview-value-container">
+<div class="wikibase-snakview-body">
+<div class="wikibase-snakview-value">
+<div class="valueview-value">
+<input type="text" value="ser humano (Q5)"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- References -->
+<div class="wikibase-references">
+<div class="reference-header">▼ 1 referencia</div>
+<div class="reference-row">
+<div class="reference-prop">afirmado en</div>
+<div class="reference-val">Encyclopædia Britannica Online</div>
+</div>
+<div class="reference-row">
+<div class="reference-prop">idioma original</div>
+<div class="reference-val">Inglés</div>
+</div>
+<a class="add-reference-link">+ añadir referencia</a>
+</div>
+</div>
+<div class="wikibase-toolbar-container">
+<button class="cradle-btn-icon" title="Eliminar">🗑️</button>
+</div>
+</div>
+</div>
+<div class="wikibase-toolbar-wrapper">
+<a class="cradle-addstatement-link">+ añadir declaración</a>
+</div>
+</div>
+</div>
+<!-- Group 2: P106 (ocupación) -->
+<div class="wikibase-statementgroupview">
+<div class="wikibase-statementgroupview-property">
+<div class="wikibase-statementgroupview-property-label" dir="auto">
+<a href="https://www.wikidata.org/wiki/Property:P106" target="_blank">ocupación</a>
+<span class="cradle-prop-pid">P106 *</span>
+<span class="cradle-prop-desc">profesión o trabajo principal</span>
+</div>
+</div>
+<div class="wikibase-statementlistview">
+<div class="wikibase-statementlistview-listview">
+<div class="wikibase-statementview listview-item">
+<div class="wikibase-statementview-rankselector">
+<span class="rank-up">▵</span>
+<span class="rank-circle">●</span>
+<span class="rank-down">▿</span>
+</div>
+<div class="wikibase-statementview-mainsnak-container">
+<div class="wikibase-statementview-mainsnak">
+<div class="wikibase-snakview wb-edit">
+<div class="wikibase-snakview-value-container">
+<div class="wikibase-snakview-body">
+<div class="wikibase-snakview-value">
+<div class="valueview-value">
+<input type="text" value="físico (Q169470)"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Qualifiers -->
+<div class="wikibase-qualifiers">
+<div class="qualifier-row">
+<div class="qualifier-prop">fecha de inicio</div>
+<div class="qualifier-val">1905</div>
+</div>
+<div class="qualifier-row">
+<div class="qualifier-prop">empleador</div>
+<div class="qualifier-val">Universidad de Berna</div>
+</div>
+</div>
+</div>
+<div class="wikibase-toolbar-container">
+<button class="cradle-btn-icon" title="Eliminar">🗑️</button>
+</div>
+</div>
+</div>
+<div class="wikibase-toolbar-wrapper">
+<a class="cradle-addstatement-link">+ añadir declaración</a>
+</div>
+</div>
+</div>
+<!-- Group 3: P569 (fecha de nacimiento) -->
+<div class="wikibase-statementgroupview">
+<div class="wikibase-statementgroupview-property">
+<div class="wikibase-statementgroupview-property-label" dir="auto">
+<a href="https://www.wikidata.org/wiki/Property:P569" target="_blank">fecha de nacimiento</a>
+<span class="cradle-prop-pid">P569</span>
+<span class="cradle-prop-desc">fecha en que nació la entidad</span>
+</div>
+</div>
+<div class="wikibase-statementlistview">
+<div class="wikibase-statementlistview-listview">
+<div class="wikibase-statementview listview-item">
+<div class="wikibase-statementview-rankselector">
+<span class="rank-up">▵</span>
+<span class="rank-circle">●</span>
+<span class="rank-down">▿</span>
+</div>
+<div class="wikibase-statementview-mainsnak-container">
+<div class="wikibase-statementview-mainsnak">
+<div class="wikibase-snakview wb-edit">
+<div class="wikibase-snakview-value-container">
+<div class="wikibase-snakview-body">
+<div class="wikibase-snakview-value">
+<div class="valueview-value">
+<input type="text" value="+1867-11-07T00:00:00Z"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- References (Collapsed) -->
+<div class="wikibase-references">
+<div class="reference-header">▶ 0 referencias</div>
+<a class="add-reference-link" style="margin-top:0;">+ añadir referencia</a>
+</div>
+</div>
+<div class="wikibase-toolbar-container">
+<button class="cradle-btn-icon" title="Eliminar">🗑️</button>
+</div>
+</div>
+</div>
+<div class="wikibase-toolbar-wrapper">
+<a class="cradle-addstatement-link">+ añadir declaración</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="cradle-footer" id="cradle-footer-area">
+<div style="display: flex; gap: 12px; width: 100%; margin-bottom: 8px;">
+<button class="cradle-btn-secondary">Cancelar</button>
+<button class="cradle-btn-primary">Guardar cambios</button>
+</div>
+<p style="font-size: 0.72rem; color: #54595d; margin: 4px auto 0 auto; text-align: center; width: 100%; line-height: 1.3;">
+                Creado por <a href="https://www.wikidata.org/wiki/User:Danielyepezgarces" style="color:#0645ad;" target="_blank">Daniel Yepez Garces</a> e <a href="https://www.wikidata.org/wiki/User:Olea" style="color:#0645ad;" target="_blank">Ismael Olea</a>. Basado en <a href="https://cradle.toolforge.org/" style="color:#0645ad;" target="_blank">Cradle</a> por <a href="https://meta.wikimedia.org/wiki/User:Magnus_Manske" style="color:#0645ad;" target="_blank">Magnus Manske</a>.
+            </p>
+</div>
+</div>
+</body>
+</html>
