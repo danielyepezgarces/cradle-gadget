@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.32.0
+ * Version: 1.33.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.32.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.33.0');
  */
 
 (function() {
@@ -3348,6 +3348,68 @@
     }
 
     /**
+     * Formats any Wikibase snak object, datavalue, QID, string or date into a human-readable text value.
+     */
+    function formatSnakValue(snak) {
+        if (snak === null || snak === undefined) return '';
+        if (typeof snak === 'string' || typeof snak === 'number') {
+            let strVal = String(snak).trim();
+            if (/^[QP]\d+$/i.test(strVal) && softselectLabels[strVal]) {
+                return `${softselectLabels[strVal]} (${strVal})`;
+            }
+            return strVal;
+        }
+
+        let dv = snak.datavalue ? snak.datavalue : (snak.value !== undefined ? { value: snak.value, type: snak.datatype } : null);
+        if (dv) {
+            let val = dv.value;
+            let type = dv.type || snak.datatype || typeof val;
+
+            if (typeof val === 'string') {
+                if (/^[QP]\d+$/i.test(val) && softselectLabels[val]) {
+                    return `${softselectLabels[val]} (${val})`;
+                }
+                return val;
+            }
+            if (typeof val === 'object' && val !== null) {
+                if (val['entity-type'] || val.id) {
+                    let qid = val.id || (val['numeric-id'] ? `Q${val['numeric-id']}` : '');
+                    if (qid) {
+                        return softselectLabels[qid] ? `${softselectLabels[qid]} (${qid})` : qid;
+                    }
+                }
+                if (val.time) {
+                    let timeStr = val.time.replace(/^\+/, '');
+                    if (timeStr.includes('T')) {
+                        timeStr = timeStr.split('T')[0];
+                    }
+                    return timeStr;
+                }
+                if (val.amount !== undefined) {
+                    let amt = val.amount.replace(/^\+/, '');
+                    let unit = val.unit && val.unit.includes('Q') ? ` (${val.unit.split('/').pop()})` : '';
+                    return amt + unit;
+                }
+                if (val.text) {
+                    return val.text + (val.language ? ` [${val.language}]` : '');
+                }
+                if (val.latitude !== undefined && val.longitude !== undefined) {
+                    return `${val.latitude}°, ${val.longitude}°`;
+                }
+            }
+        }
+
+        if (typeof snak === 'object') {
+            if (snak.text) return snak.text;
+            if (snak.id) return softselectLabels[snak.id] ? `${softselectLabels[snak.id]} (${snak.id})` : snak.id;
+            if (snak.time) return snak.time;
+            if (snak.label) return snak.label;
+        }
+
+        return String(snak);
+    }
+
+    /**
      * Render statement rows for a given property.
      */
     function renderPropertyRows(pid) {
@@ -3399,6 +3461,9 @@
             $mainsnak.append($snakview);
             $mainsnakContainer.append($mainsnak);
 
+            // Collect missing QIDs from qualifiers and references to pre-fetch labels
+            let missingQidsToFetch = [];
+            
             // Render Qualifiers Section if qualifiers exist or are defined
             let qualPids = Object.keys(row.qualifiers || {});
             if (qualPids.length > 0 || (propDef && propDef.qualifiers && propDef.qualifiers.length > 0)) {
@@ -3408,13 +3473,21 @@
                     let qMeta = propertyMetadata[qPid] || { label: qPid };
                     let qVals = (row.qualifiers && row.qualifiers[qPid]) ? row.qualifiers[qPid] : [''];
                     qVals.forEach((qVal, qIdx) => {
+                        let formattedVal = formatSnakValue(qVal);
+                        
+                        // Check if QID needs fetching
+                        let qidCandidate = typeof qVal === 'string' ? qVal : (qVal && qVal.id ? qVal.id : (qVal && qVal.datavalue && qVal.datavalue.value ? qVal.datavalue.value.id : null));
+                        if (qidCandidate && /^[QP]\d+$/i.test(qidCandidate) && !softselectLabels[qidCandidate]) {
+                            missingQidsToFetch.push(qidCandidate);
+                        }
+
                         let $qRow = $('<div>').addClass('cradle-qualifier-row');
                         let $qProp = $('<div>').addClass('cradle-qualifier-prop').text(qMeta.label || qPid);
                         let $qValDiv = $('<div>').addClass('cradle-qualifier-val');
                         let $qInput = $('<input>')
                             .addClass('cradle-input')
                             .attr('type', 'text')
-                            .val(typeof qVal === 'object' ? (qVal.text || qVal.id || '') : qVal)
+                            .val(formattedVal)
                             .on('change input', function() {
                                 if (!row.qualifiers) row.qualifiers = {};
                                 row.qualifiers[qPid] = [$(this).val()];
@@ -3447,10 +3520,16 @@
                     let rMeta = propertyMetadata[rPid] || { label: rPid };
                     let snakArr = Array.isArray(refSnaks[rPid]) ? refSnaks[rPid] : [refSnaks[rPid]];
                     snakArr.forEach(s => {
-                        let rText = typeof s === 'object' ? (s.datavalue ? (s.datavalue.value.text || s.datavalue.value) : (s.text || '')) : s;
+                        let formattedRefVal = formatSnakValue(s);
+                        
+                        let rQidCandidate = typeof s === 'string' ? s : (s && s.id ? s.id : (s && s.datavalue && s.datavalue.value ? s.datavalue.value.id : null));
+                        if (rQidCandidate && /^[QP]\d+$/i.test(rQidCandidate) && !softselectLabels[rQidCandidate]) {
+                            missingQidsToFetch.push(rQidCandidate);
+                        }
+
                         let $rRow = $('<div>').addClass('cradle-reference-row');
                         let $rProp = $('<div>').addClass('cradle-reference-prop').text(rMeta.label || rPid);
-                        let $rVal = $('<div>').addClass('cradle-reference-val').text(typeof rText === 'string' ? rText : JSON.stringify(rText));
+                        let $rVal = $('<div>').addClass('cradle-reference-val').text(formattedRefVal);
                         $rRow.append($rProp).append($rVal);
                         $refContent.append($rRow);
                     });
@@ -3467,6 +3546,21 @@
 
             $refBox.append($refHeader).append($refContent).append($addRefLink);
             $mainsnakContainer.append($refBox);
+
+            // Fetch missing QID labels asynchronously for qualifiers & references
+            if (missingQidsToFetch.length > 0) {
+                let uniqueQids = [...new Set(missingQidsToFetch)];
+                loadItemLabels(uniqueQids).then(labels => {
+                    Object.assign(softselectLabels, labels);
+                    // Update reference values in place without infinite loop
+                    $refContent.find('.cradle-reference-val').each(function() {
+                        let txt = $(this).text();
+                        if (/^[QP]\d+$/i.test(txt) && softselectLabels[txt]) {
+                            $(this).text(`${softselectLabels[txt]} (${txt})`);
+                        }
+                    });
+                });
+            }
 
             $row.append($mainsnakContainer);
 
