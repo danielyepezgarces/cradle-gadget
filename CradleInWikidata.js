@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.33.0
+ * Version: 1.34.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.33.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.34.0');
  */
 
 (function() {
@@ -275,12 +275,13 @@
             pointer-events: auto;
         }
 
-        /* Wikimedia-styled flat side panel — Spacious 720px Drawer (matching Beta width) */
+        /* Wikimedia-styled flat side panel — 50% Viewport Width Drawer */
         .cradle-drawer {
             position: fixed;
             top: 0;
-            right: -720px;
-            width: 720px;
+            right: -55vw;
+            width: 50vw;
+            min-width: 500px;
             max-width: 95vw;
             height: 100vh;
             background-color: var(--background-color-base, #ffffff);
@@ -3461,27 +3462,30 @@
             $mainsnak.append($snakview);
             $mainsnakContainer.append($mainsnak);
 
-            // Collect missing QIDs from qualifiers and references to pre-fetch labels
+            // Collect missing PIDs and QIDs from qualifiers and references to pre-fetch metadata & labels
+            let missingPidsToFetch = [];
             let missingQidsToFetch = [];
-            
-            // Render Qualifiers Section if qualifiers exist or are defined
+
+            // 1. Render Qualifiers Section if qualifiers exist or are defined
+            let $qualBox = $('<div>').addClass('cradle-wikibase-qualifiers');
             let qualPids = Object.keys(row.qualifiers || {});
             if (qualPids.length > 0 || (propDef && propDef.qualifiers && propDef.qualifiers.length > 0)) {
-                let $qualBox = $('<div>').addClass('cradle-wikibase-qualifiers');
                 let displayQualPids = qualPids.length > 0 ? qualPids : (propDef.qualifiers || []);
                 displayQualPids.forEach(qPid => {
+                    if (!propertyMetadata[qPid] || !propertyMetadata[qPid].label || propertyMetadata[qPid].label === qPid) {
+                        missingPidsToFetch.push(qPid);
+                    }
                     let qMeta = propertyMetadata[qPid] || { label: qPid };
                     let qVals = (row.qualifiers && row.qualifiers[qPid]) ? row.qualifiers[qPid] : [''];
                     qVals.forEach((qVal, qIdx) => {
                         let formattedVal = formatSnakValue(qVal);
                         
-                        // Check if QID needs fetching
                         let qidCandidate = typeof qVal === 'string' ? qVal : (qVal && qVal.id ? qVal.id : (qVal && qVal.datavalue && qVal.datavalue.value ? qVal.datavalue.value.id : null));
                         if (qidCandidate && /^[QP]\d+$/i.test(qidCandidate) && !softselectLabels[qidCandidate]) {
                             missingQidsToFetch.push(qidCandidate);
                         }
 
-                        let $qRow = $('<div>').addClass('cradle-qualifier-row');
+                        let $qRow = $('<div>').addClass('cradle-qualifier-row').attr('data-qpid', qPid);
                         let $qProp = $('<div>').addClass('cradle-qualifier-prop').text(qMeta.label || qPid);
                         let $qValDiv = $('<div>').addClass('cradle-qualifier-val');
                         let $qInput = $('<input>')
@@ -3501,7 +3505,7 @@
                 $mainsnakContainer.append($qualBox);
             }
 
-            // Render References Section
+            // 2. Render References Section
             let $refBox = $('<div>').addClass('cradle-wikibase-references');
             let refList = row.references || [];
             let refCount = refList.length;
@@ -3517,17 +3521,19 @@
             refList.forEach((refObj, rIdx) => {
                 let refSnaks = refObj.snaks || refObj;
                 Object.keys(refSnaks).forEach(rPid => {
+                    if (!propertyMetadata[rPid] || !propertyMetadata[rPid].label || propertyMetadata[rPid].label === rPid) {
+                        missingPidsToFetch.push(rPid);
+                    }
                     let rMeta = propertyMetadata[rPid] || { label: rPid };
                     let snakArr = Array.isArray(refSnaks[rPid]) ? refSnaks[rPid] : [refSnaks[rPid]];
                     snakArr.forEach(s => {
                         let formattedRefVal = formatSnakValue(s);
-                        
-                        let rQidCandidate = typeof s === 'string' ? s : (s && s.id ? s.id : (s && s.datavalue && s.datavalue.value ? s.datavalue.value.id : null));
+                        let rQidCandidate = typeof s === 'string' ? s : (s && s.id ? s.id : (s && s.datavalue && s.datavalue.value ? (s.datavalue.value.id || (s.datavalue.value['numeric-id'] ? `Q${s.datavalue.value['numeric-id']}` : null)) : null));
                         if (rQidCandidate && /^[QP]\d+$/i.test(rQidCandidate) && !softselectLabels[rQidCandidate]) {
                             missingQidsToFetch.push(rQidCandidate);
                         }
 
-                        let $rRow = $('<div>').addClass('cradle-reference-row');
+                        let $rRow = $('<div>').addClass('cradle-reference-row').attr('data-rpid', rPid);
                         let $rProp = $('<div>').addClass('cradle-reference-prop').text(rMeta.label || rPid);
                         let $rVal = $('<div>').addClass('cradle-reference-val').text(formattedRefVal);
                         $rRow.append($rProp).append($rVal);
@@ -3547,16 +3553,38 @@
             $refBox.append($refHeader).append($refContent).append($addRefLink);
             $mainsnakContainer.append($refBox);
 
-            // Fetch missing QID labels asynchronously for qualifiers & references
+            // Fetch missing property metadata (PIDs) and item labels (QIDs) in parallel for user's language
+            let loadPromises = [];
+            if (missingPidsToFetch.length > 0) {
+                let uniquePids = [...new Set(missingPidsToFetch)];
+                loadPromises.push(loadPropertiesMetadata(uniquePids).then(newMeta => {
+                    Object.assign(propertyMetadata, newMeta);
+                }));
+            }
             if (missingQidsToFetch.length > 0) {
                 let uniqueQids = [...new Set(missingQidsToFetch)];
-                loadItemLabels(uniqueQids).then(labels => {
-                    Object.assign(softselectLabels, labels);
-                    // Update reference values in place without infinite loop
-                    $refContent.find('.cradle-reference-val').each(function() {
-                        let txt = $(this).text();
+                loadPromises.push(loadItemLabels(uniqueQids).then(newLabels => {
+                    Object.assign(softselectLabels, newLabels);
+                }));
+            }
+
+            if (loadPromises.length > 0) {
+                Promise.all(loadPromises).then(() => {
+                    $qualBox.find('.cradle-qualifier-row').each(function() {
+                        let qPid = $(this).attr('data-qpid');
+                        if (qPid && propertyMetadata[qPid] && propertyMetadata[qPid].label) {
+                            $(this).find('.cradle-qualifier-prop').text(propertyMetadata[qPid].label);
+                        }
+                    });
+                    $refContent.find('.cradle-reference-row').each(function() {
+                        let rPid = $(this).attr('data-rpid');
+                        if (rPid && propertyMetadata[rPid] && propertyMetadata[rPid].label) {
+                            $(this).find('.cradle-reference-prop').text(propertyMetadata[rPid].label);
+                        }
+                        let valElem = $(this).find('.cradle-reference-val');
+                        let txt = valElem.text();
                         if (/^[QP]\d+$/i.test(txt) && softselectLabels[txt]) {
-                            $(this).text(`${softselectLabels[txt]} (${txt})`);
+                            valElem.text(`${softselectLabels[txt]} (${txt})`);
                         }
                     });
                 });
