@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.36.0
+ * Version: 1.37.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.36.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.37.0');
  */
 
 (function() {
@@ -3553,24 +3553,26 @@
                 let $refBlock = $('<div>').addClass('cradle-reference-block');
                 let refSnaks = refObj.snaks || refObj;
                 Object.keys(refSnaks).forEach(rPid => {
-                    if (!propertyMetadata[rPid] || !propertyMetadata[rPid].label || propertyMetadata[rPid].label === rPid) {
-                        missingPidsToFetch.push(rPid);
-                    }
-                    let rMeta = propertyMetadata[rPid] || { label: rPid };
-                    let snakArr = Array.isArray(refSnaks[rPid]) ? refSnaks[rPid] : [refSnaks[rPid]];
-                    snakArr.forEach(s => {
-                        let formattedRefVal = formatSnakValue(s);
-                        let rQidCandidate = typeof s === 'string' ? s : (s && s.id ? s.id : (s && s.datavalue && s.datavalue.value ? (s.datavalue.value.id || (s.datavalue.value['numeric-id'] ? `Q${s.datavalue.value['numeric-id']}` : null)) : null));
-                        if (rQidCandidate && /^[QP]\d+$/i.test(rQidCandidate) && !softselectLabels[rQidCandidate]) {
-                            missingQidsToFetch.push(rQidCandidate);
+                    if (rPid !== 'snaks-order' && rPid !== 'hash') {
+                        if (!propertyMetadata[rPid] || !propertyMetadata[rPid].label || propertyMetadata[rPid].label === rPid) {
+                            missingPidsToFetch.push(rPid);
                         }
+                        let rMeta = propertyMetadata[rPid] || { label: rPid };
+                        let snakArr = Array.isArray(refSnaks[rPid]) ? refSnaks[rPid] : [refSnaks[rPid]];
+                        snakArr.forEach(s => {
+                            let formattedRefVal = formatSnakValue(s);
+                            let rQidCandidate = typeof s === 'string' ? s : (s && s.id ? s.id : (s && s.datavalue && s.datavalue.value ? (s.datavalue.value.id || (s.datavalue.value['numeric-id'] ? `Q${s.datavalue.value['numeric-id']}` : null)) : null));
+                            if (rQidCandidate && /^[QP]\d+$/i.test(rQidCandidate) && !softselectLabels[rQidCandidate]) {
+                                missingQidsToFetch.push(rQidCandidate);
+                            }
 
-                        let $rRow = $('<div>').addClass('cradle-reference-row').attr('data-rpid', rPid);
-                        let $rProp = $('<div>').addClass('cradle-reference-prop').text(rMeta.label || rPid);
-                        let $rVal = $('<div>').addClass('cradle-reference-val').text(formattedRefVal);
-                        $rRow.append($rProp).append($rVal);
-                        $refBlock.append($rRow);
-                    });
+                            let $rRow = $('<div>').addClass('cradle-reference-row').attr('data-rpid', rPid);
+                            let $rProp = $('<div>').addClass('cradle-reference-prop').text(rMeta.label || rPid);
+                            let $rVal = $('<div>').addClass('cradle-reference-val').text(formattedRefVal);
+                            $rRow.append($rProp).append($rVal);
+                            $refBlock.append($rRow);
+                        });
+                    }
                 });
                 $refBox.append($refBlock);
             });
@@ -3610,7 +3612,7 @@
                             $(this).find('.cradle-qualifier-prop').text(propertyMetadata[qPid].label);
                         }
                     });
-                    $refContent.find('.cradle-reference-row').each(function() {
+                    $refContainer.find('.cradle-reference-row').each(function() {
                         let rPid = $(this).attr('data-rpid');
                         if (rPid && propertyMetadata[rPid] && propertyMetadata[rPid].label) {
                             $(this).find('.cradle-reference-prop').text(propertyMetadata[rPid].label);
