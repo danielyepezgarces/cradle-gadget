@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.28.1
+ * Version: 1.29.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.28.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.29.0');
  */
 
 (function() {
@@ -427,8 +427,8 @@
             margin-bottom: 16px;
         }
         
-        /* Property Group Boxes — Custom Green Border & Layout */
-        .wikibase-statementgroupview {
+        /* Property Group Boxes — Scoped inside .cradle-drawer */
+        .cradle-drawer .wikibase-statementgroupview {
             display: flex;
             flex-direction: row;
             border: 2px solid #99cc99;
@@ -437,7 +437,7 @@
         }
 
         /* Left column: property label (160px) */
-        .wikibase-statementgroupview-property {
+        .cradle-drawer .wikibase-statementgroupview-property {
             width: 160px;
             flex-shrink: 0;
             background: #f8f9fa;
@@ -447,25 +447,25 @@
             align-self: stretch;
         }
 
-        .wikibase-statementgroupview-property-label {
+        .cradle-drawer .wikibase-statementgroupview-property-label {
             word-wrap: break-word;
             font-size: 0.875rem;
             font-weight: bold;
             line-height: 1.3;
         }
 
-        .wikibase-statementgroupview-property-label a {
+        .cradle-drawer .wikibase-statementgroupview-property-label a {
             color: #0645ad;
             text-decoration: none;
             font-weight: bold;
         }
 
-        .wikibase-statementgroupview-property-label a:hover {
+        .cradle-drawer .wikibase-statementgroupview-property-label a:hover {
             text-decoration: underline;
         }
 
         /* Right column: statement list */
-        .wikibase-statementlistview {
+        .cradle-drawer .wikibase-statementlistview {
             flex: 1;
             min-width: 0;
             background: #ffffff;
@@ -474,11 +474,11 @@
             flex-direction: column;
         }
 
-        .wikibase-statementlistview-listview {
+        .cradle-drawer .wikibase-statementlistview-listview {
             padding: 8px;
         }
 
-        .wikibase-statementview {
+        .cradle-drawer .wikibase-statementview {
             display: flex;
             flex-direction: row;
             align-items: flex-start;
@@ -486,11 +486,11 @@
             position: relative;
         }
 
-        .wikibase-statementview:last-child {
+        .cradle-drawer .wikibase-statementview:last-child {
             margin-bottom: 0;
         }
 
-        .wikibase-statementview-rankselector {
+        .cradle-drawer .wikibase-statementview-rankselector {
             flex-shrink: 0;
             width: 24px;
             margin-right: 8px;
@@ -504,72 +504,72 @@
             margin-top: 2px;
         }
 
-        .wikibase-statementview-rankselector .rank-up,
-        .wikibase-statementview-rankselector .rank-down {
+        .cradle-drawer .wikibase-statementview-rankselector .cradle-rank-up,
+        .cradle-drawer .wikibase-statementview-rankselector .cradle-rank-down {
             cursor: pointer;
             color: #a2a9b1;
             user-select: none;
         }
         
-        .wikibase-statementview-rankselector .rank-circle {
+        .cradle-drawer .wikibase-statementview-rankselector .cradle-rank-circle {
             font-size: 0.85rem;
             margin: 2px 0;
             color: #72777d;
         }
 
         /* Qualifiers */
-        .wikibase-qualifiers {
+        .cradle-drawer .wikibase-qualifiers {
             padding: 4px 8px;
             margin-top: 6px;
             background-color: #ffffff;
             font-size: 0.8rem;
         }
         
-        .qualifier-row {
+        .cradle-drawer .cradle-qualifier-row {
             display: flex;
             margin-bottom: 4px;
         }
         
-        .qualifier-prop {
+        .cradle-drawer .cradle-qualifier-prop {
             width: 120px;
             color: #0645ad;
         }
         
-        .qualifier-val {
+        .cradle-drawer .cradle-qualifier-val {
             flex: 1;
             color: #202122;
         }
 
         /* References */
-        .wikibase-references {
+        .cradle-drawer .wikibase-references {
             padding: 4px 8px;
             margin-top: 8px;
             background-color: #f8f9fa;
             font-size: 0.8rem;
         }
         
-        .reference-header {
+        .cradle-drawer .cradle-reference-header {
             color: #0645ad;
             cursor: pointer;
             margin-bottom: 4px;
         }
 
-        .reference-row {
+        .cradle-drawer .cradle-reference-row {
             display: flex;
             margin-bottom: 4px;
         }
 
-        .reference-prop {
+        .cradle-drawer .cradle-reference-prop {
             width: 140px;
             color: #0645ad;
         }
 
-        .reference-val {
+        .cradle-drawer .cradle-reference-val {
             flex: 1;
             color: #202122;
         }
         
-        .add-reference-link {
+        .cradle-drawer .cradle-add-reference-link {
             text-align: right;
             font-size: 0.75rem;
             color: #0645ad;
@@ -577,18 +577,18 @@
             margin-top: 4px;
             display: block;
         }
-        .add-reference-link:hover {
+        .cradle-drawer .cradle-add-reference-link:hover {
             text-decoration: underline;
         }
 
-        .wikibase-toolbar-wrapper {
+        .cradle-drawer .wikibase-toolbar-wrapper {
             background: #eaecf0;
             padding: 4px 10px;
             text-align: right;
             border-top: 1px solid #eaecf0;
         }
 
-        .cradle-addstatement-link {
+        .cradle-drawer .cradle-addstatement-link {
             font-size: 0.75rem;
             color: #0645ad;
             cursor: pointer;
@@ -597,7 +597,7 @@
             align-items: center;
         }
 
-        .cradle-addstatement-link:hover {
+        .cradle-drawer .cradle-addstatement-link:hover {
             text-decoration: underline;
         }
 
@@ -3280,13 +3280,13 @@
 
             // Rank Selector Column
             let $rankWrapper = $('<div>').addClass('wikibase-statementview-rankselector');
-            let $rankUp = $('<span>').addClass('rank-up').text('▵').attr('title', 'Aumentar rango').on('click', function() {
+            let $rankUp = $('<span>').addClass('cradle-rank-up').text('▵').attr('title', 'Aumentar rango').on('click', function() {
                 row.rank = row.rank === 'normal' ? 'preferred' : (row.rank === 'deprecated' ? 'normal' : 'preferred');
                 renderPropertyRows(pid);
             });
             let rankChar = row.rank === 'preferred' ? '★' : (row.rank === 'deprecated' ? '▼' : '●');
-            let $rankCircle = $('<span>').addClass('rank-circle').text(rankChar);
-            let $rankDown = $('<span>').addClass('rank-down').text('▿').attr('title', 'Disminuir rango').on('click', function() {
+            let $rankCircle = $('<span>').addClass('cradle-rank-circle').text(rankChar);
+            let $rankDown = $('<span>').addClass('cradle-rank-down').text('▿').attr('title', 'Disminuir rango').on('click', function() {
                 row.rank = row.rank === 'normal' ? 'deprecated' : (row.rank === 'preferred' ? 'normal' : 'deprecated');
                 renderPropertyRows(pid);
             });
