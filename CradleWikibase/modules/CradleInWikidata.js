@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.35.0
+ * Version: 1.36.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.35.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.36.0');
  */
 
 (function() {
@@ -629,50 +629,62 @@
             color: #202122;
         }
 
-        /* References Container & Header */
-        .cradle-wikibase-references {
-            padding: 8px 12px;
+        /* References Outer Container & Header */
+        .cradle-wikibase-statementview-references-container {
             margin-top: 8px;
             margin-left: 24px;
-            background-color: #f8f9fa;
-            font-size: 0.8rem;
-            border-radius: 2px;
-            border: 1px dashed #c8ccd1;
         }
-        
+
         .cradle-reference-header {
             color: #0645ad;
             cursor: pointer;
             margin-bottom: 6px;
+            font-size: 0.8rem;
             font-weight: bold;
             user-select: none;
         }
 
-        .cradle-reference-block {
-            border-bottom: 1px dashed #c8ccd1;
-            padding-bottom: 6px;
-            margin-bottom: 6px;
+        /* Light grey box for reference list */
+        .cradle-wikibase-references {
+            padding: 8px 10px;
+            background-color: #f8f9fa;
+            border-radius: 2px;
+            border: 1px solid #eaecf0;
         }
+
+        /* Distinct white card for each reference block */
+        .cradle-reference-block {
+            background-color: #ffffff;
+            border: 1px solid #c8ccd1;
+            border-radius: 2px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+
         .cradle-reference-block:last-child {
-            border-bottom: none;
             margin-bottom: 0;
-            padding-bottom: 0;
         }
 
         .cradle-reference-row {
             display: flex;
             margin-bottom: 4px;
         }
+        .cradle-reference-row:last-child {
+            margin-bottom: 0;
+        }
 
         .cradle-reference-prop {
             width: 140px;
             color: #0645ad;
             font-weight: bold;
+            font-size: 0.8rem;
         }
 
         .cradle-reference-val {
             flex: 1;
             color: #202122;
+            font-size: 0.8rem;
         }
         
         .cradle-add-reference-link {
@@ -3522,16 +3534,16 @@
             }
 
             // 2. Render References Section
-            let $refBox = $('<div>').addClass('cradle-wikibase-references');
+            let $refContainer = $('<div>').addClass('cradle-wikibase-statementview-references-container');
             let refList = row.references || [];
             let refCount = refList.length;
             let refHeaderText = refCount === 1 ? `▼ 1 referencia` : (refCount > 0 ? `▼ ${refCount} referencias` : '▶ 0 referencias');
             let $refHeader = $('<div>').addClass('cradle-reference-header').text(refHeaderText);
             
-            let $refContent = $('<div>').css({'display': refCount > 0 ? 'block' : 'none'});
+            let $refBox = $('<div>').addClass('cradle-wikibase-references').css({'display': refCount > 0 ? 'block' : 'none'});
             $refHeader.on('click', function() {
-                $refContent.toggle();
-                let isVis = $refContent.is(':visible');
+                $refBox.toggle();
+                let isVis = $refBox.is(':visible');
                 let count = (row.references || []).length;
                 let text = count === 1 ? '1 referencia' : `${count} referencias`;
                 $(this).text(isVis ? `▼ ${text}` : `▶ ${text}`);
@@ -3560,7 +3572,7 @@
                         $refBlock.append($rRow);
                     });
                 });
-                $refContent.append($refBlock);
+                $refBox.append($refBlock);
             });
 
             let $addRefLink = $('<a>').addClass('cradle-add-reference-link').text('+ ' + (mw.msg('cradle-add-reference') || 'añadir referencia'))
@@ -3571,8 +3583,9 @@
                     renderPropertyRows(pid);
                 });
 
-            $refBox.append($refHeader).append($refContent).append($addRefLink);
-            $mainsnakContainer.append($refBox);
+            $refBox.append($addRefLink);
+            $refContainer.append($refHeader).append($refBox);
+            $mainsnakContainer.append($refContainer);
 
             // Fetch missing property metadata (PIDs) and item labels (QIDs) in parallel for user's language
             let loadPromises = [];
