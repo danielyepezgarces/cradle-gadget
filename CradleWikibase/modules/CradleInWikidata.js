@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.38.0
+ * Version: 1.39.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.38.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.39.0');
  */
 
 (function() {
@@ -687,15 +687,67 @@
             font-size: 0.8rem;
         }
         
-        .cradle-add-reference-link {
-            text-align: right;
-            font-size: 0.75rem;
+        /* Wikibase Statement Edit Action Bar */
+        .cradle-statement-edit-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #eaecf0;
+            flex-wrap: wrap;
+        }
+
+        .cradle-btn-publish {
+            background-color: #36c;
+            color: #ffffff;
+            border: 1px solid #36c;
+            border-radius: 2px;
+            padding: 4px 14px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        .cradle-btn-publish:hover {
+            background-color: #447ff5;
+        }
+
+        .cradle-btn-cancel {
+            background-color: #ffffff;
+            color: #202122;
+            border: 1px solid #a2a9b1;
+            border-radius: 2px;
+            padding: 4px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        .cradle-btn-cancel:hover {
+            background-color: #f8f9fa;
+        }
+
+        .cradle-btn-remove {
+            background-color: transparent;
+            color: #d33;
+            border: none;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        .cradle-btn-remove:hover {
+            text-decoration: underline;
+        }
+
+        .cradle-add-qualifier-link,
+        .cradle-add-reference-inline-link {
+            font-size: 0.8rem;
             color: #0645ad;
             cursor: pointer;
-            margin-top: 8px;
-            display: block;
+            text-decoration: none;
         }
-        .cradle-add-reference-link:hover {
+        .cradle-add-qualifier-link:hover,
+        .cradle-add-reference-inline-link:hover {
             text-decoration: underline;
         }
 
@@ -3461,6 +3513,22 @@
     }
 
     /**
+     * Formats any Wikibase snak object or QID into a clickable HTML link (Wikibase style).
+     */
+    function formatSnakValueHTML(snak) {
+        let text = formatSnakValue(snak);
+        if (!text) return '<span style="color:#72777d;font-style:italic;">(sin valor)</span>';
+        
+        let qidMatch = text.match(/\(([QP]\d+)\)$/);
+        let qid = qidMatch ? qidMatch[1] : (typeof snak === 'string' && /^[QP]\d+$/i.test(snak) ? snak : null);
+        
+        if (qid) {
+            return `<a href="/wiki/${qid}" target="_blank" style="color:#0645ad;text-decoration:none;font-weight:bold;">${text}</a>`;
+        }
+        return $('<div>').text(text).html();
+    }
+
+    /**
      * Render statement rows for a given property.
      */
     function renderPropertyRows(pid) {
@@ -3497,20 +3565,25 @@
             // 2. Mainsnak Container
             let $mainsnakContainer = $('<div>').addClass('cradle-wikibase-statementview-mainsnak-container');
             let $mainsnak = $('<div>').addClass('cradle-wikibase-statementview-mainsnak');
-            let $snakview = $('<div>').addClass('cradle-wikibase-snakview cradle-wb-edit');
+            let $snakview = $('<div>').addClass('cradle-wikibase-snakview ' + (row.isEditing ? 'cradle-wb-edit' : 'cradle-wb-view'));
             let $snakValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container');
             let $snakBody = $('<div>').addClass('cradle-wikibase-snakview-body');
             let $snakValue = $('<div>').addClass('cradle-wikibase-snakview-value');
             let $valueView = $('<div>').addClass('cradle-valueview-value');
             
-            let $inputElem = createInputForDatatype(pid, row);
-            $valueView.append($inputElem);
+            if (row.isEditing) {
+                let $inputElem = createInputForDatatype(pid, row);
+                $valueView.append($inputElem);
+            } else {
+                let formattedHtml = formatSnakValueHTML(row.value);
+                $valueView.html(formattedHtml);
+            }
+
             $snakValue.append($valueView);
             $snakBody.append($snakValue);
             $snakValueContainer.append($snakBody);
             $snakview.append($snakValueContainer);
             $mainsnak.append($snakview);
-            $mainsnakContainer.append($mainsnak);
 
             // Collect missing PIDs and QIDs from qualifiers and references to pre-fetch metadata & labels
             let missingPidsToFetch = [];
@@ -3538,16 +3611,22 @@
                         let $qRow = $('<div>').addClass('cradle-qualifier-row').attr('data-qpid', qPid);
                         let $qProp = $('<div>').addClass('cradle-qualifier-prop').text(qMeta.label || qPid);
                         let $qValDiv = $('<div>').addClass('cradle-qualifier-val');
-                        let $qInput = $('<input>')
-                            .addClass('cradle-input')
-                            .attr('type', 'text')
-                            .val(formattedVal)
-                            .on('change input', function() {
-                                if (!row.qualifiers) row.qualifiers = {};
-                                row.qualifiers[qPid] = [$(this).val()];
-                                liveUpdateValidation();
-                            });
-                        $qValDiv.append($qInput);
+                        
+                        if (row.isEditing) {
+                            let $qInput = $('<input>')
+                                .addClass('cradle-input')
+                                .attr('type', 'text')
+                                .val(formattedVal)
+                                .on('change input', function() {
+                                    if (!row.qualifiers) row.qualifiers = {};
+                                    row.qualifiers[qPid] = [$(this).val()];
+                                    liveUpdateValidation();
+                                });
+                            $qValDiv.append($qInput);
+                        } else {
+                            $qValDiv.html(formatSnakValueHTML(qVal));
+                        }
+
                         $qRow.append($qProp).append($qValDiv);
                         $qualBox.append($qRow);
                     });
@@ -3582,7 +3661,6 @@
                         let rMeta = propertyMetadata[rPid] || { label: rPid };
                         let snakArr = Array.isArray(refSnaks[rPid]) ? refSnaks[rPid] : [refSnaks[rPid]];
                         snakArr.forEach(s => {
-                            let formattedRefVal = formatSnakValue(s);
                             let rQidCandidate = typeof s === 'string' ? s : (s && s.id ? s.id : (s && s.datavalue && s.datavalue.value ? (s.datavalue.value.id || (s.datavalue.value['numeric-id'] ? `Q${s.datavalue.value['numeric-id']}` : null)) : null));
                             if (rQidCandidate && /^[QP]\d+$/i.test(rQidCandidate) && !softselectLabels[rQidCandidate]) {
                                 missingQidsToFetch.push(rQidCandidate);
@@ -3590,7 +3668,7 @@
 
                             let $rRow = $('<div>').addClass('cradle-reference-row').attr('data-rpid', rPid);
                             let $rProp = $('<div>').addClass('cradle-reference-prop').text(rMeta.label || rPid);
-                            let $rVal = $('<div>').addClass('cradle-reference-val').text(formattedRefVal);
+                            let $rVal = $('<div>').addClass('cradle-reference-val').html(formatSnakValueHTML(s));
                             $rRow.append($rProp).append($rVal);
                             $refBlock.append($rRow);
                         });
@@ -3610,6 +3688,54 @@
             $refBox.append($addRefLink);
             $refContainer.append($refHeader).append($refBox);
             $mainsnakContainer.append($refContainer);
+
+            // 3. Edit Action Bar when statement is in Edit Mode (Publicar, Cancelar, Eliminar, + añadir calificativo)
+            if (row.isEditing) {
+                let $editActionBar = $('<div>').addClass('cradle-statement-edit-toolbar');
+                let $publishBtn = $('<button>').addClass('cradle-btn-publish').text('Publicar').on('click', function() {
+                    row.isEditing = false;
+                    renderPropertyRows(pid);
+                    liveUpdateValidation();
+                });
+                let $cancelBtn = $('<button>').addClass('cradle-btn-cancel').text('Cancelar').on('click', function() {
+                    row.isEditing = false;
+                    renderPropertyRows(pid);
+                });
+                let $removeBtn = $('<button>').addClass('cradle-btn-remove').text('Eliminar').on('click', function() {
+                    toggleDeleteRow(pid, row.id);
+                });
+                let $addQualLink = $('<a>').addClass('cradle-add-qualifier-link').text('+ añadir calificativo').on('click', function(e) {
+                    e.preventDefault();
+                    if (!row.qualifiers) row.qualifiers = {};
+                    let firstQualPid = (propDef && propDef.qualifiers && propDef.qualifiers[0]) ? propDef.qualifiers[0] : 'P580';
+                    if (!row.qualifiers[firstQualPid]) row.qualifiers[firstQualPid] = [];
+                    row.qualifiers[firstQualPid].push('');
+                    renderPropertyRows(pid);
+                });
+
+                $editActionBar.append($publishBtn).append($cancelBtn).append($removeBtn).append($addQualLink);
+                $mainsnakContainer.append($editActionBar);
+            }
+
+            // Top Right Toolbar (Edit / Delete buttons when in view mode)
+            let $toolbarContainer = $('<div>').addClass('cradle-wikibase-toolbar-container');
+            let $editBtn = $('<button>')
+                .addClass('cradle-btn-icon')
+                .html(row.isEditing ? '✓' : '✏️')
+                .attr('title', row.isEditing ? 'Guardar edición' : 'Editar declaración')
+                .on('click', function() {
+                    row.isEditing = !row.isEditing;
+                    renderPropertyRows(pid);
+                });
+            let $deleteBtn = $('<button>')
+                .addClass('cradle-btn-icon')
+                .html(row.isDeleted ? ICONS.undo : ICONS.trash)
+                .attr('title', row.isDeleted ? 'Restaurar' : 'Eliminar')
+                .on('click', function() {
+                    toggleDeleteRow(pid, row.id);
+                });
+            $toolbarContainer.append($editBtn).append($deleteBtn);
+            $row.append($toolbarContainer);
 
             // Fetch missing property metadata (PIDs) and item labels (QIDs) in parallel for user's language
             let loadPromises = [];
@@ -3648,28 +3774,7 @@
                 });
             }
 
-            $row.append($mainsnakContainer);
-
-            // 3. Toolbar Container with Edit and Delete buttons
-            let $toolbarContainer = $('<div>').addClass('cradle-wikibase-toolbar-container');
-            let $editBtn = $('<button>')
-                .addClass('cradle-btn-icon')
-                .html('✏️')
-                .attr('title', mw.msg('cradle-edit-tab') || 'Editar')
-                .on('click', function() {
-                    let $inp = $valueView.find('input, select, textarea').first();
-                    if ($inp.length) $inp.focus().select();
-                });
-            let $deleteBtn = $('<button>')
-                .addClass('cradle-btn-icon')
-                .html(row.isDeleted ? ICONS.undo : ICONS.trash)
-                .attr('title', row.isDeleted ? 'Restaurar' : 'Eliminar')
-                .on('click', function() {
-                    toggleDeleteRow(pid, row.id);
-                });
-            $toolbarContainer.append($editBtn).append($deleteBtn);
-            $row.append($toolbarContainer);
-
+            $row.append($mainsnakContainer).append($toolbarContainer);
             $container.append($row);
         });
 
