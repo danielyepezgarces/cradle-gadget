@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.45.0
+ * Version: 1.47.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.45.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.47.0');
  */
 
 (function() {
@@ -3906,7 +3906,7 @@
             $rankWrapper.append($rankSelector);
             $row.append($rankWrapper);
 
-            // 2. Mainsnak Container with Wikibase SnakView TypeSelector
+            // 2. Mainsnak Container (wikibase-statementview-mainsnak-container)
             let $mainsnakContainer = $('<div>').addClass('cradle-wikibase-statementview-mainsnak-container');
             let $mainsnak = $('<div>').addClass('cradle-wikibase-statementview-mainsnak').attr('dir', 'auto');
             let $snakview = $('<div>').addClass('cradle-wikibase-snakview cradle-wikibase-snakview-value ' + (row.isEditing ? 'cradle-wb-edit' : 'cradle-wb-view'));
@@ -3941,26 +3941,34 @@
             }
 
             $snakBody.append($snakValue);
+            
+            // SnakView Indicators (Constraint & status badges)
+            let $snakIndicators = $('<div>').addClass('cradle-wikibase-snakview-indicators');
+            if (propDef && propDef.mandatory) {
+                $snakIndicators.append($('<span>').addClass('cradle-constraint-badge').text('* Requerido').attr('title', 'Restricción de esquema: campo obligatorio'));
+            }
+            $snakBody.append($snakIndicators);
             $snakValueContainer.append($snakBody);
             $snakview.append($snakValueContainer);
             $mainsnak.append($snakview);
             $mainsnakContainer.append($mainsnak);
 
-            // Collect missing PIDs and QIDs from mainsnak, qualifiers, and references to pre-fetch metadata & labels
+            // Collect missing PIDs and QIDs
             let missingPidsToFetch = [];
             let missingQidsToFetch = [];
-
             let mainQid = extractQid(row.value);
             if (mainQid && !softselectLabels[mainQid]) {
                 missingQidsToFetch.push(mainQid);
             }
 
-            // Qualifiers Container (.cradle-wikibase-statementview-qualifiers)
+            // 3. Qualifiers Container (wikibase-statementview-qualifiers)
             let qualPids = Object.keys(row.qualifiers || {});
             if (qualPids.length > 0 || (propDef && propDef.qualifiers && propDef.qualifiers.length > 0) || row.isEditing) {
                 let $qualContainer = $('<div>').addClass('cradle-wikibase-statementview-qualifiers');
+                let $snakListView = $('<div>').addClass('cradle-wikibase-snaklistview');
+                let $snakListViewInner = $('<div>').addClass('cradle-wikibase-snaklistview-listview');
+
                 let displayQualPids = qualPids.length > 0 ? qualPids : (propDef && propDef.qualifiers ? propDef.qualifiers : []);
-                
                 displayQualPids.forEach(qPid => {
                     if (!propertyMetadata[qPid] || !propertyMetadata[qPid].label || propertyMetadata[qPid].label === qPid) {
                         missingPidsToFetch.push(qPid);
@@ -3969,7 +3977,6 @@
                     let qVals = (row.qualifiers && row.qualifiers[qPid]) ? row.qualifiers[qPid] : [''];
                     qVals.forEach((qVal, qIdx) => {
                         let isValEmpty = (qVal === '' || qVal === null || qVal === undefined);
-                        // In view mode, skip empty qualifiers
                         if (!row.isEditing && isValEmpty) return;
 
                         let formattedVal = formatSnakValue(qVal);
@@ -4001,7 +4008,6 @@
                                     liveUpdateValidation();
                                 });
                             $qValue.append($qInput);
-
                             let $removeQualBtn = $('<span>').addClass('cradle-remove-qualifier-btn').html('🗑️').attr('title', 'Eliminar calificador')
                                 .on('click', function() {
                                     if (row.qualifiers && row.qualifiers[qPid]) {
@@ -4018,14 +4024,16 @@
 
                         $qValueContainer.append($qBody);
                         $qSnakView.append($qPropContainer).append($qValueContainer);
-                        $qualContainer.append($qSnakView);
+                        $snakListViewInner.append($qSnakView);
                     });
                 });
+                $snakListView.append($snakListViewInner);
+                $qualContainer.append($snakListView);
 
                 if (row.isEditing) {
-                    let $addQualToolbar = $('<div>').addClass('cradle-wikibase-addtoolbar cradle-wikibase-toolbar-item cradle-wikibase-toolbar cradle-wikibase-addtoolbar-container cradle-wikibase-toolbar-container')
+                    let $addQualToolbar = $('<div>').addClass('cradle-wikibase-addtoolbar cradle-wikibase-toolbar-container')
                         .append(
-                            $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-item cradle-wikibase-toolbar-button cradle-wikibase-toolbar-button-add')
+                            $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-add')
                                 .append(
                                     $('<a>').attr({href: '#', title: ''}).html('<span class="cradle-wb-icon"></span>' + (mw.msg('cradle-add-qualifier') || 'añadir un calificativo'))
                                         .on('click', function(e) {
@@ -4043,8 +4051,46 @@
 
                 $mainsnakContainer.append($qualContainer);
             }
+            $row.append($mainsnakContainer);
 
-            // References Container (.cradle-wikibase-statementview-references-container)
+            // 4. Edit Toolbar Container (templates.php line 94: direct child of statementview)
+            let $toolbarContainer = $('<span>').addClass('cradle-wikibase-toolbar-container cradle-wikibase-edittoolbar-container' + (row.isEditing ? ' cradle-wikibase-edittoolbar-ineditmode' : ''));
+            let $toolbar = $('<span>').addClass('cradle-wikibase-toolbar');
+
+            if (row.isEditing) {
+                let $saveBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-save')
+                    .append($('<a>').attr('href', '#').text('publicar').on('click', function(e) {
+                        e.preventDefault();
+                        row.isEditing = false;
+                        renderPropertyRows(pid);
+                        liveUpdateValidation();
+                    }));
+                let $removeBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-remove')
+                    .append($('<a>').attr('href', '#').text('eliminar').on('click', function(e) {
+                        e.preventDefault();
+                        toggleDeleteRow(pid, row.id);
+                    }));
+                let $cancelBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-cancel')
+                    .append($('<a>').attr('href', '#').text('cancelar').on('click', function(e) {
+                        e.preventDefault();
+                        row.isEditing = false;
+                        renderPropertyRows(pid);
+                    }));
+
+                $toolbar.append($saveBtn).append($removeBtn).append($cancelBtn);
+            } else {
+                let $editBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-edit')
+                    .append($('<a>').attr('href', '#').text('editar').on('click', function(e) {
+                        e.preventDefault();
+                        row.isEditing = true;
+                        renderPropertyRows(pid);
+                    }));
+                $toolbar.append($editBtn);
+            }
+            $toolbarContainer.append($toolbar);
+            $row.append($toolbarContainer);
+
+            // 5. References Container (templates.php line 95: direct child of statementview)
             let $refContainer = $('<div>').addClass('cradle-wikibase-statementview-references-container');
             let refList = row.references || [];
             let refCount = refList.length;
@@ -4081,7 +4127,7 @@
 
                             let $rSnakView = $('<div>').addClass('cradle-wikibase-snakview').attr('data-rpid', rPid);
                             let $rPropContainer = $('<div>').addClass('cradle-wikibase-snakview-property-container');
-                            let $rProp = $('<div>').addClass('cradle-wikibase-snakview-property').attr('dir', 'auto').text(rMeta.label || rPid);
+                            let $rProp = $('<div>').addClass('cradle-wikibase-snakview-property').attr('dir', 'auto').append($('<a>').attr({href: `/wiki/Property:${rPid}`, target: '_blank'}).text(rMeta.label || rPid));
                             $rPropContainer.append($rProp);
 
                             let $rValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container').attr('dir', 'auto');
@@ -4100,54 +4146,19 @@
                 $refList.append($refView);
             });
 
-            let $addRefLink = $('<a>').addClass('cradle-add-reference-link').text('+ ' + (mw.msg('cradle-add-reference') || 'añadir referencia'))
-                .on('click', function(e) {
-                    e.preventDefault();
-                    if (!row.references) row.references = [];
-                    row.references.push({ snaks: { P248: [{ datavalue: { value: '' } }] } });
-                    renderPropertyRows(pid);
-                });
-
-            $refList.append($addRefLink);
-            $refContainer.append($refHeader).append($refList);
-            $mainsnakContainer.append($refContainer);
-
-            // 3. Edit Toolbar (View Mode vs Edit Mode)
-            let $toolbarContainer = $('<span>').addClass('cradle-wikibase-toolbar-container cradle-wikibase-edittoolbar-container' + (row.isEditing ? ' cradle-wikibase-edittoolbar-ineditmode' : ''));
-            let $toolbar = $('<span>').addClass('cradle-wikibase-toolbar');
-
             if (row.isEditing) {
-                let $saveBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-save')
-                    .append($('<a>').attr('href', '#').text('publicar').on('click', function(e) {
+                let $addRefLink = $('<a>').addClass('cradle-add-reference-link').text('+ ' + (mw.msg('cradle-add-reference') || 'añadir referencia'))
+                    .on('click', function(e) {
                         e.preventDefault();
-                        row.isEditing = false;
+                        if (!row.references) row.references = [];
+                        row.references.push({ snaks: { P248: [{ datavalue: { value: '' } }] } });
                         renderPropertyRows(pid);
-                        liveUpdateValidation();
-                    }));
-                let $removeBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-remove')
-                    .append($('<a>').attr('href', '#').text('eliminar').on('click', function(e) {
-                        e.preventDefault();
-                        toggleDeleteRow(pid, row.id);
-                    }));
-                let $cancelBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-cancel')
-                    .append($('<a>').attr('href', '#').text('cancelar').on('click', function(e) {
-                        e.preventDefault();
-                        row.isEditing = false;
-                        renderPropertyRows(pid);
-                    }));
-
-                $toolbar.append($saveBtn).append($removeBtn).append($cancelBtn);
-            } else {
-                let $editBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-edit')
-                    .append($('<a>').attr('href', '#').text('editar').on('click', function(e) {
-                        e.preventDefault();
-                        row.isEditing = true;
-                        renderPropertyRows(pid);
-                    }));
-                $toolbar.append($editBtn);
+                    });
+                $refList.append($addRefLink);
             }
 
-            $toolbarContainer.append($toolbar);
+            $refContainer.append($refHeader).append($refList);
+            $row.append($refContainer);
             $row.append($toolbarContainer);
 
             // Fetch missing property metadata (PIDs) and item labels (QIDs) in parallel for user's language
