@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.40.0
+ * Version: 1.41.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.40.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.41.0');
  */
 
 (function() {
@@ -629,31 +629,70 @@
             color: #202122;
         }
 
-        /* References Outer Container & Header */
-        .cradle-wikibase-statementview-references-container {
+        /* Wikibase official SnakView layout (Qualifiers & References) */
+        .cradle-wikibase-statementview-qualifiers {
             margin-top: 8px;
-            margin-left: 24px;
+            margin-left: 16px;
         }
 
-        .cradle-reference-header {
+        .cradle-wikibase-snakview {
+            display: flex;
+            flex-direction: row;
+            align-items: baseline;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+
+        .cradle-wikibase-snakview-property-container {
+            width: 140px;
+            flex-shrink: 0;
+            padding-right: 8px;
+            box-sizing: border-box;
+        }
+
+        .cradle-wikibase-snakview-property {
+            font-weight: bold;
+            color: #0645ad;
+            word-wrap: break-word;
+        }
+
+        .cradle-wikibase-snakview-value-container {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .cradle-wikibase-snakview-body {
+            display: flex;
+            align-items: center;
+        }
+
+        .cradle-wikibase-snakview-value {
+            color: #202122;
+        }
+
+        /* Wikibase ReferenceView */
+        .cradle-wikibase-statementview-references-container {
+            margin-top: 8px;
+            margin-left: 16px;
+        }
+
+        .cradle-wikibase-statementview-references-heading {
             color: #0645ad;
             cursor: pointer;
-            margin-bottom: 6px;
             font-size: 0.8rem;
             font-weight: bold;
+            margin-bottom: 6px;
             user-select: none;
         }
 
-        /* Light grey box for reference list */
-        .cradle-wikibase-references {
-            padding: 8px 10px;
+        .cradle-wikibase-statementview-references {
             background-color: #f8f9fa;
-            border-radius: 2px;
             border: 1px solid #eaecf0;
+            border-radius: 2px;
+            padding: 8px 10px;
         }
 
-        /* Distinct white card for each reference block */
-        .cradle-reference-block {
+        .cradle-wikibase-referenceview {
             background-color: #ffffff;
             border: 1px solid #c8ccd1;
             border-radius: 2px;
@@ -662,7 +701,7 @@
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
         }
 
-        .cradle-reference-block:last-child {
+        .cradle-wikibase-referenceview:last-child {
             margin-bottom: 0;
         }
 
@@ -3631,10 +3670,10 @@
                 missingQidsToFetch.push(mainQid);
             }
 
-            // 1. Render Qualifiers Section if qualifiers exist or are defined
-            let $qualBox = $('<div>').addClass('cradle-wikibase-qualifiers');
+            // Qualifiers Container (.cradle-wikibase-statementview-qualifiers)
             let qualPids = Object.keys(row.qualifiers || {});
             if (qualPids.length > 0 || (propDef && propDef.qualifiers && propDef.qualifiers.length > 0)) {
+                let $qualContainer = $('<div>').addClass('cradle-wikibase-statementview-qualifiers');
                 let displayQualPids = qualPids.length > 0 ? qualPids : (propDef.qualifiers || []);
                 displayQualPids.forEach(qPid => {
                     if (!propertyMetadata[qPid] || !propertyMetadata[qPid].label || propertyMetadata[qPid].label === qPid) {
@@ -3642,18 +3681,22 @@
                     }
                     let qMeta = propertyMetadata[qPid] || { label: qPid };
                     let qVals = (row.qualifiers && row.qualifiers[qPid]) ? row.qualifiers[qPid] : [''];
-                    qVals.forEach((qVal, qIdx) => {
+                    qVals.forEach(qVal => {
                         let formattedVal = formatSnakValue(qVal);
-                        
-                        let qidCandidate = typeof qVal === 'string' ? qVal : (qVal && qVal.id ? qVal.id : (qVal && qVal.datavalue && qVal.datavalue.value ? qVal.datavalue.value.id : null));
-                        if (qidCandidate && /^[QP]\d+$/i.test(qidCandidate) && !softselectLabels[qidCandidate]) {
+                        let qidCandidate = extractQid(qVal);
+                        if (qidCandidate && !softselectLabels[qidCandidate]) {
                             missingQidsToFetch.push(qidCandidate);
                         }
 
-                        let $qRow = $('<div>').addClass('cradle-qualifier-row').attr('data-qpid', qPid);
-                        let $qProp = $('<div>').addClass('cradle-qualifier-prop').text(qMeta.label || qPid);
-                        let $qValDiv = $('<div>').addClass('cradle-qualifier-val');
-                        
+                        let $qSnakView = $('<div>').addClass('cradle-wikibase-snakview').attr('data-qpid', qPid);
+                        let $qPropContainer = $('<div>').addClass('cradle-wikibase-snakview-property-container');
+                        let $qProp = $('<div>').addClass('cradle-wikibase-snakview-property').attr('dir', 'auto').text(qMeta.label || qPid);
+                        $qPropContainer.append($qProp);
+
+                        let $qValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container').attr('dir', 'auto');
+                        let $qBody = $('<div>').addClass('cradle-wikibase-snakview-body');
+                        let $qValue = $('<div>').addClass('cradle-wikibase-snakview-value cradle-valueview-value');
+
                         if (row.isEditing) {
                             let $qInput = $('<input>')
                                 .addClass('cradle-input')
@@ -3664,36 +3707,41 @@
                                     row.qualifiers[qPid] = [$(this).val()];
                                     liveUpdateValidation();
                                 });
-                            $qValDiv.append($qInput);
+                            $qValue.append($qInput);
                         } else {
-                            $qValDiv.html(formatSnakValueHTML(qVal));
+                            $qValue.html(formatSnakValueHTML(qVal));
                         }
 
-                        $qRow.append($qProp).append($qValDiv);
-                        $qualBox.append($qRow);
+                        $qBody.append($qValue);
+                        $qValueContainer.append($qBody);
+                        $qSnakView.append($qPropContainer).append($qValueContainer);
+                        $qualContainer.append($qSnakView);
                     });
                 });
-                $mainsnakContainer.append($qualBox);
+                $mainsnakContainer.append($qualContainer);
             }
 
-            // 2. Render References Section
+            // References Container (.cradle-wikibase-statementview-references-container)
             let $refContainer = $('<div>').addClass('cradle-wikibase-statementview-references-container');
             let refList = row.references || [];
             let refCount = refList.length;
             let refHeaderText = refCount === 1 ? `▼ 1 referencia` : (refCount > 0 ? `▼ ${refCount} referencias` : '▶ 0 referencias');
-            let $refHeader = $('<div>').addClass('cradle-reference-header').text(refHeaderText);
-            
-            let $refBox = $('<div>').addClass('cradle-wikibase-references').css({'display': refCount > 0 ? 'block' : 'none'});
+            let $refHeader = $('<div>').addClass('cradle-wikibase-statementview-references-heading').text(refHeaderText);
+
+            let $refList = $('<div>').addClass('cradle-wikibase-statementview-references').css({'display': refCount > 0 ? 'block' : 'none'});
             $refHeader.on('click', function() {
-                $refBox.toggle();
-                let isVis = $refBox.is(':visible');
+                $refList.toggle();
+                let isVis = $refList.is(':visible');
                 let count = (row.references || []).length;
                 let text = count === 1 ? '1 referencia' : `${count} referencias`;
                 $(this).text(isVis ? `▼ ${text}` : `▶ ${text}`);
             });
 
             refList.forEach((refObj, rIdx) => {
-                let $refBlock = $('<div>').addClass('cradle-reference-block');
+                let $refView = $('<div>').addClass('cradle-wikibase-referenceview');
+                let $refListView = $('<div>').addClass('cradle-wikibase-referenceview-listview');
+                let $snakListView = $('<div>').addClass('cradle-wikibase-snaklistview');
+
                 let refSnaks = refObj.snaks || refObj;
                 Object.keys(refSnaks).forEach(rPid => {
                     if (rPid !== 'snaks-order' && rPid !== 'hash') {
@@ -3703,20 +3751,30 @@
                         let rMeta = propertyMetadata[rPid] || { label: rPid };
                         let snakArr = Array.isArray(refSnaks[rPid]) ? refSnaks[rPid] : [refSnaks[rPid]];
                         snakArr.forEach(s => {
-                            let rQidCandidate = typeof s === 'string' ? s : (s && s.id ? s.id : (s && s.datavalue && s.datavalue.value ? (s.datavalue.value.id || (s.datavalue.value['numeric-id'] ? `Q${s.datavalue.value['numeric-id']}` : null)) : null));
-                            if (rQidCandidate && /^[QP]\d+$/i.test(rQidCandidate) && !softselectLabels[rQidCandidate]) {
+                            let rQidCandidate = extractQid(s);
+                            if (rQidCandidate && !softselectLabels[rQidCandidate]) {
                                 missingQidsToFetch.push(rQidCandidate);
                             }
 
-                            let $rRow = $('<div>').addClass('cradle-reference-row').attr('data-rpid', rPid);
-                            let $rProp = $('<div>').addClass('cradle-reference-prop').text(rMeta.label || rPid);
-                            let $rVal = $('<div>').addClass('cradle-reference-val').html(formatSnakValueHTML(s));
-                            $rRow.append($rProp).append($rVal);
-                            $refBlock.append($rRow);
+                            let $rSnakView = $('<div>').addClass('cradle-wikibase-snakview').attr('data-rpid', rPid);
+                            let $rPropContainer = $('<div>').addClass('cradle-wikibase-snakview-property-container');
+                            let $rProp = $('<div>').addClass('cradle-wikibase-snakview-property').attr('dir', 'auto').text(rMeta.label || rPid);
+                            $rPropContainer.append($rProp);
+
+                            let $rValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container').attr('dir', 'auto');
+                            let $rBody = $('<div>').addClass('cradle-wikibase-snakview-body');
+                            let $rValue = $('<div>').addClass('cradle-wikibase-snakview-value cradle-valueview-value').html(formatSnakValueHTML(s));
+                            
+                            $rBody.append($rValue);
+                            $rValueContainer.append($rBody);
+                            $rSnakView.append($rPropContainer).append($rValueContainer);
+                            $snakListView.append($rSnakView);
                         });
                     }
                 });
-                $refBox.append($refBlock);
+                $refListView.append($snakListView);
+                $refView.append($refListView);
+                $refList.append($refView);
             });
 
             let $addRefLink = $('<a>').addClass('cradle-add-reference-link').text('+ ' + (mw.msg('cradle-add-reference') || 'añadir referencia'))
@@ -3727,8 +3785,8 @@
                     renderPropertyRows(pid);
                 });
 
-            $refBox.append($addRefLink);
-            $refContainer.append($refHeader).append($refBox);
+            $refList.append($addRefLink);
+            $refContainer.append($refHeader).append($refList);
             $mainsnakContainer.append($refContainer);
 
             // 3. Edit Action Bar when statement is in Edit Mode (Publicar, Cancelar, Eliminar, + añadir calificativo)
