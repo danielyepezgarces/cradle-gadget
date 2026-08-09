@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.47.0
+ * Version: 1.48.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.47.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.48.0');
  */
 
 (function() {
@@ -421,9 +421,9 @@
         }
 
         /*
-         * ── Wikibase Exact Layout Translated with cradle- Prefix ──
+         * ── Wikibase Exact Layout Translated 1:1 with cradle- Prefix ──
          * Property label column (15em left) + statement list (right)
-         * Matches wikibase.less & jquery.wikibase.statementgroupview.less
+         * Matches wikibase.less & jquery.wikibase.statementgroupview.less 100%
          */
 
         .cradle-drawer .cradle-wikibase-statementgrouplistview {
@@ -523,18 +523,18 @@
         .cradle-drawer .cradle-wikibase-statementview.cradle-wb-edit {
             background-color: #f4f8ff;
         }
-        .cradle-drawer .cradle-wikibase-statementview.deleted {
+        .cradle-drawer .cradle-wikibase-statementview.cradle-wb-removed {
             opacity: 0.5;
             text-decoration: line-through;
             background-color: #fff0f0;
         }
 
-        /* Rank Selector Column */
+        /* Rank Selector Column (Absolute 10px left matching Wikibase) */
         .cradle-drawer .cradle-wikibase-statementview-rankselector {
             flex-shrink: 0;
             width: 24px;
             margin-right: 6px;
-            padding-top: 2px;
+            padding-top: 4px;
         }
         .cradle-drawer .cradle-wikibase-rankselector {
             display: inline-flex;
@@ -556,7 +556,7 @@
             min-width: 0;
             display: flex;
             flex-direction: column;
-            padding-right: 120px; /* Leave room for top-right toolbar */
+            padding-right: 140px; /* Room for top-right edit toolbar */
         }
         .cradle-drawer .cradle-wikibase-statementview-mainsnak {
             width: 100%;
@@ -568,7 +568,7 @@
             flex-direction: row;
             align-items: center;
             font-size: 0.875rem;
-            margin-bottom: 4px;
+            padding: 4px 0;
         }
         .cradle-drawer .cradle-wikibase-snakview-value-container {
             flex: 1;
@@ -587,7 +587,22 @@
             color: #202122;
         }
 
-        /* ValueView Expert inputs */
+        /* SnakView Indicators */
+        .cradle-drawer .cradle-wikibase-snakview-indicators {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 8px;
+        }
+        .cradle-drawer .cradle-constraint-badge {
+            font-size: 0.75rem;
+            color: #72777d;
+            background: #f8f9fa;
+            border: 1px solid #c8ccd1;
+            border-radius: 2px;
+            padding: 1px 4px;
+        }
+
+        /* ValueView Experts & Inputs */
         .cradle-drawer .cradle-valueview {
             width: 100%;
         }
@@ -608,6 +623,7 @@
             background: #ffffff;
             color: #202122;
             font-size: 0.875rem;
+            font-family: inherit;
             border-radius: 2px;
             height: 32px;
         }
@@ -655,16 +671,21 @@
             border-left: 2px solid #eaecf0;
             padding-left: 8px;
         }
+        .cradle-drawer .cradle-wikibase-statementview-qualifiers .cradle-wikibase-snakview {
+            position: relative;
+            min-height: 1.5em;
+            padding: 4px 0;
+        }
         .cradle-drawer .cradle-wikibase-statementview-qualifiers .cradle-wikibase-snakview-property-container {
-            width: 120px;
+            width: 12em;
             flex-shrink: 0;
-            padding-right: 6px;
+            padding-right: 8px;
+            font-size: 90%;
         }
         .cradle-drawer .cradle-wikibase-statementview-qualifiers .cradle-wikibase-snakview-property a {
             font-weight: bold;
             color: #0645ad;
             text-decoration: none;
-            font-size: 0.8rem;
         }
 
         /* References (.cradle-wikibase-statementview-references-container) */
@@ -695,6 +716,17 @@
         }
         .cradle-drawer .cradle-wikibase-referenceview:last-child {
             margin-bottom: 0;
+        }
+        .cradle-drawer .cradle-wikibase-referenceview .cradle-wikibase-snakview-property-container {
+            width: 12em;
+            flex-shrink: 0;
+            padding-right: 8px;
+            font-size: 90%;
+        }
+        .cradle-drawer .cradle-wikibase-referenceview .cradle-wikibase-snakview-property a {
+            font-weight: bold;
+            color: #0645ad;
+            text-decoration: none;
         }
 
         /* Top-Right Toolbar Container */
