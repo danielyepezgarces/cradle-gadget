@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.43.0
+ * Version: 1.44.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.43.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.44.0');
  */
 
 (function() {
@@ -726,7 +726,32 @@
             font-size: 0.8rem;
         }
         
-        /* Wikibase SnakView TypeSelector & Remove Controls */
+        /* Wikibase RankSelector & ValueView Experts */
+        .cradle-wikibase-rankselector {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 2px;
+            font-size: 0.9rem;
+            color: #54595d;
+        }
+        .cradle-rank-normal { color: #54595d; }
+        .cradle-rank-preferred { color: #00af89; font-weight: bold; }
+        .cradle-rank-deprecated { color: #d33; }
+
+        .cradle-valueview {
+            width: 100%;
+        }
+        .cradle-valueview-ineditmode {
+            display: flex;
+            align-items: center;
+        }
+        .cradle-valueview-value {
+            width: 100%;
+        }
+
         .cradle-wikibase-snakview-typeselector {
             display: inline-block;
             margin-right: 6px;
@@ -3628,19 +3653,25 @@
                 $row.addClass('deleted');
             }
 
-            // 1. Rank Selector Column
+            // 1. Rank Selector Column (Wikibase exact)
             let $rankWrapper = $('<div>').addClass('cradle-wikibase-statementview-rankselector');
-            let $rankUp = $('<span>').addClass('cradle-rank-up').text('▵').attr('title', 'Aumentar rango').on('click', function() {
-                row.rank = row.rank === 'normal' ? 'preferred' : (row.rank === 'deprecated' ? 'normal' : 'preferred');
-                renderPropertyRows(pid);
-            });
-            let rankChar = row.rank === 'preferred' ? '★' : (row.rank === 'deprecated' ? '▼' : '●');
-            let $rankCircle = $('<span>').addClass('cradle-rank-circle').text(rankChar);
-            let $rankDown = $('<span>').addClass('cradle-rank-down').text('▿').attr('title', 'Disminuir rango').on('click', function() {
-                row.rank = row.rank === 'normal' ? 'deprecated' : (row.rank === 'preferred' ? 'normal' : 'deprecated');
-                renderPropertyRows(pid);
-            });
-            $rankWrapper.append($rankUp).append($rankCircle).append($rankDown);
+            let $rankSelector = $('<div>').addClass('cradle-wikibase-rankselector ' + (row.isEditing ? 'cradle-wb-edit' : ''));
+            let rankIcons = { normal: '●', preferred: '★', deprecated: '▼' };
+            let rankTitles = { normal: 'Rango normal', preferred: 'Rango preferido', deprecated: 'Rango en desuso' };
+            let $rankIcon = $('<span>')
+                .addClass('cradle-rank-icon cradle-rank-' + (row.rank || 'normal'))
+                .text(rankIcons[row.rank || 'normal'])
+                .attr('title', rankTitles[row.rank || 'normal']);
+            
+            if (row.isEditing) {
+                $rankSelector.css('cursor', 'pointer').on('click', function() {
+                    let nextRank = row.rank === 'normal' ? 'preferred' : (row.rank === 'preferred' ? 'deprecated' : 'normal');
+                    row.rank = nextRank;
+                    renderPropertyRows(pid);
+                });
+            }
+            $rankSelector.append($rankIcon);
+            $rankWrapper.append($rankSelector);
             $row.append($rankWrapper);
 
             // 2. Mainsnak Container with Wikibase SnakView TypeSelector
@@ -3959,19 +3990,28 @@
      */
     function createInputForDatatype(pid, row) {
         let propDef = schemaProperties[pid] || {};
+        let datatype = row.datatype || propDef.datatype || 'string';
+        let expertClass = 'cradle-valueview-expert-' + datatype.replace(/[^a-z0-9]/g, '');
+
+        let $valueView = $('<div>').addClass('cradle-valueview cradle-valueview-ineditmode');
+        let $expertDiv = $('<div>').addClass('cradle-valueview-value ' + expertClass);
 
         // Special handling for Wikidata 'somevalue' (unknown value) and 'novalue' (no value)
         if (row.snaktype === 'somevalue' || row.value === 'somevalue') {
-            return $('<span>')
+            $expertDiv.append($('<span>')
                 .addClass('cdx-badge cdx-badge--style-subtle')
                 .css({'font-size': '0.85rem', 'padding': '4px 8px', 'font-style': 'italic', 'color': '#54595d', 'background': '#f8f9fa', 'border': '1px solid #c8ccd1', 'border-radius': '2px'})
-                .text('valor desconocido (somevalue)');
+                .text('valor desconocido (somevalue)'));
+            $valueView.append($expertDiv);
+            return $valueView;
         }
         if (row.snaktype === 'novalue' || row.value === 'novalue') {
-            return $('<span>')
+            $expertDiv.append($('<span>')
                 .addClass('cdx-badge cdx-badge--style-subtle')
                 .css({'font-size': '0.85rem', 'padding': '4px 8px', 'font-style': 'italic', 'color': '#54595d', 'background': '#f8f9fa', 'border': '1px solid #c8ccd1', 'border-radius': '2px'})
-                .text('sin valor (novalue)');
+                .text('sin valor (novalue)'));
+            $valueView.append($expertDiv);
+            return $valueView;
         }
         
         // Support for dropdown select when predefined values / hardselect / softselect / allowedValues exist
