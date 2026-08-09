@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.42.0
+ * Version: 1.43.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.42.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.43.0');
  */
 
 (function() {
@@ -726,10 +726,35 @@
             font-size: 0.8rem;
         }
         
-        /* Wikibase Toolbar Buttons (editar, publicar, eliminar, cancelar, añadir valor, añadir calificativo) */
-        .cradle-wikibase-toolbar-container {
-            display: inline-flex;
-            align-items: center;
+        /* Wikibase SnakView TypeSelector & Remove Controls */
+        .cradle-wikibase-snakview-typeselector {
+            display: inline-block;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .cradle-snaktype-select {
+            font-size: 0.8rem;
+            padding: 1px 4px;
+            border: 1px solid #c8ccd1;
+            border-radius: 2px;
+            background: #f8f9fa;
+            color: #202122;
+            cursor: pointer;
+            height: 24px;
+        }
+
+        .cradle-remove-qualifier-btn {
+            cursor: pointer;
+            color: #72777d;
+            font-size: 0.85rem;
+            margin-left: 6px;
+            opacity: 0.6;
+            transition: opacity 0.15s, color 0.15s;
+        }
+        .cradle-remove-qualifier-btn:hover {
+            opacity: 1;
+            color: #d33;
         }
 
         .cradle-wikibase-toolbarbutton {
@@ -3618,28 +3643,45 @@
             $rankWrapper.append($rankUp).append($rankCircle).append($rankDown);
             $row.append($rankWrapper);
 
-            // 2. Mainsnak Container
+            // 2. Mainsnak Container with Wikibase SnakView TypeSelector
             let $mainsnakContainer = $('<div>').addClass('cradle-wikibase-statementview-mainsnak-container');
-            let $mainsnak = $('<div>').addClass('cradle-wikibase-statementview-mainsnak');
-            let $snakview = $('<div>').addClass('cradle-wikibase-snakview ' + (row.isEditing ? 'cradle-wb-edit' : 'cradle-wb-view'));
-            let $snakValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container');
-            let $snakBody = $('<div>').addClass('cradle-wikibase-snakview-body');
-            let $snakValue = $('<div>').addClass('cradle-wikibase-snakview-value');
-            let $valueView = $('<div>').addClass('cradle-valueview-value');
+            let $mainsnak = $('<div>').addClass('cradle-wikibase-statementview-mainsnak').attr('dir', 'auto');
+            let $snakview = $('<div>').addClass('cradle-wikibase-snakview cradle-wikibase-snakview-value ' + (row.isEditing ? 'cradle-wb-edit' : 'cradle-wb-view'));
+            let $snakValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container').attr('dir', 'auto');
             
             if (row.isEditing) {
-                let $inputElem = createInputForDatatype(pid, row);
-                $valueView.append($inputElem);
-            } else {
-                let formattedHtml = formatSnakValueHTML(row.value);
-                $valueView.html(formattedHtml);
+                let $typeSelector = $('<div>').addClass('cradle-wikibase-snakview-typeselector');
+                let $snakSelect = $('<select>').addClass('cradle-snaktype-select')
+                    .on('change', function() {
+                        row.snaktype = $(this).val();
+                        if (row.snaktype === 'somevalue') row.value = 'somevalue';
+                        else if (row.snaktype === 'novalue') row.value = 'novalue';
+                        else if (row.value === 'somevalue' || row.value === 'novalue') row.value = '';
+                        renderPropertyRows(pid);
+                    });
+                $snakSelect.append($('<option>').val('value').text('● ' + (mw.msg('cradle-snaktype-value') || 'valor personalizado')).attr('selected', !row.snaktype || row.snaktype === 'value'));
+                $snakSelect.append($('<option>').val('somevalue').text('? ' + (mw.msg('cradle-snaktype-somevalue') || 'valor desconocido')).attr('selected', row.snaktype === 'somevalue'));
+                $snakSelect.append($('<option>').val('novalue').text('ø ' + (mw.msg('cradle-snaktype-novalue') || 'sin valor')).attr('selected', row.snaktype === 'novalue'));
+                $typeSelector.append($snakSelect);
+                $snakValueContainer.append($typeSelector);
             }
 
-            $snakValue.append($valueView);
+            let $snakBody = $('<div>').addClass('cradle-wikibase-snakview-body');
+            let $snakValue = $('<div>').addClass('cradle-wikibase-snakview-value cradle-valueview-value');
+
+            if (row.isEditing) {
+                let $inputElem = createInputForDatatype(pid, row);
+                $snakValue.append($inputElem);
+            } else {
+                let formattedHtml = formatSnakValueHTML(row.value);
+                $snakValue.html(formattedHtml);
+            }
+
             $snakBody.append($snakValue);
             $snakValueContainer.append($snakBody);
             $snakview.append($snakValueContainer);
             $mainsnak.append($snakview);
+            $mainsnakContainer.append($mainsnak);
 
             // Collect missing PIDs and QIDs from mainsnak, qualifiers, and references to pre-fetch metadata & labels
             let missingPidsToFetch = [];
@@ -3652,16 +3694,21 @@
 
             // Qualifiers Container (.cradle-wikibase-statementview-qualifiers)
             let qualPids = Object.keys(row.qualifiers || {});
-            if (qualPids.length > 0 || (propDef && propDef.qualifiers && propDef.qualifiers.length > 0)) {
+            if (qualPids.length > 0 || (propDef && propDef.qualifiers && propDef.qualifiers.length > 0) || row.isEditing) {
                 let $qualContainer = $('<div>').addClass('cradle-wikibase-statementview-qualifiers');
-                let displayQualPids = qualPids.length > 0 ? qualPids : (propDef.qualifiers || []);
+                let displayQualPids = qualPids.length > 0 ? qualPids : (propDef && propDef.qualifiers ? propDef.qualifiers : []);
+                
                 displayQualPids.forEach(qPid => {
                     if (!propertyMetadata[qPid] || !propertyMetadata[qPid].label || propertyMetadata[qPid].label === qPid) {
                         missingPidsToFetch.push(qPid);
                     }
                     let qMeta = propertyMetadata[qPid] || { label: qPid };
                     let qVals = (row.qualifiers && row.qualifiers[qPid]) ? row.qualifiers[qPid] : [''];
-                    qVals.forEach(qVal => {
+                    qVals.forEach((qVal, qIdx) => {
+                        let isValEmpty = (qVal === '' || qVal === null || qVal === undefined);
+                        // In view mode, skip empty qualifiers
+                        if (!row.isEditing && isValEmpty) return;
+
                         let formattedVal = formatSnakValue(qVal);
                         let qidCandidate = extractQid(qVal);
                         if (qidCandidate && !softselectLabels[qidCandidate]) {
@@ -3670,7 +3717,8 @@
 
                         let $qSnakView = $('<div>').addClass('cradle-wikibase-snakview').attr('data-qpid', qPid);
                         let $qPropContainer = $('<div>').addClass('cradle-wikibase-snakview-property-container');
-                        let $qProp = $('<div>').addClass('cradle-wikibase-snakview-property').attr('dir', 'auto').text(qMeta.label || qPid);
+                        let $qPropLink = $('<a>').attr({href: `/wiki/Property:${qPid}`, target: '_blank'}).text(qMeta.label || qPid);
+                        let $qProp = $('<div>').addClass('cradle-wikibase-snakview-property').attr('dir', 'auto').append($qPropLink);
                         $qPropContainer.append($qProp);
 
                         let $qValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container').attr('dir', 'auto');
@@ -3682,39 +3730,54 @@
                                 .addClass('cradle-input')
                                 .attr('type', 'text')
                                 .val(formattedVal)
+                                .attr('placeholder', 'Añadir valor de calificador...')
                                 .on('change input', function() {
                                     if (!row.qualifiers) row.qualifiers = {};
-                                    row.qualifiers[qPid] = [$(this).val()];
+                                    if (!row.qualifiers[qPid]) row.qualifiers[qPid] = [];
+                                    row.qualifiers[qPid][qIdx] = $(this).val();
                                     liveUpdateValidation();
                                 });
                             $qValue.append($qInput);
+
+                            let $removeQualBtn = $('<span>').addClass('cradle-remove-qualifier-btn').html('🗑️').attr('title', 'Eliminar calificador')
+                                .on('click', function() {
+                                    if (row.qualifiers && row.qualifiers[qPid]) {
+                                        row.qualifiers[qPid].splice(qIdx, 1);
+                                        if (row.qualifiers[qPid].length === 0) delete row.qualifiers[qPid];
+                                    }
+                                    renderPropertyRows(pid);
+                                });
+                            $qBody.append($qValue).append($removeQualBtn);
                         } else {
                             $qValue.html(formatSnakValueHTML(qVal));
+                            $qBody.append($qValue);
                         }
 
-                        $qBody.append($qValue);
                         $qValueContainer.append($qBody);
                         $qSnakView.append($qPropContainer).append($qValueContainer);
                         $qualContainer.append($qSnakView);
                     });
                 });
-                let $addQualToolbar = $('<div>').addClass('cradle-wikibase-addtoolbar cradle-wikibase-toolbar-item cradle-wikibase-toolbar cradle-wikibase-addtoolbar-container cradle-wikibase-toolbar-container')
-                    .append(
-                        $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-item cradle-wikibase-toolbar-button cradle-wikibase-toolbar-button-add')
-                            .append(
-                                $('<a>').attr({href: '#', title: ''}).html('<span class="cradle-wb-icon"></span>' + (mw.msg('cradle-add-qualifier') || 'añadir un calificativo'))
-                                    .on('click', function(e) {
-                                        e.preventDefault();
-                                        if (!row.qualifiers) row.qualifiers = {};
-                                        let firstQualPid = (propDef && propDef.qualifiers && propDef.qualifiers[0]) ? propDef.qualifiers[0] : 'P580';
-                                        if (!row.qualifiers[firstQualPid]) row.qualifiers[firstQualPid] = [];
-                                        row.qualifiers[firstQualPid].push('');
-                                        row.isEditing = true;
-                                        renderPropertyRows(pid);
-                                    })
-                            )
-                    );
-                $qualContainer.append($addQualToolbar);
+
+                if (row.isEditing) {
+                    let $addQualToolbar = $('<div>').addClass('cradle-wikibase-addtoolbar cradle-wikibase-toolbar-item cradle-wikibase-toolbar cradle-wikibase-addtoolbar-container cradle-wikibase-toolbar-container')
+                        .append(
+                            $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-item cradle-wikibase-toolbar-button cradle-wikibase-toolbar-button-add')
+                                .append(
+                                    $('<a>').attr({href: '#', title: ''}).html('<span class="cradle-wb-icon"></span>' + (mw.msg('cradle-add-qualifier') || 'añadir un calificativo'))
+                                        .on('click', function(e) {
+                                            e.preventDefault();
+                                            if (!row.qualifiers) row.qualifiers = {};
+                                            let firstQualPid = (propDef && propDef.qualifiers && propDef.qualifiers[0]) ? propDef.qualifiers[0] : 'P580';
+                                            if (!row.qualifiers[firstQualPid]) row.qualifiers[firstQualPid] = [];
+                                            row.qualifiers[firstQualPid].push('');
+                                            renderPropertyRows(pid);
+                                        })
+                                )
+                        );
+                    $qualContainer.append($addQualToolbar);
+                }
+
                 $mainsnakContainer.append($qualContainer);
             }
 
