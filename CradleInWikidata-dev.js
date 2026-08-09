@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.44.0
+ * Version: 1.45.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.44.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.45.0');
  */
 
 (function() {
@@ -428,88 +428,312 @@
             padding: 16px;
             margin-bottom: 16px;
         }
-        
-        /* Wikibase exact layout — 2 column flexbox from cradle_desing_test.html */
-        .cradle-wikibase-statementgrouplistview {
+               /*
+         * ── Wikibase Exact Layout Translated with cradle- Prefix ──
+         * Property label column (15em left) + statement list (right)
+         * Matches wikibase.less & jquery.wikibase.statementgroupview.less
+         */
+
+        .cradle-drawer .cradle-wikibase-statementgrouplistview {
             width: 100%;
         }
 
-        /* Property Group Boxes — Dynamic Validation States */
-        .cradle-wikibase-statementgroupview {
+        .cradle-drawer .cradle-wikibase-statementgroupview {
             display: flex;
             flex-direction: row;
-            border: 2px solid #c8ccd1;
-            margin-bottom: 16px;
+            border: 1px solid #c8ccd1;
+            border-bottom: none;
+            margin: 0;
             position: relative;
-            transition: border-color 0.2s ease, background-color 0.2s ease;
+            background-color: #ffffff;
+        }
+        .cradle-drawer .cradle-wikibase-statementgroupview:first-child {
+            border-top: 1px solid #c8ccd1;
+        }
+        .cradle-drawer .cradle-wikibase-statementgroupview:last-child {
+            border-bottom: 1px solid #c8ccd1;
+            margin-bottom: 1em;
         }
 
-        .cradle-wikibase-statementgroupview.valid {
-            border: 2px solid #00af89;
-        }
+        /* Validation status border indicator */
+        .cradle-drawer .cradle-wikibase-statementgroupview.valid { border-left: 4px solid #00af89; }
+        .cradle-drawer .cradle-wikibase-statementgroupview.invalid { border-left: 4px solid #d33; }
+        .cradle-drawer .cradle-wikibase-statementgroupview.optional-present { border-left: 4px solid #36c; }
+        .cradle-drawer .cradle-wikibase-statementgroupview.optional-missing { border-left: 4px solid #fc3; }
 
-        .cradle-wikibase-statementgroupview.invalid {
-            border: 2px solid #d33;
-            background-color: rgba(211, 51, 51, 0.02);
-        }
-
-        .cradle-wikibase-statementgroupview.optional-present {
-            border: 2px solid #36c;
-        }
-
-        .cradle-wikibase-statementgroupview.optional-missing {
-            border: 2px solid #fc3;
-            background-color: #fef8ee;
-        }
-
-        .cradle-card-validation-badge {
-            display: inline-block;
-            margin-right: 4px;
-            font-size: 0.9rem;
-        }
-
-        /* Left column: property label (160px) */
-        .cradle-wikibase-statementgroupview-property {
-            width: 160px;
+        /* Left column: Property Label (15em width) */
+        .cradle-drawer .cradle-wikibase-statementgroupview-property {
+            width: 15em;
             flex-shrink: 0;
             background: #f8f9fa;
             border-right: 1px solid #c8ccd1;
             padding: 10px;
             box-sizing: border-box;
-            align-self: stretch;
+            position: sticky;
+            top: 0;
+            align-self: flex-start;
+            z-index: 1;
         }
-
-        .cradle-wikibase-statementgroupview-property-label {
+        .cradle-drawer .cradle-wikibase-statementgroupview-property.cradle-wb-edit {
+            background-color: #eaf3ff;
+        }
+        .cradle-drawer .cradle-wikibase-statementgroupview-property-label {
             word-wrap: break-word;
             font-size: 0.875rem;
             font-weight: bold;
             line-height: 1.3;
         }
-
-        .cradle-wikibase-statementgroupview-property-label a {
+        .cradle-drawer .cradle-wikibase-statementgroupview-property-label a {
             color: #0645ad;
             text-decoration: none;
-            font-weight: bold;
         }
-
-        .cradle-wikibase-statementgroupview-property-label a:hover {
+        .cradle-drawer .cradle-wikibase-statementgroupview-property-label a:hover {
             text-decoration: underline;
         }
-
-        .cradle-prop-pid {
+        .cradle-drawer .cradle-prop-pid {
             display: block;
             font-size: 0.75rem;
             font-weight: normal;
             color: #54595d;
             margin-top: 2px;
         }
-
-        .cradle-prop-desc {
+        .cradle-drawer .cradle-prop-desc {
             display: block;
             font-size: 0.75rem;
             font-weight: normal;
             color: #54595d;
             margin-top: 4px;
+        }
+
+        /* Right column: Statement List */
+        .cradle-drawer .cradle-wikibase-statementlistview {
+            flex: 1;
+            min-width: 0;
+            background: #ffffff;
+            box-sizing: border-box;
+        }
+        .cradle-drawer .cradle-wikibase-statementlistview-listview {
+            display: block;
+        }
+
+        /* Statement Row (.cradle-wikibase-statementview) */
+        .cradle-drawer .cradle-wikibase-statementview {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            border-bottom: 1px solid #eaecf0;
+            padding: 10px 8px;
+            position: relative;
+        }
+        .cradle-drawer .cradle-wikibase-statementview:last-child {
+            border-bottom: none;
+        }
+        .cradle-drawer .cradle-wikibase-statementview.cradle-wb-edit {
+            background-color: #f4f8ff;
+        }
+        .cradle-drawer .cradle-wikibase-statementview.deleted {
+            opacity: 0.5;
+            text-decoration: line-through;
+            background-color: #fff0f0;
+        }
+
+        /* Rank Selector Column */
+        .cradle-drawer .cradle-wikibase-statementview-rankselector {
+            flex-shrink: 0;
+            width: 24px;
+            margin-right: 6px;
+            padding-top: 2px;
+        }
+        .cradle-drawer .cradle-wikibase-rankselector {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 2px;
+            font-size: 0.9rem;
+            color: #54595d;
+        }
+
+        /* Mainsnak Container */
+        .cradle-drawer .cradle-wikibase-statementview-mainsnak-container {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            padding-right: 120px; /* Leave room for top-right toolbar */
+        }
+        .cradle-drawer .cradle-wikibase-statementview-mainsnak {
+            width: 100%;
+        }
+
+        /* SnakView Layout */
+        .cradle-drawer .cradle-wikibase-snakview {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            font-size: 0.875rem;
+            margin-bottom: 4px;
+        }
+        .cradle-drawer .cradle-wikibase-snakview-value-container {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            min-height: 1.8em;
+        }
+        .cradle-drawer .cradle-wikibase-snakview-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        .cradle-drawer .cradle-wikibase-snakview-value {
+            flex: 1;
+            color: #202122;
+        }
+
+        /* ValueView Expert inputs */
+        .cradle-drawer .cradle-valueview {
+            width: 100%;
+        }
+        .cradle-drawer .cradle-valueview-ineditmode {
+            display: flex;
+            align-items: center;
+        }
+        .cradle-drawer .cradle-valueview-value {
+            width: 100%;
+        }
+        .cradle-drawer .cradle-valueview-value input,
+        .cradle-drawer .cradle-valueview-value select,
+        .cradle-drawer .cradle-valueview-value textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 4px 8px;
+            border: 1px solid #a2a9b1;
+            background: #ffffff;
+            color: #202122;
+            font-size: 0.875rem;
+            border-radius: 2px;
+            height: 32px;
+        }
+        .cradle-drawer .cradle-valueview-value input:focus,
+        .cradle-drawer .cradle-valueview-value select:focus {
+            border-color: #36c;
+            box-shadow: inset 0 0 0 1px #36c;
+            outline: none;
+        }
+
+        /* SnakTypeSelector */
+        .cradle-drawer .cradle-wikibase-snakview-typeselector {
+            display: inline-block;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .cradle-drawer .cradle-snaktype-select {
+            font-size: 0.8rem;
+            padding: 1px 4px;
+            border: 1px solid #c8ccd1;
+            border-radius: 2px;
+            background: #f8f9fa;
+            color: #202122;
+            cursor: pointer;
+            height: 26px;
+        }
+
+        /* Qualifiers (.cradle-wikibase-statementview-qualifiers) */
+        .cradle-drawer .cradle-wikibase-statementview-qualifiers {
+            margin-top: 8px;
+            margin-left: 12px;
+            border-left: 2px solid #eaecf0;
+            padding-left: 8px;
+        }
+        .cradle-drawer .cradle-wikibase-statementview-qualifiers .cradle-wikibase-snakview-property-container {
+            width: 120px;
+            flex-shrink: 0;
+            padding-right: 6px;
+        }
+        .cradle-drawer .cradle-wikibase-statementview-qualifiers .cradle-wikibase-snakview-property a {
+            font-weight: bold;
+            color: #0645ad;
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+
+        /* References (.cradle-wikibase-statementview-references-container) */
+        .cradle-drawer .cradle-wikibase-statementview-references-container {
+            margin-top: 8px;
+            margin-left: 12px;
+        }
+        .cradle-drawer .cradle-wikibase-statementview-references-heading {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #0645ad;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 4px;
+        }
+        .cradle-drawer .cradle-wikibase-statementview-references {
+            background-color: #f8f9fa;
+            border: 1px solid #eaecf0;
+            border-radius: 2px;
+            padding: 8px;
+        }
+        .cradle-drawer .cradle-wikibase-referenceview {
+            background-color: #ffffff;
+            border: 1px solid #c8ccd1;
+            border-radius: 2px;
+            padding: 8px;
+            margin-bottom: 6px;
+        }
+        .cradle-drawer .cradle-wikibase-referenceview:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Top-Right Toolbar Container */
+        .cradle-drawer .cradle-wikibase-toolbar-container {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            display: inline-flex;
+            align-items: center;
+        }
+        .cradle-drawer .cradle-wikibase-toolbarbutton {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 8px;
+            font-size: 0.8rem;
+        }
+        .cradle-drawer .cradle-wikibase-toolbarbutton a {
+            color: #0645ad;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .cradle-drawer .cradle-wikibase-toolbarbutton a:hover {
+            text-decoration: underline;
+        }
+        .cradle-drawer .cradle-wikibase-toolbar-button-save a {
+            color: #36c;
+            font-weight: bold;
+        }
+        .cradle-drawer .cradle-wikibase-toolbar-button-remove a {
+            color: #d33;
+        }
+        .cradle-drawer .cradle-wikibase-toolbar-button-cancel a {
+            color: #54595d;
+        }
+
+        /* Add Value Toolbar at bottom of StatementListView */
+        .cradle-drawer .cradle-wikibase-toolbar-wrapper {
+            background: #f8f9fa;
+            border-top: 1px solid #eaecf0;
+            padding: 6px 10px;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }      margin-top: 4px;
         }
 
         .cradle-card-validation-badge {
