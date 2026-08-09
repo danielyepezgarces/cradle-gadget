@@ -420,15 +420,7 @@
             background-color: var(--background-color-base, #ffffff);
         }
 
-        /* Selector panels */
-        .cradle-selector-box {
-            background-color: var(--background-color-neutral-subtle, #f8f9fa);
-            border: 1px solid var(--border-color-base, #a2a9b1);
-            border-radius: 2px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-               /*
+        /*
          * ── Wikibase Exact Layout Translated with cradle- Prefix ──
          * Property label column (15em left) + statement list (right)
          * Matches wikibase.less & jquery.wikibase.statementgroupview.less
@@ -554,6 +546,9 @@
             font-size: 0.9rem;
             color: #54595d;
         }
+        .cradle-drawer .cradle-rank-normal { color: #54595d; }
+        .cradle-drawer .cradle-rank-preferred { color: #00af89; font-weight: bold; }
+        .cradle-drawer .cradle-rank-deprecated { color: #d33; }
 
         /* Mainsnak Container */
         .cradle-drawer .cradle-wikibase-statementview-mainsnak-container {
@@ -638,6 +633,19 @@
             color: #202122;
             cursor: pointer;
             height: 26px;
+        }
+
+        .cradle-drawer .cradle-remove-qualifier-btn {
+            cursor: pointer;
+            color: #72777d;
+            font-size: 0.85rem;
+            margin-left: 6px;
+            opacity: 0.6;
+            transition: opacity 0.15s, color 0.15s;
+        }
+        .cradle-drawer .cradle-remove-qualifier-btn:hover {
+            opacity: 1;
+            color: #d33;
         }
 
         /* Qualifiers (.cradle-wikibase-statementview-qualifiers) */
