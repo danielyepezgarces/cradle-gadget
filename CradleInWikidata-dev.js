@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.39.0
+ * Version: 1.40.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.39.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.40.0');
  */
 
 (function() {
@@ -3513,19 +3513,56 @@
     }
 
     /**
+     * Extracts QID/PID from any snak object or string.
+     */
+    function extractQid(snak) {
+        if (!snak) return null;
+        if (typeof snak === 'string') {
+            let trimmed = snak.trim();
+            if (/^[QP]\d+$/i.test(trimmed)) return trimmed.toUpperCase();
+            let match = trimmed.match(/\(([QP]\d+)\)$/);
+            if (match) return match[1].toUpperCase();
+        }
+        if (typeof snak === 'object') {
+            if (snak.id && /^[QP]\d+$/i.test(snak.id)) return snak.id.toUpperCase();
+            if (snak.datavalue && snak.datavalue.value) {
+                let v = snak.datavalue.value;
+                if (typeof v === 'string' && /^[QP]\d+$/i.test(v)) return v.toUpperCase();
+                if (typeof v === 'object' && v.id) return v.id.toUpperCase();
+                if (typeof v === 'object' && v['numeric-id']) return `Q${v['numeric-id']}`;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Formats any Wikibase snak object or QID into a clickable HTML link (Wikibase style).
      */
     function formatSnakValueHTML(snak) {
-        let text = formatSnakValue(snak);
-        if (!text) return '<span style="color:#72777d;font-style:italic;">(sin valor)</span>';
-        
-        let qidMatch = text.match(/\(([QP]\d+)\)$/);
-        let qid = qidMatch ? qidMatch[1] : (typeof snak === 'string' && /^[QP]\d+$/i.test(snak) ? snak : null);
-        
-        if (qid) {
-            return `<a href="/wiki/${qid}" target="_blank" style="color:#0645ad;text-decoration:none;font-weight:bold;">${text}</a>`;
+        if (snak === null || snak === undefined || snak === '') {
+            return '<span style="color:#72777d;font-style:italic;">(sin valor)</span>';
         }
-        return $('<div>').text(text).html();
+
+        if (snak === 'somevalue' || (typeof snak === 'object' && snak.snaktype === 'somevalue')) {
+            return '<span class="cdx-badge cdx-badge--style-subtle" style="font-style:italic;color:#54595d;background:#f8f9fa;padding:2px 6px;border:1px solid #c8ccd1;border-radius:2px;">valor desconocido (somevalue)</span>';
+        }
+        if (snak === 'novalue' || (typeof snak === 'object' && snak.snaktype === 'novalue')) {
+            return '<span class="cdx-badge cdx-badge--style-subtle" style="font-style:italic;color:#54595d;background:#f8f9fa;padding:2px 6px;border:1px solid #c8ccd1;border-radius:2px;">sin valor (novalue)</span>';
+        }
+
+        let qid = extractQid(snak);
+        if (qid) {
+            let label = softselectLabels[qid] || propertyMetadata[qid]?.label || null;
+            let display = label ? `${label} (${qid})` : qid;
+            return `<a href="/wiki/${qid}" target="_blank" data-qid="${qid}" style="color:#0645ad;text-decoration:none;font-weight:bold;">${$('<div>').text(display).html()}</a>`;
+        }
+
+        let strText = formatSnakValue(snak);
+        if (/^https?:\/\//i.test(strText)) {
+            return `<a href="${$('<div>').text(strText).html()}" target="_blank" style="color:#0645ad;text-decoration:underline;">${$('<div>').text(strText).html()}</a>`;
+        }
+
+        return $('<div>').text(strText).html();
     }
 
     /**
@@ -3585,9 +3622,14 @@
             $snakview.append($snakValueContainer);
             $mainsnak.append($snakview);
 
-            // Collect missing PIDs and QIDs from qualifiers and references to pre-fetch metadata & labels
+            // Collect missing PIDs and QIDs from mainsnak, qualifiers, and references to pre-fetch metadata & labels
             let missingPidsToFetch = [];
             let missingQidsToFetch = [];
+
+            let mainQid = extractQid(row.value);
+            if (mainQid && !softselectLabels[mainQid]) {
+                missingQidsToFetch.push(mainQid);
+            }
 
             // 1. Render Qualifiers Section if qualifiers exist or are defined
             let $qualBox = $('<div>').addClass('cradle-wikibase-qualifiers');
@@ -3754,6 +3796,12 @@
 
             if (loadPromises.length > 0) {
                 Promise.all(loadPromises).then(() => {
+                    $container.find('a[data-qid]').each(function() {
+                        let qid = $(this).attr('data-qid');
+                        if (qid && softselectLabels[qid]) {
+                            $(this).text(`${softselectLabels[qid]} (${qid})`);
+                        }
+                    });
                     $qualBox.find('.cradle-qualifier-row').each(function() {
                         let qPid = $(this).attr('data-qpid');
                         if (qPid && propertyMetadata[qPid] && propertyMetadata[qPid].label) {
@@ -3764,11 +3812,6 @@
                         let rPid = $(this).attr('data-rpid');
                         if (rPid && propertyMetadata[rPid] && propertyMetadata[rPid].label) {
                             $(this).find('.cradle-reference-prop').text(propertyMetadata[rPid].label);
-                        }
-                        let valElem = $(this).find('.cradle-reference-val');
-                        let txt = valElem.text();
-                        if (/^[QP]\d+$/i.test(txt) && softselectLabels[txt]) {
-                            valElem.text(`${softselectLabels[txt]} (${txt})`);
                         }
                     });
                 });
