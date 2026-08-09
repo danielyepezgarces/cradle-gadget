@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.37.0
+ * Version: 1.38.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.37.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.38.0');
  */
 
 (function() {
@@ -2526,18 +2526,31 @@
             // Map existing claims on the entity (if on an item page)
             if (isItemPage && entityData && entityData.claims && entityData.claims[pid]) {
                 entityData.claims[pid].forEach(claim => {
-                    if (claim.mainsnak && claim.mainsnak.snaktype === 'value' && claim.mainsnak.datavalue) {
-                        let value = parseClaimValue(claim.mainsnak.datavalue);
-                        formState[pid].push({
-                            id: Math.random().toString(36).substring(2, 9),
-                            guid: claim.id,
-                            value: value,
-                            datatype: meta.datatype,
-                            rank: claim.rank || 'normal',
-                            references: claim.references || [],
-                            qualifiers: claim.qualifiers || {},
-                            isDeleted: false
-                        });
+                    if (claim.mainsnak) {
+                        let snak = claim.mainsnak;
+                        let snaktype = snak.snaktype || 'value';
+                        let value = '';
+                        if (snaktype === 'value' && snak.datavalue) {
+                            value = parseClaimValue(snak.datavalue);
+                        } else if (snaktype === 'somevalue') {
+                            value = 'somevalue';
+                        } else if (snaktype === 'novalue') {
+                            value = 'novalue';
+                        }
+
+                        if (snaktype === 'value' || snaktype === 'somevalue' || snaktype === 'novalue') {
+                            formState[pid].push({
+                                id: Math.random().toString(36).substring(2, 9),
+                                guid: claim.id,
+                                value: value,
+                                snaktype: snaktype,
+                                datatype: meta.datatype,
+                                rank: claim.rank || 'normal',
+                                references: claim.references || [],
+                                qualifiers: claim.qualifiers || {},
+                                isDeleted: false
+                            });
+                        }
                     }
                 });
             }
@@ -2791,9 +2804,15 @@
             let min = propDef.min !== undefined ? propDef.min : 0;
             let max = propDef.max !== undefined ? propDef.max : '*';
             
-            // Get active claims
+            // Get active claims (including somevalue & novalue statements)
             let claims = formState[pid] || [];
-            let activeClaims = claims.filter(c => !c.isDeleted && c.value !== '' && (typeof c.value !== 'object' || c.value.text !== ''));
+            let activeClaims = claims.filter(c => !c.isDeleted && (
+                c.snaktype === 'somevalue' || 
+                c.snaktype === 'novalue' || 
+                c.value === 'somevalue' || 
+                c.value === 'novalue' || 
+                (c.value !== '' && (typeof c.value !== 'object' || c.value.text !== ''))
+            ));
             let isPresent = (activeClaims.length > 0);
 
             // Validation checks
@@ -2807,9 +2826,12 @@
                 errors.push(mw.msg('cradle-val-err-max', max));
             }
             
-            // 2. Format checks
+            // 2. Format checks (skip for somevalue/novalue claims)
             activeClaims.forEach(claim => {
                 let val = claim.value;
+                if (claim.snaktype === 'somevalue' || claim.snaktype === 'novalue' || val === 'somevalue' || val === 'novalue') {
+                    return;
+                }
                 if (datatype === 'wikibase-item') {
                     if (typeof val === 'string' && !/^[qQ]\d+$/.test(val.trim())) {
                         errors.push(mw.msg('cradle-val-err-qid', val));
@@ -3673,6 +3695,20 @@
      */
     function createInputForDatatype(pid, row) {
         let propDef = schemaProperties[pid] || {};
+
+        // Special handling for Wikidata 'somevalue' (unknown value) and 'novalue' (no value)
+        if (row.snaktype === 'somevalue' || row.value === 'somevalue') {
+            return $('<span>')
+                .addClass('cdx-badge cdx-badge--style-subtle')
+                .css({'font-size': '0.85rem', 'padding': '4px 8px', 'font-style': 'italic', 'color': '#54595d', 'background': '#f8f9fa', 'border': '1px solid #c8ccd1', 'border-radius': '2px'})
+                .text('valor desconocido (somevalue)');
+        }
+        if (row.snaktype === 'novalue' || row.value === 'novalue') {
+            return $('<span>')
+                .addClass('cdx-badge cdx-badge--style-subtle')
+                .css({'font-size': '0.85rem', 'padding': '4px 8px', 'font-style': 'italic', 'color': '#54595d', 'background': '#f8f9fa', 'border': '1px solid #c8ccd1', 'border-radius': '2px'})
+                .text('sin valor (novalue)');
+        }
         
         // Support for dropdown select when predefined values / hardselect / softselect / allowedValues exist
         let allowedList = propDef.hardselect || propDef.softselect || propDef.allowedValues || propDef.values;
@@ -4636,31 +4672,37 @@ function searchWikidataItems(term) {
             rows.forEach(row => {
                 if (row.isDeleted) {
                     if (row.guid) {
-                        propertyClaims.push({
-                            id: row.guid,
-                            remove: ""
-                        });
-                        hasChanges = true;
+                        let origClaim = original.find(c => c.id === row.guid);
+                        if (origClaim) {
+                            propertyClaims.push({
+                                id: row.guid,
+                                remove: ""
+                            });
+                            hasChanges = true;
+                        }
                     }
                     return;
                 }
 
-                if (isEmptyValue(row.value, row.datatype)) return;
+                let snaktype = (row.snaktype && (row.snaktype === 'somevalue' || row.snaktype === 'novalue')) ? row.snaktype : (row.value === 'somevalue' || row.value === 'novalue' ? row.value : 'value');
+                let mainsnak = {
+                    snaktype: snaktype,
+                    property: pid
+                };
 
-                let datavalue = constructDataValue(row.value, row.datatype);
-                if (!datavalue) return;
+                if (snaktype === 'value') {
+                    let datavalue = constructDataValue(row.value, row.datatype);
+                    if (!datavalue) return;
+                    mainsnak.datavalue = datavalue;
+                }
 
                 if (row.guid) {
                     // Update claim
                     let origClaim = original.find(c => c.id === row.guid);
-                    if (origClaim && isValueChanged(origClaim, datavalue)) {
+                    if (origClaim) {
                         propertyClaims.push({
                             id: row.guid,
-                            mainsnak: {
-                                snaktype: 'value',
-                                property: pid,
-                                datavalue: datavalue
-                            },
+                            mainsnak: mainsnak,
                             type: 'statement'
                         });
                         hasChanges = true;
@@ -4668,11 +4710,7 @@ function searchWikidataItems(term) {
                 } else {
                     // Add new claim
                     propertyClaims.push({
-                        mainsnak: {
-                            snaktype: 'value',
-                            property: pid,
-                            datavalue: datavalue
-                        },
+                        mainsnak: mainsnak,
                         type: 'statement'
                     });
                     hasChanges = true;
