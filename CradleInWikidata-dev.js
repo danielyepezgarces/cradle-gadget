@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.29.0
+ * Version: 1.27.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.29.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.27.0');
  */
 
 (function() {
@@ -1282,13 +1282,10 @@
     /**
      * Searches class properties (P12861) on P31, P279, and P106 claims of the entity.
      */
-    /**
-     * Searches class properties (P12861) on P31, P279, and P106 claims of the entity automatically.
-     */
     function findAssociatedSchemas(data) {
         let schemas = [];
         
-        // Direct schema on this item (P12861)
+        // Direct schema on this item
         if (data.claims && data.claims[P12861]) {
             data.claims[P12861].forEach(claim => {
                 let sId = parseEntitySchemaID(claim.mainsnak?.datavalue);
@@ -1298,21 +1295,7 @@
             });
         }
 
-        // Check if item is a Human (P31: Q5)
-        let isHuman = false;
-        if (data.claims && data.claims[P31]) {
-            data.claims[P31].forEach(claim => {
-                let instanceId = claim.mainsnak?.datavalue?.value?.id;
-                if (instanceId === 'Q5') {
-                    isHuman = true;
-                }
-            });
-        }
-        if (isHuman && !schemas.includes('E10')) {
-            schemas.push('E10'); // Default Human EntitySchema
-        }
-
-        // Collect instance of (P31), subclass of (P279), and occupation (P106) QIDs
+        // Check instance of (P31), subclass of (P279), and occupation (P106)
         let classesToCheck = [];
         [P31, P279, P106].forEach(prop => {
             if (data.claims && data.claims[prop]) {
@@ -1331,7 +1314,6 @@
             return Promise.resolve(schemas);
         }
 
-        // Automatic API query: fetch claims of all P31, P279, and P106 entities
         return new Promise((resolve) => {
             let api = new mw.Api();
             api.get({
@@ -1340,11 +1322,9 @@
                 props: 'claims',
                 format: 'json'
             }).done(function(res) {
-                let secondLevelClasses = [];
                 if (res && res.entities) {
                     Object.keys(res.entities).forEach(qid => {
                         let cls = res.entities[qid];
-                        // 1. Direct P12861 on occupation/class
                         if (cls.claims && cls.claims[P12861]) {
                             cls.claims[P12861].forEach(claim => {
                                 let schemaId = parseEntitySchemaID(claim.mainsnak?.datavalue);
@@ -1353,46 +1333,9 @@
                                 }
                             });
                         }
-                        // 2. Collect 2nd-level P279 (subclass of occupation/class)
-                        if (cls.claims && cls.claims[P279]) {
-                            cls.claims[P279].forEach(claim => {
-                                let parentId = claim.mainsnak?.datavalue?.value?.id;
-                                if (parentId && !classesToCheck.includes(parentId) && !secondLevelClasses.includes(parentId)) {
-                                    secondLevelClasses.push(parentId);
-                                }
-                            });
-                        }
                     });
                 }
-
-                if (secondLevelClasses.length > 0) {
-                    // Fetch 2nd-level parent occupation/class schemas automatically
-                    api.get({
-                        action: 'wbgetentities',
-                        ids: secondLevelClasses.slice(0, 50).join('|'),
-                        props: 'claims',
-                        format: 'json'
-                    }).done(function(res2) {
-                        if (res2 && res2.entities) {
-                            Object.keys(res2.entities).forEach(qid => {
-                                let cls2 = res2.entities[qid];
-                                if (cls2.claims && cls2.claims[P12861]) {
-                                    cls2.claims[P12861].forEach(claim => {
-                                        let schemaId = parseEntitySchemaID(claim.mainsnak?.datavalue);
-                                        if (schemaId && !schemas.includes(schemaId)) {
-                                            schemas.push(schemaId);
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                        resolve(schemas);
-                    }).fail(function() {
-                        resolve(schemas);
-                    });
-                } else {
-                    resolve(schemas);
-                }
+                resolve(schemas);
             }).fail(function(err) {
                 logError("[Cradle] findAssociatedSchemas request failed:", err);
                 resolve(schemas);
@@ -4994,18 +4937,6 @@ function searchWikidataItems(term) {
                     });
                 }
 
-                let p106QIDs = [];
-                if (claims.P106) {
-                    claims.P106.forEach(c => {
-                        if (c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id) {
-                            let occId = c.mainsnak.datavalue.value.id;
-                            if (!p106QIDs.includes(occId)) {
-                                p106QIDs.push(occId);
-                            }
-                        }
-                    });
-                }
-
                 let targetClassQID = p31QIDs.length > 0 ? p31QIDs[0] : qid;
                 fetchRecoinData(targetClassQID, function(recoinData) {
                     let recoinFreqMap = {};
@@ -5019,7 +4950,7 @@ function searchWikidataItems(term) {
                         });
                     }
 
-                    let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs, ...p106QIDs];
+                    let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs];
 
                     fetchLabelsInBatches(allQIDsToFetch, function(labelsMap, datatypesMap) {
                         // Exclude external identifier properties (datatype: external-id)
@@ -5037,11 +4968,9 @@ function searchWikidataItems(term) {
                         }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas en el elemento.`);
                         $resultArea.append($info);
 
-                        // Fetch claims.P12861 (EntitySchema ID) for p31QIDs & p106QIDs
-                        let classClaimsMap = {};
-                        let allClassesToInspect = [...p31QIDs, ...p106QIDs];
-                        
-                        let inspectDone = function() {
+                        // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
+                        let p31ClaimsMap = {};
+                        let p31FetchDone = function() {
                             let $duplicateNoticeBox = $('<div>').css({'margin-top': '6px'});
                             let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
                                 .css({'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'})
@@ -5051,7 +4980,7 @@ function searchWikidataItems(term) {
                                 .css({'display': 'none', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'});
 
                             function updateSchemaExistenceCheck(chosenQID) {
-                                let schemaId = classClaimsMap[chosenQID];
+                                let schemaId = p31ClaimsMap[chosenQID];
                                 if (schemaId) {
                                     $duplicateNoticeBox.html(`
                                         <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px;">
@@ -5062,66 +4991,15 @@ function searchWikidataItems(term) {
                                     $editExistingSchemaBtn.html(ICONS.external + ` <span>Editar esquema ${schemaId} existente</span>`).off('click').on('click', function() {
                                         window.open('/wiki/EntitySchema:' + schemaId, '_blank');
                                     }).css('display', 'inline-flex');
+                                    $btnRow.css({'justify-content': 'space-between'});
+                                    $importConfirmBtn.css({'flex': '1'});
                                 } else {
                                     $duplicateNoticeBox.empty().hide();
                                     $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
                                     $editExistingSchemaBtn.hide();
+                                    $btnRow.css({'justify-content': 'center'});
+                                    $importConfirmBtn.css({'flex': '0 1 auto'});
                                 }
-                            }
-
-                            // Render Occupation (P106) Schema Inspector & Recommendation Card
-                            if (p106QIDs.length > 0) {
-                                let $occBox = $('<div>').css({
-                                    'margin-top': '8px',
-                                    'padding': '10px',
-                                    'background': '#f8f9fa',
-                                    'border': '1px solid #c8ccd1',
-                                    'border-radius': '4px'
-                                });
-                                $occBox.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-bottom': '6px'})
-                                    .html('💼 Inspección de Ocupaciones / Profesiones (P106):'));
-
-                                p106QIDs.forEach(occQID => {
-                                    let occLabel = labelsMap[occQID] || occQID;
-                                    let schemaId = classClaimsMap[occQID];
-                                    let $occRow = $('<div>').css({
-                                        'display': 'flex',
-                                        'align-items': 'center',
-                                        'justify-content': 'space-between',
-                                        'font-size': '12px',
-                                        'padding': '4px 0',
-                                        'border-bottom': '1px dashed #eaecf0'
-                                    });
-
-                                    if (schemaId) {
-                                        $occRow.html(`
-                                            <span>✓ <strong>${occLabel} (${occQID})</strong> tiene el esquema <strong>${schemaId}</strong></span>
-                                        `).append(
-                                            $('<button>').addClass('cdx-button cdx-button--weight-quiet')
-                                                .css({'font-size': '11px', 'color': '#36c', 'padding': '2px 6px'})
-                                                .text(`Cargar ${schemaId}`)
-                                                .on('click', function(e) {
-                                                    e.preventDefault();
-                                                    loadAndDisplaySchema(schemaId);
-                                                })
-                                        );
-                                    } else {
-                                        $occRow.html(`
-                                            <span>💡 <strong>${occLabel} (${occQID})</strong> no tiene EntitySchema (P12861)</span>
-                                        `).append(
-                                            $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet')
-                                                .css({'font-size': '11px', 'padding': '2px 6px'})
-                                                .text(`Crear esquema para ${occLabel}`)
-                                                .on('click', function(e) {
-                                                    e.preventDefault();
-                                                    selectedP31QID = occQID;
-                                                    renderSchemaDesigner();
-                                                })
-                                        );
-                                    }
-                                    $occBox.append($occRow);
-                                });
-                                $resultArea.append($occBox);
                             }
 
                             if (p31Candidates.length === 1) {
