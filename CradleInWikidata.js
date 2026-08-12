@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.48.0
+ * Version: 1.27.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.48.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.27.0');
  */
 
 (function() {
@@ -275,18 +275,16 @@
             pointer-events: auto;
         }
 
-        /* Wikimedia-styled flat side panel — 50% Viewport Width Drawer */
+        /* Wikimedia-styled flat side panel */
         .cradle-drawer {
             position: fixed;
             top: 0;
-            right: -55vw;
-            width: 50vw;
-            min-width: 500px;
-            max-width: 95vw;
+            right: -480px;
+            width: 440px;
             height: 100vh;
             background-color: var(--background-color-base, #ffffff);
             border-left: 1px solid var(--border-color-base, #a2a9b1);
-            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.25);
+            box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
             z-index: 10001;
             transition: right 0.25s cubic-bezier(0.2, 0.8, 0.4, 1);
             display: flex;
@@ -420,694 +418,44 @@
             background-color: var(--background-color-base, #ffffff);
         }
 
-        /*
-         * ── Wikibase Exact Layout Translated 1:1 with cradle- Prefix ──
-         * Property label column (15em left) + statement list (right)
-         * Matches wikibase.less & jquery.wikibase.statementgroupview.less 100%
-         */
-
-        .cradle-drawer .cradle-wikibase-statementgrouplistview {
-            width: 100%;
-        }
-
-        .cradle-drawer .cradle-wikibase-statementgroupview {
-            display: flex;
-            flex-direction: row;
-            border: 1px solid #c8ccd1;
-            border-bottom: none;
-            margin: 0;
-            position: relative;
-            background-color: #ffffff;
-        }
-        .cradle-drawer .cradle-wikibase-statementgroupview:first-child {
-            border-top: 1px solid #c8ccd1;
-        }
-        .cradle-drawer .cradle-wikibase-statementgroupview:last-child {
-            border-bottom: 1px solid #c8ccd1;
-            margin-bottom: 1em;
-        }
-
-        /* Validation status border indicator */
-        .cradle-drawer .cradle-wikibase-statementgroupview.valid { border-left: 4px solid #00af89; }
-        .cradle-drawer .cradle-wikibase-statementgroupview.invalid { border-left: 4px solid #d33; }
-        .cradle-drawer .cradle-wikibase-statementgroupview.optional-present { border-left: 4px solid #36c; }
-        .cradle-drawer .cradle-wikibase-statementgroupview.optional-missing { border-left: 4px solid #fc3; }
-
-        /* Left column: Property Label (15em width) */
-        .cradle-drawer .cradle-wikibase-statementgroupview-property {
-            width: 15em;
-            flex-shrink: 0;
-            background: #f8f9fa;
-            border-right: 1px solid #c8ccd1;
-            padding: 10px;
-            box-sizing: border-box;
-            position: sticky;
-            top: 0;
-            align-self: flex-start;
-            z-index: 1;
-        }
-        .cradle-drawer .cradle-wikibase-statementgroupview-property.cradle-wb-edit {
-            background-color: #eaf3ff;
-        }
-        .cradle-drawer .cradle-wikibase-statementgroupview-property-label {
-            word-wrap: break-word;
-            font-size: 0.875rem;
-            font-weight: bold;
-            line-height: 1.3;
-        }
-        .cradle-drawer .cradle-wikibase-statementgroupview-property-label a {
-            color: #0645ad;
-            text-decoration: none;
-        }
-        .cradle-drawer .cradle-wikibase-statementgroupview-property-label a:hover {
-            text-decoration: underline;
-        }
-        .cradle-drawer .cradle-prop-pid {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: normal;
-            color: #54595d;
-            margin-top: 2px;
-        }
-        .cradle-drawer .cradle-prop-desc {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: normal;
-            color: #54595d;
-            margin-top: 4px;
-        }
-
-        /* Right column: Statement List */
-        .cradle-drawer .cradle-wikibase-statementlistview {
-            flex: 1;
-            min-width: 0;
-            background: #ffffff;
-            box-sizing: border-box;
-        }
-        .cradle-drawer .cradle-wikibase-statementlistview-listview {
-            display: block;
-        }
-
-        /* Statement Row (.cradle-wikibase-statementview) */
-        .cradle-drawer .cradle-wikibase-statementview {
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            border-bottom: 1px solid #eaecf0;
-            padding: 10px 8px;
-            position: relative;
-        }
-        .cradle-drawer .cradle-wikibase-statementview:last-child {
-            border-bottom: none;
-        }
-        .cradle-drawer .cradle-wikibase-statementview.cradle-wb-edit {
-            background-color: #f4f8ff;
-        }
-        .cradle-drawer .cradle-wikibase-statementview.cradle-wb-removed {
-            opacity: 0.5;
-            text-decoration: line-through;
-            background-color: #fff0f0;
-        }
-
-        /* Rank Selector Column (Absolute 10px left matching Wikibase) */
-        .cradle-drawer .cradle-wikibase-statementview-rankselector {
-            flex-shrink: 0;
-            width: 24px;
-            margin-right: 6px;
-            padding-top: 4px;
-        }
-        .cradle-drawer .cradle-wikibase-rankselector {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 22px;
-            height: 22px;
+        /* Selector panels */
+        .cradle-selector-box {
+            background-color: var(--background-color-neutral-subtle, #f8f9fa);
+            border: 1px solid var(--border-color-base, #a2a9b1);
             border-radius: 2px;
-            font-size: 0.9rem;
-            color: #54595d;
-        }
-        .cradle-drawer .cradle-rank-normal { color: #54595d; }
-        .cradle-drawer .cradle-rank-preferred { color: #00af89; font-weight: bold; }
-        .cradle-drawer .cradle-rank-deprecated { color: #d33; }
-
-        /* Mainsnak Container */
-        .cradle-drawer .cradle-wikibase-statementview-mainsnak-container {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            padding-right: 140px; /* Room for top-right edit toolbar */
-        }
-        .cradle-drawer .cradle-wikibase-statementview-mainsnak {
-            width: 100%;
-        }
-
-        /* SnakView Layout */
-        .cradle-drawer .cradle-wikibase-snakview {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            font-size: 0.875rem;
-            padding: 4px 0;
-        }
-        .cradle-drawer .cradle-wikibase-snakview-value-container {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            align-items: center;
-            min-height: 1.8em;
-        }
-        .cradle-drawer .cradle-wikibase-snakview-body {
-            flex: 1;
-            display: flex;
-            align-items: center;
-        }
-        .cradle-drawer .cradle-wikibase-snakview-value {
-            flex: 1;
-            color: #202122;
-        }
-
-        /* SnakView Indicators */
-        .cradle-drawer .cradle-wikibase-snakview-indicators {
-            display: inline-flex;
-            align-items: center;
-            margin-left: 8px;
-        }
-        .cradle-drawer .cradle-constraint-badge {
-            font-size: 0.75rem;
-            color: #72777d;
-            background: #f8f9fa;
-            border: 1px solid #c8ccd1;
-            border-radius: 2px;
-            padding: 1px 4px;
-        }
-
-        /* ValueView Experts & Inputs */
-        .cradle-drawer .cradle-valueview {
-            width: 100%;
-        }
-        .cradle-drawer .cradle-valueview-ineditmode {
-            display: flex;
-            align-items: center;
-        }
-        .cradle-drawer .cradle-valueview-value {
-            width: 100%;
-        }
-        .cradle-drawer .cradle-valueview-value input,
-        .cradle-drawer .cradle-valueview-value select,
-        .cradle-drawer .cradle-valueview-value textarea {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 4px 8px;
-            border: 1px solid #a2a9b1;
-            background: #ffffff;
-            color: #202122;
-            font-size: 0.875rem;
-            font-family: inherit;
-            border-radius: 2px;
-            height: 32px;
-        }
-        .cradle-drawer .cradle-valueview-value input:focus,
-        .cradle-drawer .cradle-valueview-value select:focus {
-            border-color: #36c;
-            box-shadow: inset 0 0 0 1px #36c;
-            outline: none;
-        }
-
-        /* SnakTypeSelector */
-        .cradle-drawer .cradle-wikibase-snakview-typeselector {
-            display: inline-block;
-            margin-right: 6px;
-            vertical-align: middle;
-        }
-        .cradle-drawer .cradle-snaktype-select {
-            font-size: 0.8rem;
-            padding: 1px 4px;
-            border: 1px solid #c8ccd1;
-            border-radius: 2px;
-            background: #f8f9fa;
-            color: #202122;
-            cursor: pointer;
-            height: 26px;
-        }
-
-        .cradle-drawer .cradle-remove-qualifier-btn {
-            cursor: pointer;
-            color: #72777d;
-            font-size: 0.85rem;
-            margin-left: 6px;
-            opacity: 0.6;
-            transition: opacity 0.15s, color 0.15s;
-        }
-        .cradle-drawer .cradle-remove-qualifier-btn:hover {
-            opacity: 1;
-            color: #d33;
-        }
-
-        /* Qualifiers (.cradle-wikibase-statementview-qualifiers) */
-        .cradle-drawer .cradle-wikibase-statementview-qualifiers {
-            margin-top: 8px;
-            margin-left: 12px;
-            border-left: 2px solid #eaecf0;
-            padding-left: 8px;
-        }
-        .cradle-drawer .cradle-wikibase-statementview-qualifiers .cradle-wikibase-snakview {
-            position: relative;
-            min-height: 1.5em;
-            padding: 4px 0;
-        }
-        .cradle-drawer .cradle-wikibase-statementview-qualifiers .cradle-wikibase-snakview-property-container {
-            width: 12em;
-            flex-shrink: 0;
-            padding-right: 8px;
-            font-size: 90%;
-        }
-        .cradle-drawer .cradle-wikibase-statementview-qualifiers .cradle-wikibase-snakview-property a {
-            font-weight: bold;
-            color: #0645ad;
-            text-decoration: none;
-        }
-
-        /* References (.cradle-wikibase-statementview-references-container) */
-        .cradle-drawer .cradle-wikibase-statementview-references-container {
-            margin-top: 8px;
-            margin-left: 12px;
-        }
-        .cradle-drawer .cradle-wikibase-statementview-references-heading {
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: #0645ad;
-            cursor: pointer;
-            user-select: none;
-            margin-bottom: 4px;
-        }
-        .cradle-drawer .cradle-wikibase-statementview-references {
-            background-color: #f8f9fa;
-            border: 1px solid #eaecf0;
-            border-radius: 2px;
-            padding: 8px;
-        }
-        .cradle-drawer .cradle-wikibase-referenceview {
-            background-color: #ffffff;
-            border: 1px solid #c8ccd1;
-            border-radius: 2px;
-            padding: 8px;
-            margin-bottom: 6px;
-        }
-        .cradle-drawer .cradle-wikibase-referenceview:last-child {
-            margin-bottom: 0;
-        }
-        .cradle-drawer .cradle-wikibase-referenceview .cradle-wikibase-snakview-property-container {
-            width: 12em;
-            flex-shrink: 0;
-            padding-right: 8px;
-            font-size: 90%;
-        }
-        .cradle-drawer .cradle-wikibase-referenceview .cradle-wikibase-snakview-property a {
-            font-weight: bold;
-            color: #0645ad;
-            text-decoration: none;
-        }
-
-        /* Top-Right Toolbar Container */
-        .cradle-drawer .cradle-wikibase-toolbar-container {
-            position: absolute;
-            right: 10px;
-            top: 10px;
-            display: inline-flex;
-            align-items: center;
-        }
-        .cradle-drawer .cradle-wikibase-toolbarbutton {
-            display: inline-flex;
-            align-items: center;
-            margin-left: 8px;
-            font-size: 0.8rem;
-        }
-        .cradle-drawer .cradle-wikibase-toolbarbutton a {
-            color: #0645ad;
-            text-decoration: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .cradle-drawer .cradle-wikibase-toolbarbutton a:hover {
-            text-decoration: underline;
-        }
-        .cradle-drawer .cradle-wikibase-toolbar-button-save a {
-            color: #36c;
-            font-weight: bold;
-        }
-        .cradle-drawer .cradle-wikibase-toolbar-button-remove a {
-            color: #d33;
-        }
-        .cradle-drawer .cradle-wikibase-toolbar-button-cancel a {
-            color: #54595d;
-        }
-
-        /* Add Value Toolbar at bottom of StatementListView */
-        .cradle-drawer .cradle-wikibase-toolbar-wrapper {
-            background: #f8f9fa;
-            border-top: 1px solid #eaecf0;
-            padding: 6px 10px;
-            display: block;
-            width: 100%;
-            box-sizing: border-box;
-        }      margin-top: 4px;
-        }
-
-        .cradle-card-validation-badge {
-            display: none;
-        }
-
-        /* Right column: statement list */
-        .cradle-wikibase-statementlistview {
-            flex: 1;
-            min-width: 0;
-            background: #ffffff;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .cradle-wikibase-statementlistview-listview {
-            padding: 8px;
-        }
-
-        .cradle-wikibase-statementview {
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
+            padding: 16px;
             margin-bottom: 16px;
+        }
+        
+        /* Form fields cards - Flat Wikimedia styling */
+        .cradle-field-card {
+            background-color: var(--background-color-base, #ffffff);
+            border: 1px solid var(--border-color-base, #a2a9b1);
+            border-radius: 2px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: border-color 0.2s ease;
             position: relative;
         }
-
-        .cradle-wikibase-statementview:last-child {
-            margin-bottom: 0;
+        .cradle-field-card:hover {
+            border-color: var(--border-color-progressive, #36c);
         }
-
-        .cradle-wikibase-statementview-rankselector {
-            flex-shrink: 0;
-            width: 24px;
-            margin-right: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            color: #a2a9b1;
-            font-size: 0.75rem;
-            line-height: 1;
-            margin-top: 2px;
+        .cradle-field-card.mandatory {
+            border-left: 3px solid var(--border-color-progressive, #36c);
         }
-
-        .cradle-wikibase-statementview-rankselector .cradle-rank-up,
-        .cradle-wikibase-statementview-rankselector .cradle-rank-down {
-            cursor: pointer;
-            color: #a2a9b1;
+        .cradle-field-card.valid {
+            border-left: 4px solid var(--color-success, #00af89) !important;
         }
-        
-        .cradle-wikibase-statementview-rankselector .cradle-rank-circle {
-            font-size: 0.85rem;
-            margin: 2px 0;
-            color: #72777d;
+        .cradle-field-card.invalid {
+            border-left: 4px solid var(--color-destructive, #d33) !important;
+            background-color: rgba(211, 51, 51, 0.01);
         }
-
-        .cradle-wikibase-statementview-mainsnak-container {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+        .cradle-field-card.optional-present {
+            border-left: 4px solid var(--color-progressive, #36c) !important;
         }
-
-        .cradle-wikibase-snakview {
-            padding: 2px 0;
-        }
-
-        .cradle-wikibase-snakview-value-container {
-            min-height: 1.6em;
-        }
-
-        .cradle-wikibase-snakview-body {
-            width: 100%;
-        }
-
-        .cradle-valueview-value input {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 4px 6px;
-            border: 1px solid transparent;
-            background: #fff;
-            color: #202122;
-            font-size: 0.875rem;
-            font-family: inherit;
-            border-radius: 0;
-            height: 28px;
-        }
-
-        .cradle-valueview-value input:focus {
-            border-color: #36c;
-            box-shadow: inset 0 0 0 1px #36c;
-            outline: none;
-        }
-        
-        /* Qualifiers */
-        .cradle-wikibase-qualifiers {
-            padding: 4px 8px;
-            margin-left: 24px;
-            font-size: 0.8rem;
-        }
-        
-        .cradle-qualifier-row {
-            display: flex;
-            margin-bottom: 4px;
-        }
-        
-        .cradle-qualifier-prop {
-            width: 120px;
-            color: #0645ad;
-        }
-        
-        .cradle-qualifier-val {
-            flex: 1;
-            color: #202122;
-        }
-
-        /* Wikibase official SnakView layout (Qualifiers & References) */
-        .cradle-wikibase-statementview-qualifiers {
-            margin-top: 8px;
-            margin-left: 16px;
-        }
-
-        .cradle-wikibase-snakview {
-            display: flex;
-            flex-direction: row;
-            align-items: baseline;
-            margin-bottom: 4px;
-            font-size: 0.85rem;
-        }
-
-        .cradle-wikibase-snakview-property-container {
-            width: 140px;
-            flex-shrink: 0;
-            padding-right: 8px;
-            box-sizing: border-box;
-        }
-
-        .cradle-wikibase-snakview-property {
-            font-weight: bold;
-            color: #0645ad;
-            word-wrap: break-word;
-        }
-
-        .cradle-wikibase-snakview-value-container {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .cradle-wikibase-snakview-body {
-            display: flex;
-            align-items: center;
-        }
-
-        .cradle-wikibase-snakview-value {
-            color: #202122;
-        }
-
-        /* Wikibase ReferenceView */
-        .cradle-wikibase-statementview-references-container {
-            margin-top: 8px;
-            margin-left: 16px;
-        }
-
-        .cradle-wikibase-statementview-references-heading {
-            color: #0645ad;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-bottom: 6px;
-            user-select: none;
-        }
-
-        .cradle-wikibase-statementview-references {
-            background-color: #f8f9fa;
-            border: 1px solid #eaecf0;
-            border-radius: 2px;
-            padding: 8px 10px;
-        }
-
-        .cradle-wikibase-referenceview {
-            background-color: #ffffff;
-            border: 1px solid #c8ccd1;
-            border-radius: 2px;
-            padding: 8px 10px;
-            margin-bottom: 8px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-        }
-
-        .cradle-wikibase-referenceview:last-child {
-            margin-bottom: 0;
-        }
-
-        .cradle-reference-row {
-            display: flex;
-            margin-bottom: 4px;
-        }
-        .cradle-reference-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .cradle-reference-prop {
-            width: 140px;
-            color: #0645ad;
-            font-weight: bold;
-            font-size: 0.8rem;
-        }
-
-        .cradle-reference-val {
-            flex: 1;
-            color: #202122;
-            font-size: 0.8rem;
-        }
-        
-        /* Wikibase RankSelector & ValueView Experts */
-        .cradle-wikibase-rankselector {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 22px;
-            height: 22px;
-            border-radius: 2px;
-            font-size: 0.9rem;
-            color: #54595d;
-        }
-        .cradle-rank-normal { color: #54595d; }
-        .cradle-rank-preferred { color: #00af89; font-weight: bold; }
-        .cradle-rank-deprecated { color: #d33; }
-
-        .cradle-valueview {
-            width: 100%;
-        }
-        .cradle-valueview-ineditmode {
-            display: flex;
-            align-items: center;
-        }
-        .cradle-valueview-value {
-            width: 100%;
-        }
-
-        .cradle-wikibase-snakview-typeselector {
-            display: inline-block;
-            margin-right: 6px;
-            vertical-align: middle;
-        }
-
-        .cradle-snaktype-select {
-            font-size: 0.8rem;
-            padding: 1px 4px;
-            border: 1px solid #c8ccd1;
-            border-radius: 2px;
-            background: #f8f9fa;
-            color: #202122;
-            cursor: pointer;
-            height: 24px;
-        }
-
-        .cradle-remove-qualifier-btn {
-            cursor: pointer;
-            color: #72777d;
-            font-size: 0.85rem;
-            margin-left: 6px;
-            opacity: 0.6;
-            transition: opacity 0.15s, color 0.15s;
-        }
-        .cradle-remove-qualifier-btn:hover {
-            opacity: 1;
-            color: #d33;
-        }
-
-        .cradle-wikibase-toolbarbutton {
-            display: inline-flex;
-            align-items: center;
-            margin-left: 8px;
-            font-size: 0.8rem;
-        }
-
-        .cradle-wikibase-toolbarbutton a {
-            color: #0645ad;
-            text-decoration: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .cradle-wikibase-toolbarbutton a:hover {
-            text-decoration: underline;
-        }
-
-        .cradle-wikibase-toolbar-button-save a {
-            color: #36c;
-            font-weight: bold;
-        }
-
-        .cradle-wikibase-toolbar-button-remove a {
-            color: #d33;
-        }
-
-        .cradle-wikibase-toolbar-button-cancel a {
-            color: #54595d;
-        }
-
-        .cradle-wikibase-addtoolbar {
-            margin-top: 6px;
-            font-size: 0.8rem;
-        }
-
-        .cradle-wikibase-toolbar-container {
-            flex-shrink: 0;
-            padding-top: 4px;
-            margin-left: 8px;
-        }
-
-        .cradle-wikibase-toolbar-wrapper {
-            background: #eaecf0;
-            padding: 4px 10px;
-            text-align: right;
-            border-top: 1px solid #eaecf0;
-        }
-
-        .cradle-addstatement-link {
-            font-size: 0.75rem;
-            color: #0645ad;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .cradle-addstatement-link:hover {
-            text-decoration: underline;
+        .cradle-field-card.optional-missing {
+            border-left: 4px solid var(--color-warning, #fc3) !important;
+            background-color: var(--background-color-warning-subtle, #fef8ee);
         }
 
         .cradle-field-title {
@@ -2917,10 +2265,8 @@
                         let value = '';
                         if (snaktype === 'value' && snak.datavalue) {
                             value = parseClaimValue(snak.datavalue);
-                        } else if (snaktype === 'somevalue') {
-                            value = 'somevalue';
-                        } else if (snaktype === 'novalue') {
-                            value = 'novalue';
+                        } else if (snaktype === 'somevalue' || snaktype === 'novalue') {
+                            value = snaktype;
                         }
 
                         if (snaktype === 'value' || snaktype === 'somevalue' || snaktype === 'novalue') {
@@ -3740,162 +3086,54 @@
             $content.append($metaCard);
         }
 
-        // Render properties inside cradle-wikibase-statementgrouplistview
-        let $groupList = $('<div>').addClass('cradle-wikibase-statementgrouplistview');
-        $content.append($groupList);
-
+        // Render properties
         propIds.forEach(pid => {
             let propDef = schemaProperties[pid];
             let meta = propertyMetadata[pid] || { label: pid, description: '', datatype: 'string' };
             
             let $card = $('<div>')
-                .addClass('cradle-wikibase-statementgroupview')
-                .attr({'id': `cradle-card-${pid}`, 'data-property-id': pid});
+                .addClass('cradle-field-card')
+                .attr('id', `cradle-card-${pid}`);
                 
-            let $propCol = $('<div>').addClass('cradle-wikibase-statementgroupview-property');
-            let $labelDiv = $('<div>').addClass('cradle-wikibase-statementgroupview-property-label').attr('dir', 'auto');
+            if (propDef.mandatory) {
+                $card.addClass('mandatory');
+            }
+
+            // Header of card
+            let $cardHeader = $('<div>').addClass('cradle-field-header');
+            let $label = $('<h3>').addClass('cradle-field-title');
             
-            let $badge = $('<span>').addClass('cradle-card-validation-badge');
-            $labelDiv.append($badge);
-            $labelDiv.append($('<a>').attr({
+            // Prepend validation badge span next to title
+            let $badge = $('<span>').addClass('cradle-card-validation-badge').css({'margin-right': '6px', 'font-size': '1.1rem'});
+            $label.append($badge);
+
+            $label.append($('<a>').attr({
                 href: `/wiki/Property:${pid}`,
                 target: '_blank'
             }).text(meta.label));
-
-            $labelDiv.append($('<span>').addClass('cradle-prop-pid').text(pid + (propDef.mandatory ? ' *' : '')));
-            if (meta.description) {
-                $labelDiv.append($('<span>').addClass('cradle-prop-desc').text(meta.description));
+            if (propDef.mandatory) {
+                $label.append($('<span>').addClass('cradle-field-required-marker').text('*'));
             }
-            $propCol.append($labelDiv);
+            $cardHeader.append($label);
+            if (meta.description) {
+                $cardHeader.append($('<p>').addClass('cradle-field-description').text(meta.description));
+            }
+            $card.append($cardHeader);
+            // Container for statement input rows
+            let $rowsContainer = $('<div>').attr('id', `cradle-rows-${pid}`);
+            $card.append($rowsContainer);
 
-            let $stmtList = $('<div>').addClass('cradle-wikibase-statementlistview');
-            let $rowsContainer = $('<div>').addClass('cradle-wikibase-statementlistview-listview').attr('id', `cradle-rows-${pid}`);
-            let $actionsContainer = $('<div>').addClass('cradle-wikibase-toolbar-wrapper').attr('id', `cradle-actions-${pid}`);
+            // Container for action bar
+            let $actionsContainer = $('<div>').attr('id', `cradle-actions-${pid}`);
+            $card.append($actionsContainer);
 
-            $stmtList.append($rowsContainer).append($actionsContainer);
-            $card.append($propCol).append($stmtList);
-            $groupList.append($card);
-
+            $content.append($card);
+            
             renderPropertyRows(pid);
         });
 
         updateDrawerFooter(true);
         liveUpdateValidation();
-    }
-
-    /**
-     * Formats any Wikibase snak object, datavalue, QID, string or date into a human-readable text value.
-     */
-    function formatSnakValue(snak) {
-        if (snak === null || snak === undefined) return '';
-        if (typeof snak === 'string' || typeof snak === 'number') {
-            let strVal = String(snak).trim();
-            if (/^[QP]\d+$/i.test(strVal) && softselectLabels[strVal]) {
-                return `${softselectLabels[strVal]} (${strVal})`;
-            }
-            return strVal;
-        }
-
-        let dv = snak.datavalue ? snak.datavalue : (snak.value !== undefined ? { value: snak.value, type: snak.datatype } : null);
-        if (dv) {
-            let val = dv.value;
-            let type = dv.type || snak.datatype || typeof val;
-
-            if (typeof val === 'string') {
-                if (/^[QP]\d+$/i.test(val) && softselectLabels[val]) {
-                    return `${softselectLabels[val]} (${val})`;
-                }
-                return val;
-            }
-            if (typeof val === 'object' && val !== null) {
-                if (val['entity-type'] || val.id) {
-                    let qid = val.id || (val['numeric-id'] ? `Q${val['numeric-id']}` : '');
-                    if (qid) {
-                        return softselectLabels[qid] ? `${softselectLabels[qid]} (${qid})` : qid;
-                    }
-                }
-                if (val.time) {
-                    let timeStr = val.time.replace(/^\+/, '');
-                    if (timeStr.includes('T')) {
-                        timeStr = timeStr.split('T')[0];
-                    }
-                    return timeStr;
-                }
-                if (val.amount !== undefined) {
-                    let amt = val.amount.replace(/^\+/, '');
-                    let unit = val.unit && val.unit.includes('Q') ? ` (${val.unit.split('/').pop()})` : '';
-                    return amt + unit;
-                }
-                if (val.text) {
-                    return val.text + (val.language ? ` [${val.language}]` : '');
-                }
-                if (val.latitude !== undefined && val.longitude !== undefined) {
-                    return `${val.latitude}°, ${val.longitude}°`;
-                }
-            }
-        }
-
-        if (typeof snak === 'object') {
-            if (snak.text) return snak.text;
-            if (snak.id) return softselectLabels[snak.id] ? `${softselectLabels[snak.id]} (${snak.id})` : snak.id;
-            if (snak.time) return snak.time;
-            if (snak.label) return snak.label;
-        }
-
-        return String(snak);
-    }
-
-    /**
-     * Extracts QID/PID from any snak object or string.
-     */
-    function extractQid(snak) {
-        if (!snak) return null;
-        if (typeof snak === 'string') {
-            let trimmed = snak.trim();
-            if (/^[QP]\d+$/i.test(trimmed)) return trimmed.toUpperCase();
-            let match = trimmed.match(/\(([QP]\d+)\)$/);
-            if (match) return match[1].toUpperCase();
-        }
-        if (typeof snak === 'object') {
-            if (snak.id && /^[QP]\d+$/i.test(snak.id)) return snak.id.toUpperCase();
-            if (snak.datavalue && snak.datavalue.value) {
-                let v = snak.datavalue.value;
-                if (typeof v === 'string' && /^[QP]\d+$/i.test(v)) return v.toUpperCase();
-                if (typeof v === 'object' && v.id) return v.id.toUpperCase();
-                if (typeof v === 'object' && v['numeric-id']) return `Q${v['numeric-id']}`;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Formats any Wikibase snak object or QID into a clickable HTML link (Wikibase style).
-     */
-    function formatSnakValueHTML(snak) {
-        if (snak === null || snak === undefined || snak === '') {
-            return '<span style="color:#72777d;font-style:italic;">(sin valor)</span>';
-        }
-
-        if (snak === 'somevalue' || (typeof snak === 'object' && snak.snaktype === 'somevalue')) {
-            return '<span class="cdx-badge cdx-badge--style-subtle" style="font-style:italic;color:#54595d;background:#f8f9fa;padding:2px 6px;border:1px solid #c8ccd1;border-radius:2px;">valor desconocido (somevalue)</span>';
-        }
-        if (snak === 'novalue' || (typeof snak === 'object' && snak.snaktype === 'novalue')) {
-            return '<span class="cdx-badge cdx-badge--style-subtle" style="font-style:italic;color:#54595d;background:#f8f9fa;padding:2px 6px;border:1px solid #c8ccd1;border-radius:2px;">sin valor (novalue)</span>';
-        }
-
-        let qid = extractQid(snak);
-        if (qid) {
-            let label = softselectLabels[qid] || propertyMetadata[qid]?.label || null;
-            let display = label ? label : qid;
-            return `<a title="${qid}" href="/wiki/${qid}" target="_blank" data-qid="${qid}" style="color:#0645ad;text-decoration:none;">${$('<div>').text(display).html()}</a>`;
-        }
-
-        let strText = formatSnakValue(snak);
-        if (/^https?:\/\//i.test(strText)) {
-            return `<a href="${$('<div>').text(strText).html()}" target="_blank" style="color:#0645ad;text-decoration:underline;">${$('<div>').text(strText).html()}</a>`;
-        }
-
-        return $('<div>').text(strText).html();
     }
 
     /**
@@ -3910,353 +3148,43 @@
 
         rows.forEach((row, index) => {
             let $row = $('<div>')
-                .addClass('cradle-wikibase-statementview cradle-listview-item')
+                .addClass('cradle-row')
                 .attr('id', `cradle-row-${row.id}`);
 
             if (row.isDeleted) {
                 $row.addClass('deleted');
             }
 
-            // 1. Rank Selector Column (Wikibase exact)
-            let $rankWrapper = $('<div>').addClass('cradle-wikibase-statementview-rankselector');
-            let $rankSelector = $('<div>').addClass('cradle-wikibase-rankselector ' + (row.isEditing ? 'cradle-wb-edit' : ''));
-            let rankIcons = { normal: '●', preferred: '★', deprecated: '▼' };
-            let rankTitles = { normal: 'Rango normal', preferred: 'Rango preferido', deprecated: 'Rango en desuso' };
-            let $rankIcon = $('<span>')
-                .addClass('cradle-rank-icon cradle-rank-' + (row.rank || 'normal'))
-                .text(rankIcons[row.rank || 'normal'])
-                .attr('title', rankTitles[row.rank || 'normal']);
-            
-            if (row.isEditing) {
-                $rankSelector.css('cursor', 'pointer').on('click', function() {
-                    let nextRank = row.rank === 'normal' ? 'preferred' : (row.rank === 'preferred' ? 'deprecated' : 'normal');
-                    row.rank = nextRank;
-                    renderPropertyRows(pid);
+            let $inputElement = createInputForDatatype(pid, row);
+            let $indicators = $('<div>').addClass('wikibase-snakview-indicators').attr('id', `cradle-indicators-${row.id}`).css({'margin-left': '6px', 'display': 'inline-flex'});
+            let $inputWithIndicators = $('<div>').css({'display': 'flex', 'align-items': 'center', 'flex': '1'}).append($inputElement).append($indicators);
+            $row.append($inputWithIndicators);
+
+            let $deleteBtn = $('<button>')
+                .addClass('cradle-btn-delete')
+                .html(row.isDeleted ? ICONS.undo : ICONS.trash)
+                .attr('title', row.isDeleted ? 'Restore Claim' : 'Delete Claim')
+                .on('click', function() {
+                    toggleDeleteRow(pid, row.id);
                 });
-            }
-            $rankSelector.append($rankIcon);
-            $rankWrapper.append($rankSelector);
-            $row.append($rankWrapper);
 
-            // 2. Mainsnak Container (wikibase-statementview-mainsnak-container)
-            let $mainsnakContainer = $('<div>').addClass('cradle-wikibase-statementview-mainsnak-container');
-            let $mainsnak = $('<div>').addClass('cradle-wikibase-statementview-mainsnak').attr('dir', 'auto');
-            let $snakview = $('<div>').addClass('cradle-wikibase-snakview cradle-wikibase-snakview-value ' + (row.isEditing ? 'cradle-wb-edit' : 'cradle-wb-view'));
-            let $snakValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container').attr('dir', 'auto');
-            
-            if (row.isEditing) {
-                let $typeSelector = $('<div>').addClass('cradle-wikibase-snakview-typeselector');
-                let $snakSelect = $('<select>').addClass('cradle-snaktype-select')
-                    .on('change', function() {
-                        row.snaktype = $(this).val();
-                        if (row.snaktype === 'somevalue') row.value = 'somevalue';
-                        else if (row.snaktype === 'novalue') row.value = 'novalue';
-                        else if (row.value === 'somevalue' || row.value === 'novalue') row.value = '';
-                        renderPropertyRows(pid);
-                    });
-                $snakSelect.append($('<option>').val('value').text('● ' + (mw.msg('cradle-snaktype-value') || 'valor personalizado')).attr('selected', !row.snaktype || row.snaktype === 'value'));
-                $snakSelect.append($('<option>').val('somevalue').text('? ' + (mw.msg('cradle-snaktype-somevalue') || 'valor desconocido')).attr('selected', row.snaktype === 'somevalue'));
-                $snakSelect.append($('<option>').val('novalue').text('ø ' + (mw.msg('cradle-snaktype-novalue') || 'sin valor')).attr('selected', row.snaktype === 'novalue'));
-                $typeSelector.append($snakSelect);
-                $snakValueContainer.append($typeSelector);
-            }
-
-            let $snakBody = $('<div>').addClass('cradle-wikibase-snakview-body');
-            let $snakValue = $('<div>').addClass('cradle-wikibase-snakview-value cradle-valueview-value');
-
-            if (row.isEditing) {
-                let $inputElem = createInputForDatatype(pid, row);
-                $snakValue.append($inputElem);
-            } else {
-                let formattedHtml = formatSnakValueHTML(row.value);
-                $snakValue.html(formattedHtml);
-            }
-
-            $snakBody.append($snakValue);
-            
-            // SnakView Indicators (Constraint & status badges)
-            let $snakIndicators = $('<div>').addClass('cradle-wikibase-snakview-indicators');
-            if (propDef && propDef.mandatory) {
-                $snakIndicators.append($('<span>').addClass('cradle-constraint-badge').text('* Requerido').attr('title', 'Restricción de esquema: campo obligatorio'));
-            }
-            $snakBody.append($snakIndicators);
-            $snakValueContainer.append($snakBody);
-            $snakview.append($snakValueContainer);
-            $mainsnak.append($snakview);
-            $mainsnakContainer.append($mainsnak);
-
-            // Collect missing PIDs and QIDs
-            let missingPidsToFetch = [];
-            let missingQidsToFetch = [];
-            let mainQid = extractQid(row.value);
-            if (mainQid && !softselectLabels[mainQid]) {
-                missingQidsToFetch.push(mainQid);
-            }
-
-            // 3. Qualifiers Container (wikibase-statementview-qualifiers)
-            let qualPids = Object.keys(row.qualifiers || {});
-            if (qualPids.length > 0 || (propDef && propDef.qualifiers && propDef.qualifiers.length > 0) || row.isEditing) {
-                let $qualContainer = $('<div>').addClass('cradle-wikibase-statementview-qualifiers');
-                let $snakListView = $('<div>').addClass('cradle-wikibase-snaklistview');
-                let $snakListViewInner = $('<div>').addClass('cradle-wikibase-snaklistview-listview');
-
-                let displayQualPids = qualPids.length > 0 ? qualPids : (propDef && propDef.qualifiers ? propDef.qualifiers : []);
-                displayQualPids.forEach(qPid => {
-                    if (!propertyMetadata[qPid] || !propertyMetadata[qPid].label || propertyMetadata[qPid].label === qPid) {
-                        missingPidsToFetch.push(qPid);
-                    }
-                    let qMeta = propertyMetadata[qPid] || { label: qPid };
-                    let qVals = (row.qualifiers && row.qualifiers[qPid]) ? row.qualifiers[qPid] : [''];
-                    qVals.forEach((qVal, qIdx) => {
-                        let isValEmpty = (qVal === '' || qVal === null || qVal === undefined);
-                        if (!row.isEditing && isValEmpty) return;
-
-                        let formattedVal = formatSnakValue(qVal);
-                        let qidCandidate = extractQid(qVal);
-                        if (qidCandidate && !softselectLabels[qidCandidate]) {
-                            missingQidsToFetch.push(qidCandidate);
-                        }
-
-                        let $qSnakView = $('<div>').addClass('cradle-wikibase-snakview').attr('data-qpid', qPid);
-                        let $qPropContainer = $('<div>').addClass('cradle-wikibase-snakview-property-container');
-                        let $qPropLink = $('<a>').attr({href: `/wiki/Property:${qPid}`, target: '_blank'}).text(qMeta.label || qPid);
-                        let $qProp = $('<div>').addClass('cradle-wikibase-snakview-property').attr('dir', 'auto').append($qPropLink);
-                        $qPropContainer.append($qProp);
-
-                        let $qValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container').attr('dir', 'auto');
-                        let $qBody = $('<div>').addClass('cradle-wikibase-snakview-body');
-                        let $qValue = $('<div>').addClass('cradle-wikibase-snakview-value cradle-valueview-value');
-
-                        if (row.isEditing) {
-                            let $qInput = $('<input>')
-                                .addClass('cradle-input')
-                                .attr('type', 'text')
-                                .val(formattedVal)
-                                .attr('placeholder', 'Añadir valor de calificador...')
-                                .on('change input', function() {
-                                    if (!row.qualifiers) row.qualifiers = {};
-                                    if (!row.qualifiers[qPid]) row.qualifiers[qPid] = [];
-                                    row.qualifiers[qPid][qIdx] = $(this).val();
-                                    liveUpdateValidation();
-                                });
-                            $qValue.append($qInput);
-                            let $removeQualBtn = $('<span>').addClass('cradle-remove-qualifier-btn').html('🗑️').attr('title', 'Eliminar calificador')
-                                .on('click', function() {
-                                    if (row.qualifiers && row.qualifiers[qPid]) {
-                                        row.qualifiers[qPid].splice(qIdx, 1);
-                                        if (row.qualifiers[qPid].length === 0) delete row.qualifiers[qPid];
-                                    }
-                                    renderPropertyRows(pid);
-                                });
-                            $qBody.append($qValue).append($removeQualBtn);
-                        } else {
-                            $qValue.html(formatSnakValueHTML(qVal));
-                            $qBody.append($qValue);
-                        }
-
-                        $qValueContainer.append($qBody);
-                        $qSnakView.append($qPropContainer).append($qValueContainer);
-                        $snakListViewInner.append($qSnakView);
-                    });
-                });
-                $snakListView.append($snakListViewInner);
-                $qualContainer.append($snakListView);
-
-                if (row.isEditing) {
-                    let $addQualToolbar = $('<div>').addClass('cradle-wikibase-addtoolbar cradle-wikibase-toolbar-container')
-                        .append(
-                            $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-add')
-                                .append(
-                                    $('<a>').attr({href: '#', title: ''}).html('<span class="cradle-wb-icon"></span>' + (mw.msg('cradle-add-qualifier') || 'añadir un calificativo'))
-                                        .on('click', function(e) {
-                                            e.preventDefault();
-                                            if (!row.qualifiers) row.qualifiers = {};
-                                            let firstQualPid = (propDef && propDef.qualifiers && propDef.qualifiers[0]) ? propDef.qualifiers[0] : 'P580';
-                                            if (!row.qualifiers[firstQualPid]) row.qualifiers[firstQualPid] = [];
-                                            row.qualifiers[firstQualPid].push('');
-                                            renderPropertyRows(pid);
-                                        })
-                                )
-                        );
-                    $qualContainer.append($addQualToolbar);
-                }
-
-                $mainsnakContainer.append($qualContainer);
-            }
-            $row.append($mainsnakContainer);
-
-            // 4. Edit Toolbar Container (templates.php line 94: direct child of statementview)
-            let $toolbarContainer = $('<span>').addClass('cradle-wikibase-toolbar-container cradle-wikibase-edittoolbar-container' + (row.isEditing ? ' cradle-wikibase-edittoolbar-ineditmode' : ''));
-            let $toolbar = $('<span>').addClass('cradle-wikibase-toolbar');
-
-            if (row.isEditing) {
-                let $saveBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-save')
-                    .append($('<a>').attr('href', '#').text('publicar').on('click', function(e) {
-                        e.preventDefault();
-                        row.isEditing = false;
-                        renderPropertyRows(pid);
-                        liveUpdateValidation();
-                    }));
-                let $removeBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-remove')
-                    .append($('<a>').attr('href', '#').text('eliminar').on('click', function(e) {
-                        e.preventDefault();
-                        toggleDeleteRow(pid, row.id);
-                    }));
-                let $cancelBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-cancel')
-                    .append($('<a>').attr('href', '#').text('cancelar').on('click', function(e) {
-                        e.preventDefault();
-                        row.isEditing = false;
-                        renderPropertyRows(pid);
-                    }));
-
-                $toolbar.append($saveBtn).append($removeBtn).append($cancelBtn);
-            } else {
-                let $editBtn = $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-button-edit')
-                    .append($('<a>').attr('href', '#').text('editar').on('click', function(e) {
-                        e.preventDefault();
-                        row.isEditing = true;
-                        renderPropertyRows(pid);
-                    }));
-                $toolbar.append($editBtn);
-            }
-            $toolbarContainer.append($toolbar);
-            $row.append($toolbarContainer);
-
-            // 5. References Container (templates.php line 95: direct child of statementview)
-            let $refContainer = $('<div>').addClass('cradle-wikibase-statementview-references-container');
-            let refList = row.references || [];
-            let refCount = refList.length;
-            let refHeaderText = refCount === 1 ? `▼ 1 referencia` : (refCount > 0 ? `▼ ${refCount} referencias` : '▶ 0 referencias');
-            let $refHeader = $('<div>').addClass('cradle-wikibase-statementview-references-heading').text(refHeaderText);
-
-            let $refList = $('<div>').addClass('cradle-wikibase-statementview-references').css({'display': refCount > 0 ? 'block' : 'none'});
-            $refHeader.on('click', function() {
-                $refList.toggle();
-                let isVis = $refList.is(':visible');
-                let count = (row.references || []).length;
-                let text = count === 1 ? '1 referencia' : `${count} referencias`;
-                $(this).text(isVis ? `▼ ${text}` : `▶ ${text}`);
-            });
-
-            refList.forEach((refObj, rIdx) => {
-                let $refView = $('<div>').addClass('cradle-wikibase-referenceview');
-                let $refListView = $('<div>').addClass('cradle-wikibase-referenceview-listview');
-                let $snakListView = $('<div>').addClass('cradle-wikibase-snaklistview');
-
-                let refSnaks = refObj.snaks || refObj;
-                Object.keys(refSnaks).forEach(rPid => {
-                    if (rPid !== 'snaks-order' && rPid !== 'hash') {
-                        if (!propertyMetadata[rPid] || !propertyMetadata[rPid].label || propertyMetadata[rPid].label === rPid) {
-                            missingPidsToFetch.push(rPid);
-                        }
-                        let rMeta = propertyMetadata[rPid] || { label: rPid };
-                        let snakArr = Array.isArray(refSnaks[rPid]) ? refSnaks[rPid] : [refSnaks[rPid]];
-                        snakArr.forEach(s => {
-                            let rQidCandidate = extractQid(s);
-                            if (rQidCandidate && !softselectLabels[rQidCandidate]) {
-                                missingQidsToFetch.push(rQidCandidate);
-                            }
-
-                            let $rSnakView = $('<div>').addClass('cradle-wikibase-snakview').attr('data-rpid', rPid);
-                            let $rPropContainer = $('<div>').addClass('cradle-wikibase-snakview-property-container');
-                            let $rProp = $('<div>').addClass('cradle-wikibase-snakview-property').attr('dir', 'auto').append($('<a>').attr({href: `/wiki/Property:${rPid}`, target: '_blank'}).text(rMeta.label || rPid));
-                            $rPropContainer.append($rProp);
-
-                            let $rValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container').attr('dir', 'auto');
-                            let $rBody = $('<div>').addClass('cradle-wikibase-snakview-body');
-                            let $rValue = $('<div>').addClass('cradle-wikibase-snakview-value cradle-valueview-value').html(formatSnakValueHTML(s));
-                            
-                            $rBody.append($rValue);
-                            $rValueContainer.append($rBody);
-                            $rSnakView.append($rPropContainer).append($rValueContainer);
-                            $snakListView.append($rSnakView);
-                        });
-                    }
-                });
-                $refListView.append($snakListView);
-                $refView.append($refListView);
-                $refList.append($refView);
-            });
-
-            if (row.isEditing) {
-                let $addRefLink = $('<a>').addClass('cradle-add-reference-link').text('+ ' + (mw.msg('cradle-add-reference') || 'añadir referencia'))
-                    .on('click', function(e) {
-                        e.preventDefault();
-                        if (!row.references) row.references = [];
-                        row.references.push({ snaks: { P248: [{ datavalue: { value: '' } }] } });
-                        renderPropertyRows(pid);
-                    });
-                $refList.append($addRefLink);
-            }
-
-            $refContainer.append($refHeader).append($refList);
-            $row.append($refContainer);
-            $row.append($toolbarContainer);
-
-            // Fetch missing property metadata (PIDs) and item labels (QIDs) in parallel for user's language
-            let loadPromises = [];
-            if (missingPidsToFetch.length > 0) {
-                let uniquePids = [...new Set(missingPidsToFetch)];
-                loadPromises.push(loadPropertiesMetadata(uniquePids).then(newMeta => {
-                    Object.assign(propertyMetadata, newMeta);
-                }));
-            }
-            if (missingQidsToFetch.length > 0) {
-                let uniqueQids = [...new Set(missingQidsToFetch)];
-                loadPromises.push(loadItemLabels(uniqueQids).then(newLabels => {
-                    Object.assign(softselectLabels, newLabels);
-                }));
-            }
-
-            if (loadPromises.length > 0) {
-                Promise.all(loadPromises).then(() => {
-                    $container.find('a[data-qid]').each(function() {
-                        let qid = $(this).attr('data-qid');
-                        if (qid && softselectLabels[qid]) {
-                            $(this).text(softselectLabels[qid]);
-                        }
-                    });
-                    $qualBox.find('.cradle-qualifier-row').each(function() {
-                        let qPid = $(this).attr('data-qpid');
-                        if (qPid && propertyMetadata[qPid] && propertyMetadata[qPid].label) {
-                            $(this).find('.cradle-qualifier-prop').text(propertyMetadata[qPid].label);
-                        }
-                    });
-                    $refContainer.find('.cradle-reference-row').each(function() {
-                        let rPid = $(this).attr('data-rpid');
-                        if (rPid && propertyMetadata[rPid] && propertyMetadata[rPid].label) {
-                            $(this).find('.cradle-reference-prop').text(propertyMetadata[rPid].label);
-                        }
-                    });
-                });
-            }
-
-            $row.append($mainsnakContainer).append($toolbarContainer);
+            $row.append($deleteBtn);
             $container.append($row);
         });
 
-        // Dynamic Action Bar rendering (Add row button matching Wikibase DOM)
+        // Dynamic Action Bar rendering (Add row button)
         let nonDeletedRows = rows.filter(r => !r.isDeleted);
         let maxLimit = propDef.max;
         let showAddButton = (maxLimit === '*' || maxLimit === Infinity || nonDeletedRows.length < maxLimit);
 
         if (showAddButton) {
-            let $addWrapper = $('<span>').addClass('cradle-wikibase-toolbar-wrapper')
-                .append(
-                    $('<div>').addClass('cradle-wikibase-addtoolbar cradle-wikibase-toolbar-item cradle-wikibase-toolbar cradle-wikibase-addtoolbar-container cradle-wikibase-toolbar-container')
-                        .append(
-                            $('<span>').addClass('cradle-wikibase-toolbarbutton cradle-wikibase-toolbar-item cradle-wikibase-toolbar-button cradle-wikibase-toolbar-button-add')
-                                .append(
-                                    $('<a>').attr({href: '#', title: 'Añadir un valor nuevo'})
-                                        .html('<span class="cradle-wb-icon"></span>' + (mw.msg('cradle-add-value') || 'añadir valor'))
-                                        .on('click', function(e) {
-                                            e.preventDefault();
-                                            addRow(pid);
-                                        })
-                                )
-                        )
-                );
-            $actionsContainer.append($addWrapper);
+            let $addBtn = $('<button>')
+                .addClass('cradle-btn-text')
+                .html(`${ICONS.plus} ${mw.msg('cradle-add-value')}`)
+                .on('click', function() {
+                    addRow(pid);
+                });
+            $actionsContainer.append($addBtn);
         }
     }
 
@@ -4264,64 +3192,8 @@
      * Creates appropriate jQuery inputs for a datatype.
      */
     function createInputForDatatype(pid, row) {
-        let propDef = schemaProperties[pid] || {};
-        let datatype = row.datatype || propDef.datatype || 'string';
-        let expertClass = 'cradle-valueview-expert-' + datatype.replace(/[^a-z0-9]/g, '');
-
-        let $valueView = $('<div>').addClass('cradle-valueview cradle-valueview-ineditmode');
-        let $expertDiv = $('<div>').addClass('cradle-valueview-value ' + expertClass);
-
-        // Special handling for Wikidata 'somevalue' (unknown value) and 'novalue' (no value)
-        if (row.snaktype === 'somevalue' || row.value === 'somevalue') {
-            $expertDiv.append($('<span>')
-                .addClass('cdx-badge cdx-badge--style-subtle')
-                .css({'font-size': '0.85rem', 'padding': '4px 8px', 'font-style': 'italic', 'color': '#54595d', 'background': '#f8f9fa', 'border': '1px solid #c8ccd1', 'border-radius': '2px'})
-                .text('valor desconocido (somevalue)'));
-            $valueView.append($expertDiv);
-            return $valueView;
-        }
-        if (row.snaktype === 'novalue' || row.value === 'novalue') {
-            $expertDiv.append($('<span>')
-                .addClass('cdx-badge cdx-badge--style-subtle')
-                .css({'font-size': '0.85rem', 'padding': '4px 8px', 'font-style': 'italic', 'color': '#54595d', 'background': '#f8f9fa', 'border': '1px solid #c8ccd1', 'border-radius': '2px'})
-                .text('sin valor (novalue)'));
-            $valueView.append($expertDiv);
-            return $valueView;
-        }
+        let propDef = schemaProperties[pid];
         
-        // Support for dropdown select when predefined values / hardselect / softselect / allowedValues exist
-        let allowedList = propDef.hardselect || propDef.softselect || propDef.allowedValues || propDef.values;
-        if (allowedList && Array.isArray(allowedList) && allowedList.length > 0) {
-            let $select = $('<select>').addClass('cradle-select').css({
-                'width': '100%',
-                'height': '32px',
-                'padding': '4px 6px',
-                'border': '1px solid #a2a9b1',
-                'border-radius': '2px',
-                'font-size': '0.875rem'
-            });
-            
-            function buildOptions() {
-                $select.empty().append($('<option>').val('').text('-- ' + (mw.msg('cradle-select') || 'Seleccionar') + ' --'));
-                allowedList.forEach(opt => {
-                    let optVal = typeof opt === 'object' ? (opt.id || opt.value) : opt;
-                    let optLabel = typeof opt === 'object' ? (opt.label || opt.name || optVal) : (softselectLabels[optVal] || optVal);
-                    let labelText = (optLabel && optLabel !== optVal) ? `${optLabel} (${optVal})` : optVal;
-                    $select.append($('<option>').val(optVal).text(labelText));
-                });
-                if (row.value) {
-                    $select.val(typeof row.value === 'object' ? row.value.id : row.value);
-                }
-            }
-
-            buildOptions();
-            $select.on('change', function() {
-                row.value = $select.val();
-                liveUpdateValidation();
-            });
-            return $select;
-        }
-
         // 1. wikibase-item & wikibase-property datatype
         if (row.datatype === 'wikibase-item' || row.datatype === 'wikibase-property') {
             if (propDef && propDef.hardselect && propDef.hardselect.length > 0) {
@@ -5251,37 +4123,31 @@ function searchWikidataItems(term) {
             rows.forEach(row => {
                 if (row.isDeleted) {
                     if (row.guid) {
-                        let origClaim = original.find(c => c.id === row.guid);
-                        if (origClaim) {
-                            propertyClaims.push({
-                                id: row.guid,
-                                remove: ""
-                            });
-                            hasChanges = true;
-                        }
+                        propertyClaims.push({
+                            id: row.guid,
+                            remove: ""
+                        });
+                        hasChanges = true;
                     }
                     return;
                 }
 
-                let snaktype = (row.snaktype && (row.snaktype === 'somevalue' || row.snaktype === 'novalue')) ? row.snaktype : (row.value === 'somevalue' || row.value === 'novalue' ? row.value : 'value');
-                let mainsnak = {
-                    snaktype: snaktype,
-                    property: pid
-                };
+                if (isEmptyValue(row.value, row.datatype)) return;
 
-                if (snaktype === 'value') {
-                    let datavalue = constructDataValue(row.value, row.datatype);
-                    if (!datavalue) return;
-                    mainsnak.datavalue = datavalue;
-                }
+                let datavalue = constructDataValue(row.value, row.datatype);
+                if (!datavalue) return;
 
                 if (row.guid) {
                     // Update claim
                     let origClaim = original.find(c => c.id === row.guid);
-                    if (origClaim) {
+                    if (origClaim && isValueChanged(origClaim, datavalue)) {
                         propertyClaims.push({
                             id: row.guid,
-                            mainsnak: mainsnak,
+                            mainsnak: {
+                                snaktype: 'value',
+                                property: pid,
+                                datavalue: datavalue
+                            },
                             type: 'statement'
                         });
                         hasChanges = true;
@@ -5289,7 +4155,11 @@ function searchWikidataItems(term) {
                 } else {
                     // Add new claim
                     propertyClaims.push({
-                        mainsnak: mainsnak,
+                        mainsnak: {
+                            snaktype: 'value',
+                            property: pid,
+                            datavalue: datavalue
+                        },
                         type: 'statement'
                     });
                     hasChanges = true;
