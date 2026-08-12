@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.27.0
+ * Version: 1.28.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.27.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.28.0');
  */
 
 (function() {
@@ -1282,10 +1282,13 @@
     /**
      * Searches class properties (P12861) on P31, P279, and P106 claims of the entity.
      */
+    /**
+     * Searches class properties (P12861) on P31, P279, and P106 claims of the entity automatically.
+     */
     function findAssociatedSchemas(data) {
         let schemas = [];
         
-        // Direct schema on this item
+        // Direct schema on this item (P12861)
         if (data.claims && data.claims[P12861]) {
             data.claims[P12861].forEach(claim => {
                 let sId = parseEntitySchemaID(claim.mainsnak?.datavalue);
@@ -1295,7 +1298,21 @@
             });
         }
 
-        // Check instance of (P31), subclass of (P279), and occupation (P106)
+        // Check if item is a Human (P31: Q5)
+        let isHuman = false;
+        if (data.claims && data.claims[P31]) {
+            data.claims[P31].forEach(claim => {
+                let instanceId = claim.mainsnak?.datavalue?.value?.id;
+                if (instanceId === 'Q5') {
+                    isHuman = true;
+                }
+            });
+        }
+        if (isHuman && !schemas.includes('E10')) {
+            schemas.push('E10'); // Default Human EntitySchema
+        }
+
+        // Collect instance of (P31), subclass of (P279), and occupation (P106) QIDs
         let classesToCheck = [];
         [P31, P279, P106].forEach(prop => {
             if (data.claims && data.claims[prop]) {
@@ -1314,6 +1331,7 @@
             return Promise.resolve(schemas);
         }
 
+        // Automatic API query: fetch claims of all P31, P279, and P106 entities
         return new Promise((resolve) => {
             let api = new mw.Api();
             api.get({
@@ -1322,9 +1340,11 @@
                 props: 'claims',
                 format: 'json'
             }).done(function(res) {
+                let secondLevelClasses = [];
                 if (res && res.entities) {
                     Object.keys(res.entities).forEach(qid => {
                         let cls = res.entities[qid];
+                        // 1. Direct P12861 on occupation/class
                         if (cls.claims && cls.claims[P12861]) {
                             cls.claims[P12861].forEach(claim => {
                                 let schemaId = parseEntitySchemaID(claim.mainsnak?.datavalue);
@@ -1333,9 +1353,46 @@
                                 }
                             });
                         }
+                        // 2. Collect 2nd-level P279 (subclass of occupation/class)
+                        if (cls.claims && cls.claims[P279]) {
+                            cls.claims[P279].forEach(claim => {
+                                let parentId = claim.mainsnak?.datavalue?.value?.id;
+                                if (parentId && !classesToCheck.includes(parentId) && !secondLevelClasses.includes(parentId)) {
+                                    secondLevelClasses.push(parentId);
+                                }
+                            });
+                        }
                     });
                 }
-                resolve(schemas);
+
+                if (secondLevelClasses.length > 0) {
+                    // Fetch 2nd-level parent occupation/class schemas automatically
+                    api.get({
+                        action: 'wbgetentities',
+                        ids: secondLevelClasses.slice(0, 50).join('|'),
+                        props: 'claims',
+                        format: 'json'
+                    }).done(function(res2) {
+                        if (res2 && res2.entities) {
+                            Object.keys(res2.entities).forEach(qid => {
+                                let cls2 = res2.entities[qid];
+                                if (cls2.claims && cls2.claims[P12861]) {
+                                    cls2.claims[P12861].forEach(claim => {
+                                        let schemaId = parseEntitySchemaID(claim.mainsnak?.datavalue);
+                                        if (schemaId && !schemas.includes(schemaId)) {
+                                            schemas.push(schemaId);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        resolve(schemas);
+                    }).fail(function() {
+                        resolve(schemas);
+                    });
+                } else {
+                    resolve(schemas);
+                }
             }).fail(function(err) {
                 logError("[Cradle] findAssociatedSchemas request failed:", err);
                 resolve(schemas);
