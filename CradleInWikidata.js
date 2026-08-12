@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.28.0
+ * Version: 1.29.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.28.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.29.0');
  */
 
 (function() {
@@ -4994,6 +4994,18 @@ function searchWikidataItems(term) {
                     });
                 }
 
+                let p106QIDs = [];
+                if (claims.P106) {
+                    claims.P106.forEach(c => {
+                        if (c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id) {
+                            let occId = c.mainsnak.datavalue.value.id;
+                            if (!p106QIDs.includes(occId)) {
+                                p106QIDs.push(occId);
+                            }
+                        }
+                    });
+                }
+
                 let targetClassQID = p31QIDs.length > 0 ? p31QIDs[0] : qid;
                 fetchRecoinData(targetClassQID, function(recoinData) {
                     let recoinFreqMap = {};
@@ -5007,7 +5019,7 @@ function searchWikidataItems(term) {
                         });
                     }
 
-                    let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs];
+                    let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs, ...p106QIDs];
 
                     fetchLabelsInBatches(allQIDsToFetch, function(labelsMap, datatypesMap) {
                         // Exclude external identifier properties (datatype: external-id)
@@ -5025,9 +5037,11 @@ function searchWikidataItems(term) {
                         }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas en el elemento.`);
                         $resultArea.append($info);
 
-                        // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
-                        let p31ClaimsMap = {};
-                        let p31FetchDone = function() {
+                        // Fetch claims.P12861 (EntitySchema ID) for p31QIDs & p106QIDs
+                        let classClaimsMap = {};
+                        let allClassesToInspect = [...p31QIDs, ...p106QIDs];
+                        
+                        let inspectDone = function() {
                             let $duplicateNoticeBox = $('<div>').css({'margin-top': '6px'});
                             let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
                                 .css({'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'})
@@ -5037,7 +5051,7 @@ function searchWikidataItems(term) {
                                 .css({'display': 'none', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'});
 
                             function updateSchemaExistenceCheck(chosenQID) {
-                                let schemaId = p31ClaimsMap[chosenQID];
+                                let schemaId = classClaimsMap[chosenQID];
                                 if (schemaId) {
                                     $duplicateNoticeBox.html(`
                                         <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px;">
@@ -5048,15 +5062,66 @@ function searchWikidataItems(term) {
                                     $editExistingSchemaBtn.html(ICONS.external + ` <span>Editar esquema ${schemaId} existente</span>`).off('click').on('click', function() {
                                         window.open('/wiki/EntitySchema:' + schemaId, '_blank');
                                     }).css('display', 'inline-flex');
-                                    $btnRow.css({'justify-content': 'space-between'});
-                                    $importConfirmBtn.css({'flex': '1'});
                                 } else {
                                     $duplicateNoticeBox.empty().hide();
                                     $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
                                     $editExistingSchemaBtn.hide();
-                                    $btnRow.css({'justify-content': 'center'});
-                                    $importConfirmBtn.css({'flex': '0 1 auto'});
                                 }
+                            }
+
+                            // Render Occupation (P106) Schema Inspector & Recommendation Card
+                            if (p106QIDs.length > 0) {
+                                let $occBox = $('<div>').css({
+                                    'margin-top': '8px',
+                                    'padding': '10px',
+                                    'background': '#f8f9fa',
+                                    'border': '1px solid #c8ccd1',
+                                    'border-radius': '4px'
+                                });
+                                $occBox.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-bottom': '6px'})
+                                    .html('💼 Inspección de Ocupaciones / Profesiones (P106):'));
+
+                                p106QIDs.forEach(occQID => {
+                                    let occLabel = labelsMap[occQID] || occQID;
+                                    let schemaId = classClaimsMap[occQID];
+                                    let $occRow = $('<div>').css({
+                                        'display': 'flex',
+                                        'align-items': 'center',
+                                        'justify-content': 'space-between',
+                                        'font-size': '12px',
+                                        'padding': '4px 0',
+                                        'border-bottom': '1px dashed #eaecf0'
+                                    });
+
+                                    if (schemaId) {
+                                        $occRow.html(`
+                                            <span>✓ <strong>${occLabel} (${occQID})</strong> tiene el esquema <strong>${schemaId}</strong></span>
+                                        `).append(
+                                            $('<button>').addClass('cdx-button cdx-button--weight-quiet')
+                                                .css({'font-size': '11px', 'color': '#36c', 'padding': '2px 6px'})
+                                                .text(`Cargar ${schemaId}`)
+                                                .on('click', function(e) {
+                                                    e.preventDefault();
+                                                    loadAndDisplaySchema(schemaId);
+                                                })
+                                        );
+                                    } else {
+                                        $occRow.html(`
+                                            <span>💡 <strong>${occLabel} (${occQID})</strong> no tiene EntitySchema (P12861)</span>
+                                        `).append(
+                                            $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet')
+                                                .css({'font-size': '11px', 'padding': '2px 6px'})
+                                                .text(`Crear esquema para ${occLabel}`)
+                                                .on('click', function(e) {
+                                                    e.preventDefault();
+                                                    selectedP31QID = occQID;
+                                                    renderSchemaDesigner();
+                                                })
+                                        );
+                                    }
+                                    $occBox.append($occRow);
+                                });
+                                $resultArea.append($occBox);
                             }
 
                             if (p31Candidates.length === 1) {
