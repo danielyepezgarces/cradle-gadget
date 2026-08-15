@@ -12,3 +12,8 @@ These rules apply to any AI coding agent developing or modifying the Cradle Wiki
 - **Comments in English**: All inline source code comments, documentation headers, and git commit descriptions must be written in English.
 - **Maintain Casing**: Keep remote paths and file paths properly matching casing (e.g. `Cradle.git` instead of lowercase `cradle.git`).
 - **Semantic Versioning**: Bumping the version (`major.minor.patch`) must be done in all relevant files (`CradleInWikidata.js`, `CradleWikibase/modules/CradleInWikidata.js`, `CradleWikibase/extension.json`) whenever a new feature, refinement, or bugfix is implemented.
+
+## 3. UI Design & Iconography
+- **NO Unicode Emojis in User Interface**: Do not use raw unicode emojis (such as 🌐, 📝, 🗣️, 📅, 🔢, 📍, 🔗, ⚠️, 🛠️, 🔀, 🚀, 💬, 🔍) in any UI components, labels, select options, or notification messages. Emojis break Wikimedia visual consistency.
+- **Use Codex & OOUI Icons**: Always use clean MediaWiki Codex icons (e.g., `cdx-icon`, standard SVG icons, or the `ICONS` object) for buttons, badges, selectors, alerts, and notifications to maintain a clean, professional Wikimedia look and feel.
+
