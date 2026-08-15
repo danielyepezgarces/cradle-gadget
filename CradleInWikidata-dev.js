@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.34.0
+ * Version: 1.35.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.34.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.35.0');
  */
 
 (function() {
@@ -458,6 +458,21 @@
             background-color: var(--background-color-warning-subtle, #fef8ee);
         }
 
+        /* Strict sizing for all SVG icons inside Cradle elements and buttons */
+        .cradle-drawer svg,
+        .cradle-modal-overlay svg,
+        .cdx-button svg,
+        .cradle-btn-secondary svg,
+        .cradle-btn-icon svg {
+            width: 1.1em !important;
+            height: 1.1em !important;
+            max-width: 20px !important;
+            max-height: 20px !important;
+            vertical-align: middle !important;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
         .cradle-field-title {
             font-weight: bold;
             font-size: 0.95rem;
@@ -857,7 +872,7 @@
 
     // SVG Icons
     const ICONS = {
-        cradle: `<svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
+        cradle: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
         close: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m4.34 2.93 12.73 12.73-1.41 1.41L2.93 4.34z"/><path d="M17.07 4.34 4.34 17.07l-1.41-1.41L15.66 2.93z"/></svg>`,
         plus: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M11 9V4H9v5H4v2h5v5h2v-5h5V9z"/></svg>`,
         trash: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M17 2h-3.5l-1-1h-5l-1 1H3v2h14zm-12 4v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6zm3 11H6V8h2zm3 0H9V8h2zm3 0h-2V8h2z"/></svg>`,
@@ -867,7 +882,7 @@
         alert: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M11.53 2.3A1.85 1.85 0 0 0 10 1.25 1.85 1.85 0 0 0 8.47 2.3L1.31 14.73A1.82 1.82 0 0 0 1.3 16.5a1.76 1.76 0 0 0 1.54.85h14.32a1.76 1.76 0 0 0 1.54-.85 1.82 1.82 0 0 0 0-1.77ZM11 15H9v-2h2Zm0-4H9V6h2z"/></svg>`,
         info: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 0a10 10 0 1 0 10 10A10 10 0 0 0 10 0m1 15H9v-6h2Zm0-8H9V5h2z"/></svg>`,
         download: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M17 12v5H3v-5H1v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"/><path d="M10 15l5-6h-3V1H8v8H5z"/></svg>`,
-        external: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
+        external: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
     };
 
     /**
@@ -948,6 +963,10 @@
             'cradle-shex-copied-auto': 'All ShEx code selected and copied to clipboard!',
             'cradle-open-newentityschema': 'Go to Special:NewEntitySchema',
             'cradle-direct-api-disabled-notice': 'Direct API creation is currently disabled. Use Special:NewEntitySchema to create your schema.',
+            'cradle-base-schema-label': 'Base Schema / Derivation (IMPORT)',
+            'cradle-base-schema-placeholder': 'e.g. E10 (Human) or E519',
+            'cradle-base-schema-notice': 'Existing base schema detected ($1). You can create a specialized derivation (e.g. Firefighter derived from Human).',
+            'cradle-use-base-schema-checkbox': 'Set $1 as base schema for this derivation',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
             'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
             'cradle-schema-not-found': 'Could not find the schema on the page!',
@@ -4587,15 +4606,24 @@ function searchWikidataItems(term) {
     /**
      * Generates rich Wikidata-standard ShEx (Shape Expression) code for an EntitySchema.
      */
-    function generateShExCode(title, propRows, propertyLabels, targetItem, subShapes) {
+    function generateShExCode(title, propRows, propertyLabels, targetItem, subShapes, baseSchema) {
         let cleanTitle = (title || 'custom_shape').toLowerCase().replace(/[^a-z0-9_]/g, '');
         if (!cleanTitle) cleanTitle = 'custom_shape';
         let targetQID = (targetItem || '').trim().toUpperCase();
+        let cleanBaseSchema = (baseSchema || '').trim().toUpperCase();
 
         let lines = [];
         if (targetQID && /^Q\d+$/i.test(targetQID)) {
             lines.push(`# targetItem: ${targetQID}`);
             lines.push(`# Associated Item / Target Class: ${targetQID}`);
+        }
+        if (cleanBaseSchema) {
+            if (!cleanBaseSchema.startsWith('E') && !cleanBaseSchema.startsWith('@')) {
+                cleanBaseSchema = 'E' + cleanBaseSchema.replace(/\D/g, '');
+            }
+            let schemaNum = cleanBaseSchema.replace(/^@/, '');
+            lines.push(`# Base Schema / Derivation: EntitySchema:${schemaNum}`);
+            lines.push(`IMPORT <http://www.wikidata.org/wiki/Special:EntitySchemaText/${schemaNum}>`);
         }
         lines.push(`# Schema: ${title || cleanTitle}`);
         lines.push(`# Generated with Cradle Schema Designer on Wikidata (https://www.wikidata.org/wiki/User:Danielyepezgarces/Cradle-gadget)`);
@@ -4609,7 +4637,8 @@ function searchWikidataItems(term) {
         lines.push(``);
         lines.push(`start = @<${cleanTitle}>`);
         lines.push(``);
-        lines.push(`<${cleanTitle}> EXTRA wdt:P31 {`);
+        let extraClause = cleanBaseSchema ? ` EXTRA wdt:P31 AND @<${cleanBaseSchema.replace(/^@/, '')}>` : ` EXTRA wdt:P31`;
+        lines.push(`<${cleanTitle}>${extraClause} {`);
 
         let propMap = propertyLabels || propertyMetadata || {};
         let orGroups = {};
@@ -4826,8 +4855,8 @@ function searchWikidataItems(term) {
     /**
      * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata via MediaWiki API.
      */
-    function openShExExportModal(title, propRows, labelsMap, targetItem) {
-        let shexText = generateShExCode(title, propRows, labelsMap, targetItem);
+    function openShExExportModal(title, propRows, labelsMap, targetItem, baseSchema) {
+        let shexText = generateShExCode(title, propRows, labelsMap, targetItem, null, baseSchema);
 
         let $overlay = $('<div>').addClass('cradle-modal-overlay').css({
             'position': 'fixed',
@@ -5079,12 +5108,13 @@ function searchWikidataItems(term) {
                                 let schemaId = p31ClaimsMap[chosenQID];
                                 if (schemaId) {
                                     $duplicateNoticeBox.html(`
-                                        <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
-                                            <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>${mw.msg('cradle-schema-exists-notice')}</strong> ${labelsMap[chosenQID] || chosenQID} (${chosenQID}) -> <strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${schemaId}</a></strong> (P12861).</span>
+                                        <div style="background:#eaf3ff; border:1px solid #36c; color:#102a43; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
+                                            <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.info}</span>
+                                            <span>${mw.msg('cradle-base-schema-notice', schemaId)} (<strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#36c; text-decoration:underline;">EntitySchema ${schemaId}</a></strong>).</span>
                                         </div>
                                     `).show();
-                                    $importConfirmBtn.prop('disabled', true).addClass('cdx-button--disabled');
-                                    $editExistingSchemaBtn.html(ICONS.external + ` <span>EntitySchema ${schemaId}</span>`).off('click').on('click', function() {
+                                    $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
+                                    $editExistingSchemaBtn.html(ICONS.external + ` <span>Ver EntitySchema ${schemaId}</span>`).off('click').on('click', function() {
                                         window.open('/wiki/EntitySchema:' + schemaId, '_blank');
                                     }).css('display', 'inline-flex');
                                     $btnRow.css({'justify-content': 'space-between'});
@@ -5102,7 +5132,7 @@ function searchWikidataItems(term) {
                                 selectedP31QID = p31Candidates[0].qid;
                                 let schemaId = p31ClaimsMap[selectedP31QID];
                                 let badgeHtml = schemaId
-                                    ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.alert}</span> <strong>${schemaId}</strong></span>`
+                                    ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.info}</span> Base: <strong>${schemaId}</strong></span>`
                                     : '';
                                 $resultArea.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
                                     .html(`Class (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
@@ -5125,7 +5155,7 @@ function searchWikidataItems(term) {
                                         updateSchemaExistenceCheck(cand.qid);
                                     });
                                     let badgeHtml = schemaId
-                                        ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.alert}</span> <strong>${schemaId}</strong></span>`
+                                        ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.info}</span> Base: <strong>${schemaId}</strong></span>`
                                         : '';
                                     let $lbl = $('<label>').attr('for', radId).css({'font-size': '13px', 'display': 'flex', 'align-items': 'center', 'gap': '6px', 'cursor': 'pointer'})
                                         .append($rad).append($('<span>').html(`${cand.label} (${cand.qid}) ${badgeHtml}`));
@@ -5189,7 +5219,7 @@ function searchWikidataItems(term) {
                                 }
                                 $overlay.remove();
                                 if (onImportCallback) {
-                                    onImportCallback(selectedP31QID, selectedPIDs, labelsMap, recoinFreqMap);
+                                    onImportCallback(selectedP31QID, selectedPIDs, labelsMap, recoinFreqMap, p31ClaimsMap[selectedP31QID]);
                                 }
                             });
 
@@ -5361,15 +5391,24 @@ function searchWikidataItems(term) {
         let $headerTitleRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '4px'});
         $headerTitleRow.append($('<h3>').css({'margin': '0'}).text(mw.msg('cradle-schema-designer')));
 
+        let $baseSchemaInput = $('<input>').addClass('cradle-input').attr({
+            type: 'text',
+            id: 'cradle-schema-base-schema-input',
+            placeholder: mw.msg('cradle-base-schema-placeholder')
+        });
+
         let $openImporterBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet')
             .css({'height': '32px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
-            .html(ICONS.download + ' <span>Importar desde elemento</span>')
+            .html(ICONS.download + ` <span>${mw.msg('cradle-import-from-item')}</span>`)
             .on('click', function(e) {
                 e.preventDefault();
-                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, modalLabelsMap, recoinFreqMap) {
+                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, modalLabelsMap, recoinFreqMap, importedBaseSchema) {
                     if (importedTargetQID && !$targetItemInput.val().trim()) {
                         $targetItemInput.val(importedTargetQID);
                         checkTargetItemDuplicateSchema(importedTargetQID);
+                    }
+                    if (importedBaseSchema) {
+                        $baseSchemaInput.val(importedBaseSchema);
                     }
                     
                     // Clear previous property rows so new import starts fresh
@@ -5377,7 +5416,7 @@ function searchWikidataItems(term) {
 
                     let newPIDs = sortPropertyIDs(importedPIDs || []);
                     if (newPIDs.length === 0) {
-                        mw.notify('No hay propiedades seleccionadas para importar.', { type: 'info' });
+                        mw.notify('No properties selected for import.', { type: 'info' });
                         return;
                     }
 
@@ -5390,7 +5429,7 @@ function searchWikidataItems(term) {
                                 console.error('[Cradle Importer Error]', err);
                             }
                         });
-                        mw.notify(`¡Se importaron ${newPIDs.length} propiedades!`, { type: 'success' });
+                        mw.notify(`Imported ${newPIDs.length} properties!`, { type: 'success' });
                     });
                 });
             });
@@ -5405,10 +5444,11 @@ function searchWikidataItems(term) {
         $row1.append($('<div>').css({'flex': '1.5', 'min-width': '160px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-desc'))).append($descInput));
         $row1.append($('<div>').css({'flex': '1', 'min-width': '130px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-new-item-aliases'))).append($aliasesInput));
 
-        // Row 2: Associated Item (directly below Title)
-        let $row2 = $('<div>').css({'display': 'flex', 'flex-direction': 'column'});
-        let $row2Inner = $('<div>').css({'display': 'flex', 'gap': '8px'});
-        $row2Inner.append($('<div>').css({'width': '280px', 'max-width': '100%'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-target-item-label'))).append($targetItemInput));
+        // Row 2: Associated Item & Base Schema (Derivation)
+        let $row2 = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '4px'});
+        let $row2Inner = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap'});
+        $row2Inner.append($('<div>').css({'flex': '1', 'min-width': '200px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-target-item-label'))).append($targetItemInput));
+        $row2Inner.append($('<div>').css({'flex': '1', 'min-width': '200px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-base-schema-label'))).append($baseSchemaInput));
         $row2.append($row2Inner).append($targetNoticeDiv);
 
         $headerFieldsRow.append($row1).append($row2);
@@ -5971,6 +6011,7 @@ function searchWikidataItems(term) {
         let $saveBtn = $('<button>').addClass('cradle-btn-primary').text(mw.msg('cradle-create-entityschema-btn')).on('click', function() {
             let name = $titleInput.val().trim() || 'CustomSchema';
             let targetQID = $targetItemInput.val().trim();
+            let baseSchema = $('#cradle-schema-base-schema-input').length ? $('#cradle-schema-base-schema-input').val().trim() : '';
             let propRows = gatherDesignerProps();
             if (propRows.length === 0) {
                 mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
@@ -5978,7 +6019,7 @@ function searchWikidataItems(term) {
             }
             let pids = propRows.map(r => r.pid);
             fetchLabelsInBatches(pids, function(labelsMap) {
-                openShExExportModal(name, propRows, labelsMap, targetQID);
+                openShExExportModal(name, propRows, labelsMap, targetQID, baseSchema);
             });
         });
 
@@ -5988,6 +6029,7 @@ function searchWikidataItems(term) {
             .on('click', function() {
                 let name = $titleInput.val().trim() || 'CustomSchema';
                 let targetQID = $targetItemInput.val().trim();
+                let baseSchema = $('#cradle-schema-base-schema-input').length ? $('#cradle-schema-base-schema-input').val().trim() : '';
                 let propRows = gatherDesignerProps();
                 if (propRows.length === 0) {
                     mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
@@ -5995,7 +6037,7 @@ function searchWikidataItems(term) {
                 }
                 let pids = propRows.map(r => r.pid);
                 fetchLabelsInBatches(pids, function(labelsMap) {
-                    openShExExportModal(name, propRows, labelsMap, targetQID);
+                    openShExExportModal(name, propRows, labelsMap, targetQID, baseSchema);
                 });
             });
 
