@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.32.0
+ * Version: 1.33.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.32.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.33.0');
  */
 
 (function() {
@@ -918,6 +918,33 @@
             'cradle-schema-title-required': 'Schema title is required!',
             'cradle-schema-desc-placeholder': 'Schema description (e.g. Schema for football stadiums)...',
             'cradle-schema-aliases-placeholder': 'Schema aliases (pipe-separated |, e.g. stadium | arena)...',
+            'cradle-load-item-btn': 'Load item',
+            'cradle-loading-item': 'Loading...',
+            'cradle-fetching-wikidata-recoin': 'Querying Wikidata and Recoin API...',
+            'cradle-select-p31-class': 'Select associated class (P31) for this schema:',
+            'cradle-select-props-to-import': 'Select properties to import:',
+            'cradle-select-all': 'Select all',
+            'cradle-cardinality-1': '1 (Required, single)',
+            "cradle-cardinality-opt-single": "0..1 / ? (Optional, single)",
+            "cradle-cardinality-req-multi": "1..* / + (Required, multiple)",
+            "cradle-cardinality-opt-multi": "0..* / * (Optional, multiple)",
+            'cradle-cardinality-label': 'Cardinality: ',
+            'cradle-valtype-qid': 'Wikidata Item (QID)',
+            'cradle-valtype-string': 'Free text (xsd:string)',
+            'cradle-valtype-langstring': 'Monolingual text (rdf:langString)',
+            'cradle-valtype-datetime': 'Date / Time (xsd:dateTime)',
+            'cradle-valtype-decimal': 'Number / Quantity (xsd:decimal)',
+            'cradle-valtype-geo': 'Coordinates (geo:wktLiteral)',
+            'cradle-valtype-subshape': 'Sub-schema (@<SubShape>)',
+            'cradle-valtype-label': 'Value type: ',
+            'cradle-orgroup-label': 'Alternative group (OR): ',
+            'cradle-subshape-name-label': 'Sub-schema name: ',
+            'cradle-import-from-item': 'Import from item',
+            'cradle-schema-exists-notice': 'Schema already exists: ',
+            'cradle-schema-target-item-label': 'Associated class/item',
+            'cradle-schema-target-item-placeholder': 'e.g. Q483110 (Stadium) or Q5 (Human)',
+            'cradle-create-custom-schema-desc': 'Search for an existing EntitySchema (e.g. E10, Human) to load its claims and create a new item.',
+            'cradle-designer-custom-desc': 'Design a new schema from scratch or by importing properties from an existing item to publish it as an EntitySchema (ShEx).',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
             'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
             'cradle-schema-not-found': 'Could not find the schema on the page!',
@@ -4947,14 +4974,14 @@ function searchWikidataItems(term) {
         });
 
         let $headRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center'});
-        $headRow.append($('<h3>').css({'margin': '0', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'}).html(ICONS.download + ' <span>Importar propiedades desde un elemento</span>'));
+        $headRow.append($('<h3>').css({'margin': '0', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'}).html(ICONS.download + ` <span>${mw.msg('cradle-import-from-item')}</span>`));
         let $closeBtn = $('<button>').addClass('cradle-btn-secondary').html(ICONS.close).on('click', function() { $overlay.remove(); });
         $headRow.append($closeBtn);
         $modal.append($headRow);
 
         let $inputGroup = $('<div>').css({'display': 'flex', 'gap': '8px'});
-        let $input = $('<input>').addClass('cradle-input').attr('placeholder', 'QID del elemento (ej: Q164027 Santiago Bernabéu o Q1203)').css({'flex': '1'});
-        let $searchBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive').text('Cargar elemento');
+        let $input = $('<input>').addClass('cradle-input').attr('placeholder', 'QID (e.g. Q164027, Q483110)').css({'flex': '1'});
+        let $searchBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive').text(mw.msg('cradle-load-item-btn'));
         $inputGroup.append($input).append($searchBtn);
         $modal.append($inputGroup);
 
@@ -4968,11 +4995,11 @@ function searchWikidataItems(term) {
         $searchBtn.on('click', function() {
             let qid = $input.val().trim().toUpperCase();
             if (!qid || !/^Q\d+$/i.test(qid)) {
-                mw.notify('Por favor ingrese un QID válido (ej: Q164027 o Q483110)', { type: 'error' });
+                mw.notify(mw.msg('cradle-val-err-qid', qid), { type: 'error' });
                 return;
             }
-            $searchBtn.prop('disabled', true).text('Cargando...');
-            $resultArea.empty().append($('<div>').css({'color': '#54595d', 'font-size': '13px'}).text('Consultando Wikidata y Recoin API...'));
+            $searchBtn.prop('disabled', true).text(mw.msg('cradle-loading-item'));
+            $resultArea.empty().append($('<div>').css({'color': '#54595d', 'font-size': '13px'}).text(mw.msg('cradle-fetching-wikidata-recoin')));
 
             let api = new mw.Api();
             api.get({
@@ -4982,9 +5009,9 @@ function searchWikidataItems(term) {
                 languages: mw.config.get('wgUserLanguage') || 'en',
                 format: 'json'
             }).done(function(res) {
-                $searchBtn.prop('disabled', false).text('Cargar elemento');
+                $searchBtn.prop('disabled', false).text(mw.msg('cradle-load-item-btn'));
                 if (!res || !res.entities || !res.entities[qid] || !res.entities[qid].claims) {
-                    $resultArea.html('<div style="color:#d33; font-size:13px;">No se encontraron propiedades en ' + qid + '</div>');
+                    $resultArea.html('<div style="color:#d33; font-size:13px;">No claims found in ' + qid + '</div>');
                     return;
                 }
                 let claims = res.entities[qid].claims;
@@ -5027,7 +5054,7 @@ function searchWikidataItems(term) {
                         let $info = $('<div>').css({
                             'background': '#eaf3ff', 'border': '1px solid #36c',
                             'padding': '8px 12px', 'border-radius': '4px', 'font-size': '13px'
-                        }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas en el elemento.`);
+                        }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} properties found.`);
                         $resultArea.append($info);
 
                         // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
@@ -5036,7 +5063,7 @@ function searchWikidataItems(term) {
                             let $duplicateNoticeBox = $('<div>').css({'margin-top': '6px'});
                             let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
                                 .css({'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'})
-                                .html(ICONS.check + ` <span>Importar propiedades seleccionadas al diseñador</span>`);
+                                .html(ICONS.check + ` <span>${mw.msg('cradle-import-from-item')}</span>`);
 
                             let $editExistingSchemaBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive')
                                 .css({'display': 'none', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'});
@@ -5046,11 +5073,11 @@ function searchWikidataItems(term) {
                                 if (schemaId) {
                                     $duplicateNoticeBox.html(`
                                         <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
-                                            <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> La clase seleccionada <strong>${labelsMap[chosenQID] || chosenQID} (${chosenQID})</strong> ya tiene registrado el <strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${schemaId}</a></strong> (declaración P12861).</span>
+                                            <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>${mw.msg('cradle-schema-exists-notice')}</strong> ${labelsMap[chosenQID] || chosenQID} (${chosenQID}) -> <strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${schemaId}</a></strong> (P12861).</span>
                                         </div>
                                     `).show();
                                     $importConfirmBtn.prop('disabled', true).addClass('cdx-button--disabled');
-                                    $editExistingSchemaBtn.html(ICONS.external + ` <span>Editar esquema ${schemaId} existente</span>`).off('click').on('click', function() {
+                                    $editExistingSchemaBtn.html(ICONS.external + ` <span>EntitySchema ${schemaId}</span>`).off('click').on('click', function() {
                                         window.open('/wiki/EntitySchema:' + schemaId, '_blank');
                                     }).css('display', 'inline-flex');
                                     $btnRow.css({'justify-content': 'space-between'});
@@ -5068,17 +5095,17 @@ function searchWikidataItems(term) {
                                 selectedP31QID = p31Candidates[0].qid;
                                 let schemaId = p31ClaimsMap[selectedP31QID];
                                 let badgeHtml = schemaId
-                                    ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.alert}</span> Ya existe: <strong>${schemaId}</strong></span>`
+                                    ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.alert}</span> <strong>${schemaId}</strong></span>`
                                     : '';
                                 $resultArea.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
-                                    .html(`Clase/Elemento asociado detectado (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
+                                    .html(`Class (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
                             } else if (p31Candidates.length > 1) {
                                 let $p31Box = $('<div>').css({
                                     'display': 'flex', 'flex-direction': 'column', 'gap': '6px',
                                     'background': '#f8f9fa', 'border': '1px solid #c8ccd1',
                                     'padding': '10px', 'border-radius': '4px'
                                 });
-                                $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text('Seleccione la clase asociada (P31) para este esquema:'));
+                                $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text(mw.msg('cradle-select-p31-class')));
 
                                 selectedP31QID = p31Candidates[0].qid;
                                 p31Candidates.forEach((cand, idx) => {
@@ -5091,7 +5118,7 @@ function searchWikidataItems(term) {
                                         updateSchemaExistenceCheck(cand.qid);
                                     });
                                     let badgeHtml = schemaId
-                                        ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.alert}</span> Ya existe: <strong>${schemaId}</strong></span>`
+                                        ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.alert}</span> <strong>${schemaId}</strong></span>`
                                         : '';
                                     let $lbl = $('<label>').attr('for', radId).css({'font-size': '13px', 'display': 'flex', 'align-items': 'center', 'gap': '6px', 'cursor': 'pointer'})
                                         .append($rad).append($('<span>').html(`${cand.label} (${cand.qid}) ${badgeHtml}`));
@@ -5103,7 +5130,7 @@ function searchWikidataItems(term) {
                             }
 
                             // Checkboxes to select properties
-                            let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text('Selecciona las propiedades a importar:');
+                            let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text(mw.msg('cradle-select-props-to-import'));
                             $resultArea.append($propSelectorTitle);
 
                             let $propListContainer = $('<div>').css({
@@ -5114,7 +5141,7 @@ function searchWikidataItems(term) {
 
                             let $selectAllCheckbox = $('<input>').attr({ type: 'checkbox', id: 'cradle-select-all-props', checked: true });
                             let $selectAllRow = $('<div>').css({'font-weight': 'bold', 'margin-bottom': '4px', 'padding-bottom': '4px', 'border-bottom': '1px solid #eaecf0'})
-                                .append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px'}).append($selectAllCheckbox).append($('<span>').text('Seleccionar todas')));
+                                .append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px'}).append($selectAllCheckbox).append($('<span>').text(mw.msg('cradle-select-all'))));
                             $propListContainer.append($selectAllRow);
 
                             let propCBs = {};
@@ -5141,7 +5168,7 @@ function searchWikidataItems(term) {
 
                             if (recoinData && recoinData.Frequenct_properties) {
                                 let $recoinCreditFooter = $('<div>').css({'font-size': '11px', 'color': '#54595d', 'margin-top': '8px', 'margin-bottom': '4px', 'text-align': 'center', 'font-style': 'italic'})
-                                    .html('Frecuencia de propiedades según la clase basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
+                                    .html('Recoin frequency API: <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
                                 $resultArea.append($recoinCreditFooter);
                             }
 
@@ -5150,7 +5177,7 @@ function searchWikidataItems(term) {
                             $importConfirmBtn.on('click', function() {
                                 let selectedPIDs = fetchedPropPIDs.filter(pid => propCBs[pid] && propCBs[pid].is(':checked'));
                                 if (selectedPIDs.length === 0) {
-                                    mw.notify('Debe seleccionar al menos una propiedad para importar.', { type: 'warn' });
+                                    mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'warn' });
                                     return;
                                 }
                                 $overlay.remove();
@@ -5201,8 +5228,8 @@ function searchWikidataItems(term) {
                 });
             });
         }).fail(function() {
-            $searchBtn.prop('disabled', false).text('Cargar elemento');
-            $resultArea.html('<div style="color:#d33; font-size:13px;">Error al conectar con Wikidata</div>');
+            $searchBtn.prop('disabled', false).text(mw.msg('cradle-load-item-btn'));
+            $resultArea.html('<div style="color:#d33; font-size:13px;">Error connecting to Wikidata</div>');
         });
         });
 
@@ -5365,16 +5392,16 @@ function searchWikidataItems(term) {
 
         let $headerFieldsRow = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'margin-bottom': '12px'});
 
-        // Row 1: Título, Descripción, Alias (|) in FULL width flex row
+        // Row 1: Title, Description, Aliases (|) in FULL width flex row
         let $row1 = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap', 'align-items': 'center'});
         $row1.append($('<div>').css({'flex': '1', 'min-width': '140px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title'))).append($titleInput));
-        $row1.append($('<div>').css({'flex': '1.5', 'min-width': '160px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Descripción')).append($descInput));
-        $row1.append($('<div>').css({'flex': '1', 'min-width': '130px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Alias (|)')).append($aliasesInput));
+        $row1.append($('<div>').css({'flex': '1.5', 'min-width': '160px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-desc'))).append($descInput));
+        $row1.append($('<div>').css({'flex': '1', 'min-width': '130px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-new-item-aliases'))).append($aliasesInput));
 
-        // Row 2: Elemento asociado (directly below Título)
+        // Row 2: Associated Item (directly below Title)
         let $row2 = $('<div>').css({'display': 'flex', 'flex-direction': 'column'});
         let $row2Inner = $('<div>').css({'display': 'flex', 'gap': '8px'});
-        $row2Inner.append($('<div>').css({'width': '280px', 'max-width': '100%'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Elemento asociado')).append($targetItemInput));
+        $row2Inner.append($('<div>').css({'width': '280px', 'max-width': '100%'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-target-item-label'))).append($targetItemInput));
         $row2.append($row2Inner).append($targetNoticeDiv);
 
         $headerFieldsRow.append($row1).append($row2);
@@ -5487,10 +5514,10 @@ function searchWikidataItems(term) {
                 'padding': '2px 6px',
                 'width': 'auto'
             });
-            $cardinalitySelect.append($('<option>').val('1').text('1 (Obligatorio, único)'));
-            $cardinalitySelect.append($('<option>').val('?').text('0..1 / ? (Opcional, único)'));
-            $cardinalitySelect.append($('<option>').val('+').text('1..* / + (Obligatorio, múltiple)'));
-            $cardinalitySelect.append($('<option>').val('*').text('0..* / * (Opcional, múltiple)'));
+            $cardinalitySelect.append($('<option>').val('1').text(mw.msg('cradle-cardinality-1')));
+            $cardinalitySelect.append($('<option>').val('?').text(mw.msg('cradle-cardinality-opt-single')));
+            $cardinalitySelect.append($('<option>').val('+').text(mw.msg('cradle-cardinality-req-multi')));
+            $cardinalitySelect.append($('<option>').val('*').text(mw.msg('cradle-cardinality-opt-multi')));
 
             let initialCard = mandatory ? '1' : '?';
             $cardinalitySelect.val(initialCard);
@@ -5502,7 +5529,7 @@ function searchWikidataItems(term) {
                 'font-size': '12px',
                 'font-weight': 'bold',
                 'color': '#202122'
-            }).text('Cardinalidad: ').append($cardinalitySelect);
+            }).text(mw.msg('cradle-cardinality-label')).append($cardinalitySelect);
 
             // Value Type / DataType selector
             let $valueTypeSelect = $('<select>').addClass('cradle-select').css({
@@ -5511,13 +5538,13 @@ function searchWikidataItems(term) {
                 'padding': '2px 6px',
                 'width': 'auto'
             });
-            $valueTypeSelect.append($('<option>').val('IRI').text('Elemento Wikidata (QID)'));
-            $valueTypeSelect.append($('<option>').val('xsd:string').text('Texto libre (xsd:string)'));
-            $valueTypeSelect.append($('<option>').val('rdf:langString').text('Texto en idioma (rdf:langString)'));
-            $valueTypeSelect.append($('<option>').val('xsd:dateTime').text('Fecha / Tiempo (xsd:dateTime)'));
-            $valueTypeSelect.append($('<option>').val('xsd:decimal').text('Número / Medida (xsd:decimal)'));
-            $valueTypeSelect.append($('<option>').val('geo:wktLiteral').text('Coordenadas (geo:wktLiteral)'));
-            $valueTypeSelect.append($('<option>').val('subshape').text('Sub-esquema (@<SubForma>)'));
+            $valueTypeSelect.append($('<option>').val('IRI').text(mw.msg('cradle-valtype-qid')));
+            $valueTypeSelect.append($('<option>').val('xsd:string').text(mw.msg('cradle-valtype-string')));
+            $valueTypeSelect.append($('<option>').val('rdf:langString').text(mw.msg('cradle-valtype-langstring')));
+            $valueTypeSelect.append($('<option>').val('xsd:dateTime').text(mw.msg('cradle-valtype-datetime')));
+            $valueTypeSelect.append($('<option>').val('xsd:decimal').text(mw.msg('cradle-valtype-decimal')));
+            $valueTypeSelect.append($('<option>').val('geo:wktLiteral').text(mw.msg('cradle-valtype-geo')));
+            $valueTypeSelect.append($('<option>').val('subshape').text(mw.msg('cradle-valtype-subshape')));
 
             // Auto-detect value type based on property metadata
             let propDT = (propertyMetadata[pid] && propertyMetadata[pid].datatype) || '';
@@ -5535,10 +5562,10 @@ function searchWikidataItems(term) {
                 'font-size': '12px',
                 'font-weight': 'bold',
                 'color': '#202122'
-            }).text('Tipo de valor: ').append($valueTypeSelect);
+            }).text(mw.msg('cradle-valtype-label')).append($valueTypeSelect);
 
             // Alternative Group (OR) input
-            let $orGroupInput = $('<input>').addClass('cradle-input').attr('placeholder', 'Ej: OSM ID').css({
+            let $orGroupInput = $('<input>').addClass('cradle-input').attr('placeholder', 'e.g. OSM ID').css({
                 'font-size': '12px',
                 'height': '28px',
                 'width': '120px',
@@ -5550,7 +5577,7 @@ function searchWikidataItems(term) {
                 'gap': '4px',
                 'font-size': '12px',
                 'color': '#54595d'
-            }).text('Grupo (OR): ').append($orGroupInput);
+            }).text(mw.msg('cradle-orgroup-label')).append($orGroupInput);
 
             $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
             $row.append($optionsRow);
@@ -5562,7 +5589,7 @@ function searchWikidataItems(term) {
                 'height': '28px',
                 'flex': '1'
             });
-            $subShapeGroup.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text('Nombre del Sub-esquema: ')).append($subShapeInput);
+            $subShapeGroup.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-name-label'))).append($subShapeInput);
             $row.append($subShapeGroup);
 
             // Selection options layout: Radio buttons for Value type
