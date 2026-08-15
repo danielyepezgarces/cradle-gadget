@@ -17,3 +17,6 @@ These rules apply to any AI coding agent developing or modifying the Cradle Wiki
 - **NO Unicode Emojis in User Interface**: Do not use raw unicode emojis (such as 🌐, 📝, 🗣️, 📅, 🔢, 📍, 🔗, ⚠️, 🛠️, 🔀, 🚀, 💬, 🔍) in any UI components, labels, select options, or notification messages. Emojis break Wikimedia visual consistency.
 - **Use Codex & OOUI Icons**: Always use clean MediaWiki Codex icons (e.g., `cdx-icon`, standard SVG icons, or the `ICONS` object) for buttons, badges, selectors, alerts, and notifications to maintain a clean, professional Wikimedia look and feel.
 
+## 4. Deployment & Target Environments
+- **Separate Environment Deployments**: Do NOT deploy to the `dev` environment (`--target-env dev`) when performing a `stable` environment deployment (`--target-env stable`), unless the user explicitly requests deploying to both environments. Keep deployment targets strictly separated.
+
