@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.27.0
+ * Version: 1.30.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.27.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.30.0');
  */
 
 (function() {
@@ -1912,111 +1912,122 @@
     }
 
     /**
-     * A lightweight ShEx schema parser.
+     * Extracts inner content of a shape block matching <shapeName> { ... } while respecting nested braces.
+     */
+    function extractShapeContent(text, shapeName) {
+        let tag = '<' + shapeName + '>';
+        let startIdx = text.indexOf(tag);
+        if (startIdx === -1) return text;
+        let braceStart = text.indexOf('{', startIdx);
+        if (braceStart === -1) return text;
+        let depth = 0;
+        let endIdx = -1;
+        for (let i = braceStart; i < text.length; i++) {
+            if (text[i] === '{') depth++;
+            else if (text[i] === '}') {
+                depth--;
+                if (depth === 0) {
+                    endIdx = i;
+                    break;
+                }
+            }
+        }
+        return endIdx !== -1 ? text.substring(braceStart + 1, endIdx) : text.substring(braceStart + 1);
+    }
+
+    /**
+     * A robust ShEx schema parser supporting nested shapes, multiline blocks, and cardinalities.
      */
     function parseShEx(shexText) {
-        // Remove comments
-        shexText = shexText.replace(/(?<!\<)#.*(\n|$)/mg, "\n");
-        
-        // Find start shape
-        let startMatch = shexText.match(/start\s*=\s*@<\s*(.+?)\s*>/i);
+        // 1. Remove comments (#...)
+        let cleaned = shexText.replace(/(?<!\<)#.*(\n|$)/mg, "\n");
+
+        // 2. Find start shape or first shape
+        let startMatch = cleaned.match(/start\s*=\s*@<\s*(.+?)\s*>/i);
         let startShape = startMatch ? startMatch[1] : null;
-        
-        // Find shape contents and EXTRA properties
-        let shapes = {};
-        let shapeExtraPids = [];
-        let shapeRegex = /<([^>]+)>\s*(?:EXTRA\s+([^{]+))?\s*\{([\s\S]*?)\}/gi;
-        let match;
-        while ((match = shapeRegex.exec(shexText)) !== null) {
-            let shapeName = match[1];
-            let extraStr = match[2] || '';
-            let shapeContent = match[3];
-            shapes[shapeName] = shapeContent;
-            
-            if (!startShape || startShape === shapeName) {
-                startShape = shapeName;
-                if (extraStr) {
-                    let pids = extraStr.match(/P\d+/gi) || [];
-                    shapeExtraPids = pids.map(p => p.toUpperCase());
-                    if (shapeExtraPids.length === 0) {
-                        shapeExtraPids.push('ALL');
-                    }
-                }
-            }
-        }
-        
-        let targetText = shexText;
-        if (startShape && shapes[startShape]) {
-            targetText = shapes[startShape];
+
+        if (!startShape) {
+            let firstShapeMatch = cleaned.match(/<([^>]+)>\s*(?:EXTRA\s+[^{]+)?\s*\{/i);
+            if (firstShapeMatch) startShape = firstShapeMatch[1];
         }
 
+        let targetText = startShape ? extractShapeContent(cleaned, startShape) : cleaned;
+
+        // Extract shape EXTRA properties if any
+        let shapeExtraPids = [];
+        let extraMatch = cleaned.match(/EXTRA\s+([^{]+)/i);
+        if (extraMatch) {
+            let pids = extraMatch[1].match(/P\d+/gi) || [];
+            shapeExtraPids = pids.map(p => p.toUpperCase());
+            if (shapeExtraPids.length === 0) shapeExtraPids.push('ALL');
+        }
+
+        // 3. Extract statement blocks split by ';'
         let props = {};
-        let parts = targetText.split(';');
-        parts.forEach(part => {
-            part = part.trim();
-            if (!part) return;
-            
-            // Match wdt:P123 or ps:P123
-            let m = part.match(/(?:wdt|p|ps|pxt):(P\d+)\s*(.*)/);
-            if (!m) return;
-            
-            let propId = m[1];
-            let rest = m[2].trim();
-            
-            let min = 0;
-            let max = Infinity;
+        let statementBlocks = targetText.split(';');
+
+        statementBlocks.forEach(rawBlock => {
+            let block = rawBlock.trim();
+            if (!block) return;
+
+            // Match main statement property (p:P123, wdt:P123, or inner ps:P123)
+            let mainPropMatch = block.match(/(?:wdt|p):(P\d+)/i) || block.match(/(?:ps|pq|psn|psv|pxt):(P\d+)/i);
+            if (!mainPropMatch) return;
+
+            let pid = mainPropMatch[1].toUpperCase();
+
             let mandatory = false;
-            
-            // Cardinality checks
-            if (rest.endsWith('+')) {
+            let min = 0;
+            let max = 1;
+
+            if (block.includes('+')) {
                 min = 1;
                 mandatory = true;
-            } else if (rest.endsWith('*')) {
+                max = Infinity;
+            } else if (block.includes('*')) {
                 min = 0;
-            } else if (rest.endsWith('?')) {
+                max = Infinity;
+                mandatory = false;
+            } else if (block.includes('?')) {
                 min = 0;
                 max = 1;
+                mandatory = false;
             } else {
-                let cardMatch = rest.match(/\{\s*(\d+)\s*\}/);
+                let cardMatch = block.match(/\{\s*(\d+)\s*(?:,\s*(\d+)?)?\s*\}/);
                 if (cardMatch) {
                     min = parseInt(cardMatch[1]);
-                    max = min;
+                    max = cardMatch[2] ? parseInt(cardMatch[2]) : min;
+                    mandatory = min > 0;
                 } else {
-                    let rangeMatch = rest.match(/\{\s*(\d+)\s*,\s*(\d+)?\s*\}/);
-                    if (rangeMatch) {
-                        min = parseInt(rangeMatch[1]);
-                        max = rangeMatch[2] ? parseInt(rangeMatch[2]) : Infinity;
-                    } else {
-                        min = 1;
-                        max = 1;
-                        mandatory = true;
-                    }
+                    min = 1;
+                    max = 1;
+                    mandatory = true;
                 }
             }
-            if (min > 0) mandatory = true;
-            
-            // Extract softselect [wd:Q1 wd:Q2]
-            let softselect = [];
-            let allowedMatch = rest.match(/\[\s*([^\]]+)\s*\]/);
-            if (allowedMatch) {
-                let itemsText = allowedMatch[1];
-                let qids = itemsText.match(/Q\d+/g) || [];
-                softselect = qids;
-            }
-            
-            if (shapeExtraPids.includes(propId) || shapeExtraPids.includes('ALL')) {
+
+            if (shapeExtraPids.includes(pid) || shapeExtraPids.includes('ALL')) {
                 max = Infinity;
             }
 
-            props[propId] = {
-                id: propId,
-                min: min,
-                max: max,
-                mandatory: mandatory,
-                softselect: softselect
-            };
+            // Softselect QIDs
+            let softselect = [];
+            let qids = block.match(/(?:wd:|Q)(Q\d+)/gi) || [];
+            qids.forEach(q => {
+                let cleanQ = q.replace(/wd:/i, '').toUpperCase();
+                if (!softselect.includes(cleanQ)) softselect.push(cleanQ);
+            });
+
+            if (!props[pid] || mandatory) {
+                props[pid] = {
+                    id: pid,
+                    min: min,
+                    max: max,
+                    mandatory: mandatory,
+                    softselect: softselect
+                };
+            }
         });
-        
+
         return props;
     }
 
