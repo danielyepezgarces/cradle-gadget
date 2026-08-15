@@ -9,15 +9,16 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.35.0
+ * Version: 1.36.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.35.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.36.0');
  */
 
 (function() {
     'use strict';
+    const CRADLE_VERSION = '1.36.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -2958,7 +2959,7 @@
                     'width': '100%',
                     'line-height': '1.3'
                 })
-                .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink, magnusLink));
+                .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink, magnusLink) + ` <span style="font-weight:bold; color:#72777d; margin-left:4px;">v${CRADLE_VERSION}</span>`);
  
             $footer.append($credits);
         }
@@ -6041,7 +6042,14 @@ function searchWikidataItems(term) {
                 });
             });
 
-        let $leftGroup = $('<div>').append($cancelBtn);
+        let $versionBadge = $('<span>').css({
+            'font-size': '0.75rem',
+            'font-weight': 'bold',
+            'color': '#72777d',
+            'margin-left': '8px'
+        }).text(`v${CRADLE_VERSION}`);
+
+        let $leftGroup = $('<div>').css({'display': 'flex', 'align-items': 'center'}).append($cancelBtn).append($versionBadge);
         let $rightGroup = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center'}).append($exportShexBtn).append($saveBtn);
 
         $footer.append($leftGroup).append($rightGroup);
