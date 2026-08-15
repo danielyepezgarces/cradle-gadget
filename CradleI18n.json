@@ -155,7 +155,11 @@
     "cradle-designer-custom-desc": "Design a new schema from scratch or by importing properties from an existing item to publish it as an EntitySchema (ShEx).",
     "cradle-shex-copied-auto": "All ShEx code selected and copied to clipboard!",
     "cradle-open-newentityschema": "Go to Special:NewEntitySchema",
-    "cradle-direct-api-disabled-notice": "Direct API creation is currently disabled. Use Special:NewEntitySchema to create your schema."
+    "cradle-direct-api-disabled-notice": "Direct API creation is currently disabled. Use Special:NewEntitySchema to create your schema.",
+    "cradle-base-schema-label": "Base Schema / Derivation (IMPORT)",
+    "cradle-base-schema-placeholder": "e.g. E10 (Human) or E519",
+    "cradle-base-schema-notice": "Existing base schema detected ($1). You can create a specialized derivation (e.g. Firefighter derived from Human).",
+    "cradle-use-base-schema-checkbox": "Set $1 as base schema for this derivation"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -313,6 +317,10 @@
     "cradle-designer-custom-desc": "Diseña un nuevo esquema desde cero o importando propiedades de un elemento existente para publicarlo en Wikidata como un EntitySchema (ShEx).",
     "cradle-shex-copied-auto": "\u00a1Todo el c\u00f3digo ShEx fue seleccionado y copiado al portapapeles!",
     "cradle-open-newentityschema": "Ir a Special:NewEntitySchema",
-    "cradle-direct-api-disabled-notice": "La publicaci\u00f3n directa por API est\u00e1 deshabilitada temporalmente. Usa Special:NewEntitySchema para crear tu esquema."
+    "cradle-direct-api-disabled-notice": "La publicaci\u00f3n directa por API est\u00e1 deshabilitada temporalmente. Usa Special:NewEntitySchema para crear tu esquema.",
+    "cradle-base-schema-label": "Esquema base / Derivaci\u00f3n (IMPORT)",
+    "cradle-base-schema-placeholder": "ej. E10 (Humano) o E519",
+    "cradle-base-schema-notice": "Esquema base existente detectado ($1). Puedes crear una derivaci\u00f3n especializada (ej. Bombero derivado de Humano).",
+    "cradle-use-base-schema-checkbox": "Establecer $1 como esquema base para esta derivaci\u00f3n"
   }
 }
