@@ -169,32 +169,26 @@ def update_wikidata_page(session, title, content, summary):
         print(f"❌ Failed to edit page '{title}': {data}")
 
 
+TARGET_FILES = {
+    "stable": "CradleInWikidata-stable.js",
+    "beta": "CradleInWikidata-beta.js",
+    "dev": "CradleInWikidata-dev.js"
+}
+
 def update_commonjs_loader_version(session, username, target_env, version_str):
-    """Updates loader line in User:Danielyepezgarces/common.js to point to target_env and version_str."""
+    """Updates User:Danielyepezgarces/common.js to load exclusively target_env script."""
     user_base = username.split('@')[0]
     commonjs_title = f"User:{user_base}/common.js"
-    content = get_remote_page_content(session, commonjs_title)
-    if not content:
-        print(f"ℹ️ Could not fetch '{commonjs_title}' to update loader version.")
-        return
 
     target_script_name = TARGET_PAGES[target_env]["js"].split("/")[-1]
-    new_loader_line = f'mw.loader.load("https://www.wikidata.org/w/index.php?title=User:{user_base}/{target_script_name}&action=raw&ctype=text/javascript&version={version_str}");'
+    new_loader_line = f'mw.loader.load("//www.wikidata.org/w/index.php?title=User:{user_base}/{target_script_name}&action=raw&ctype=text/javascript&version={version_str}");'
 
-    pattern = r'mw\.loader\.load\(["\']https://www\.wikidata\.org/w/index\.php\?title=User:[^/]+/Gadget-cradle(?:\w|-)*\.js&action=raw&ctype=text/javascript(?:&version=[^"\']*)?["\']\);?'
-
-    if re.search(pattern, content):
-        new_content = re.sub(pattern, new_loader_line, content)
-        if new_content != content:
-            update_wikidata_page(session, commonjs_title, new_content, f"Switch loader to {target_script_name} version {version_str}")
-            print(f"✓ Updated loader in '{commonjs_title}' to target '{target_script_name}' (version {version_str}).")
-        else:
-            print(f"ℹ️ Loader in '{commonjs_title}' is already pointing to '{target_script_name}' ({version_str}).")
-    else:
-        # Append loader line if not present
-        new_content = content.rstrip() + "\n\n" + new_loader_line + "\n"
-        update_wikidata_page(session, commonjs_title, new_content, f"Add {target_script_name} loader ({version_str})")
-        print(f"✓ Added loader line for '{target_script_name}' ({version_str}) to '{commonjs_title}'.")
+    new_content = f"""// User:{user_base}/common.js
+// Cradle Wikidata Gadget Loader ({target_env.upper()} release)
+{new_loader_line}
+"""
+    update_wikidata_page(session, commonjs_title, new_content, f"Set loader to {target_script_name} version {version_str} ({target_env})")
+    print(f"✓ Updated loader in '{commonjs_title}' to target '{target_script_name}' (version {version_str}).")
 
 
 def main():
@@ -215,7 +209,7 @@ def main():
     parser.add_argument("--force", action="store_true", help="Bypass git branch mismatch safety warnings")
     parser.add_argument("--username", help="Wikidata username or bot account name (e.g. Danielyepezgarces@cradle-deploy)")
     parser.add_argument("--password", help="Bot Password generated at Special:BotPasswords")
-    parser.add_argument("--file", default="CradleInWikidata.js", help="Path to local JS file to upload")
+    parser.add_argument("--file", help="Path to local JS file to upload (default: environment file)")
 
     args = parser.parse_args()
 
@@ -234,13 +228,13 @@ def main():
         username = input("Enter your Wikidata Username or BotName (e.g. Danielyepezgarces@cradle-deploy): ").strip()
     if not password:
         import getpass
-        password = getpass.getpass("Enter your Bot Password: ").strip()
+    local_file = args.file or TARGET_FILES.get(args.target_env, "CradleInWikidata.js")
 
-    if not os.path.exists(args.file):
-        print(f"Error: Local file '{args.file}' not found.")
+    if not os.path.exists(local_file):
+        print(f"Error: Local file '{local_file}' not found.")
         sys.exit(1)
 
-    with open(args.file, "r", encoding="utf-8") as f:
+    with open(local_file, "r", encoding="utf-8") as f:
         js_code = f.read()
 
     ver_match = re.search(r"Version:\s*([0-9a-zA-Z.-]+)", js_code)
