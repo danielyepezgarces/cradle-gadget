@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.30.0
+ * Version: 1.31.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.30.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.31.0');
  */
 
 (function() {
@@ -4557,7 +4557,7 @@ function searchWikidataItems(term) {
     /**
      * Generates rich Wikidata-standard ShEx (Shape Expression) code for an EntitySchema.
      */
-    function generateShExCode(title, propRows, propertyLabels, targetItem) {
+    function generateShExCode(title, propRows, propertyLabels, targetItem, subShapes) {
         let cleanTitle = (title || 'custom_shape').toLowerCase().replace(/[^a-z0-9_]/g, '');
         if (!cleanTitle) cleanTitle = 'custom_shape';
         let targetQID = (targetItem || '').trim().toUpperCase();
@@ -4575,29 +4575,42 @@ function searchWikidataItems(term) {
         lines.push(`PREFIX wd: <http://www.wikidata.org/entity/>`);
         lines.push(`PREFIX wdt: <http://www.wikidata.org/prop/direct/>`);
         lines.push(`PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>`);
+        lines.push(`PREFIX geo: <http://www.opengis.net/ont/geosparql#>`);
         lines.push(``);
         lines.push(`start = @<${cleanTitle}>`);
         lines.push(``);
         lines.push(`<${cleanTitle}> EXTRA wdt:P31 {`);
 
         let propMap = propertyLabels || propertyMetadata || {};
+        let orGroups = {};
 
         propRows.forEach((row) => {
             let pid = row.pid;
             let meta = propMap[pid] || {};
             let label = meta.label || pid;
 
-            let options = [];
-            let qidsStr = row.hardselect || row.softselect || '';
-            if (qidsStr) {
-                let qids = qidsStr.split(',').map(q => q.trim()).filter(q => /^Q\d+$/i.test(q));
-                if (qids.length > 0) {
-                    options = qids.map(q => `wd:${q.toUpperCase()}`);
+            let valueExpr = '.';
+            let valueType = row.valueType || 'IRI';
+
+            if (valueType === 'xsd:string') valueExpr = 'xsd:string';
+            else if (valueType === 'rdf:langString') valueExpr = 'rdf:langString';
+            else if (valueType === 'xsd:dateTime') valueExpr = 'xsd:dateTime';
+            else if (valueType === 'xsd:decimal') valueExpr = 'xsd:decimal';
+            else if (valueType === 'geo:wktLiteral') valueExpr = 'geo:wktLiteral';
+            else if (valueType && valueType.startsWith('@<')) valueExpr = valueType;
+            else if (valueType === 'subshape' && row.subShapeName) valueExpr = `@<${row.subShapeName.toLowerCase().replace(/[^a-z0-9_]/g, '')}>`;
+            else {
+                let options = [];
+                let qidsStr = row.hardselect || row.softselect || '';
+                if (qidsStr) {
+                    let qids = qidsStr.split(',').map(q => q.trim()).filter(q => /^Q\d+$/i.test(q));
+                    if (qids.length > 0) {
+                        options = qids.map(q => `wd:${q.toUpperCase()}`);
+                    }
                 }
+                valueExpr = options.length > 0 ? `[${options.join(' ')}]` : (valueType === 'IRI' ? 'IRI' : '.');
             }
 
-            let valueExpr = options.length > 0 ? `[${options.join(' ')}]` : '.';
-            
             let cardSymbol = ';';
             if (row.cardinality === '+') cardSymbol = '+ ;';
             else if (row.cardinality === '*') cardSymbol = '* ;';
@@ -4607,11 +4620,49 @@ function searchWikidataItems(term) {
             else cardSymbol = row.allowMultiple ? '* ;' : '? ;';
 
             let comment = label ? `   # ${label}` : '';
-            lines.push(`  wdt:${pid} ${valueExpr} ${cardSymbol}${comment}`);
+            
+            if (row.orGroup) {
+                let gName = row.orGroup.trim();
+                if (!orGroups[gName]) orGroups[gName] = [];
+                orGroups[gName].push(`  wdt:${pid} ${valueExpr}${comment}`);
+            } else {
+                lines.push(`  wdt:${pid} ${valueExpr} ${cardSymbol}${comment}`);
+            }
+        });
+
+        Object.keys(orGroups).forEach(groupName => {
+            lines.push(`  # Grupo alternativo (OR): ${groupName}`);
+            lines.push(`  (`);
+            let items = orGroups[groupName];
+            items.forEach((item, idx) => {
+                let isLast = (idx === items.length - 1);
+                lines.push(`  ${item}${isLast ? '' : ' |'}`);
+            });
+            lines.push(`  ) ;`);
         });
 
         lines.push(`  rdfs:label rdf:langString+;`);
         lines.push(`}`);
+
+        if (subShapes && Array.isArray(subShapes) && subShapes.length > 0) {
+            subShapes.forEach(sub => {
+                let subName = (sub.name || 'sub_shape').toLowerCase().replace(/[^a-z0-9_]/g, '');
+                lines.push(``);
+                lines.push(`<${subName}> {`);
+                if (sub.props && Array.isArray(sub.props)) {
+                    sub.props.forEach(sp => {
+                        let sPid = sp.pid;
+                        let sMeta = propMap[sPid] || {};
+                        let sLabel = sMeta.label || sPid;
+                        let sValExpr = sp.valueType || 'IRI';
+                        let sCard = sp.cardinality || ';';
+                        lines.push(`  wdt:${sPid} ${sValExpr} ${sCard}   # ${sLabel}`);
+                    });
+                }
+                lines.push(`}`);
+            });
+        }
+
         return lines.join('\n');
     }
 
@@ -5427,8 +5478,9 @@ function searchWikidataItems(term) {
             $headerRow.append($remove);
             $row.append($headerRow);
 
-            // Cardinality selection dropdown
-            let $optionsRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center'});
+            // Cardinality, Value Type, and OR Group row
+            let $optionsRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center', 'flex-wrap': 'wrap'});
+            
             let $cardinalitySelect = $('<select>').addClass('cradle-select').css({
                 'font-size': '12px',
                 'height': '28px',
@@ -5440,9 +5492,7 @@ function searchWikidataItems(term) {
             $cardinalitySelect.append($('<option>').val('+').text('1..* / + (Obligatorio, múltiple)'));
             $cardinalitySelect.append($('<option>').val('*').text('0..* / * (Opcional, múltiple)'));
 
-            let initialCard = '1';
-            if (mandatory) initialCard = '1';
-            else initialCard = '?';
+            let initialCard = mandatory ? '1' : '?';
             $cardinalitySelect.val(initialCard);
 
             let $cardinalityLabel = $('<label>').css({
@@ -5454,8 +5504,66 @@ function searchWikidataItems(term) {
                 'color': '#202122'
             }).text('Cardinalidad: ').append($cardinalitySelect);
 
-            $optionsRow.append($cardinalityLabel);
+            // Value Type / DataType selector
+            let $valueTypeSelect = $('<select>').addClass('cradle-select').css({
+                'font-size': '12px',
+                'height': '28px',
+                'padding': '2px 6px',
+                'width': 'auto'
+            });
+            $valueTypeSelect.append($('<option>').val('IRI').text('🌐 Elemento Wikidata (QID)'));
+            $valueTypeSelect.append($('<option>').val('xsd:string').text('📝 Texto libre (xsd:string)'));
+            $valueTypeSelect.append($('<option>').val('rdf:langString').text('🗣️ Texto en idioma (rdf:langString)'));
+            $valueTypeSelect.append($('<option>').val('xsd:dateTime').text('📅 Fecha / Tiempo (xsd:dateTime)'));
+            $valueTypeSelect.append($('<option>').val('xsd:decimal').text('🔢 Número / Medida (xsd:decimal)'));
+            $valueTypeSelect.append($('<option>').val('geo:wktLiteral').text('📍 Coordenadas (geo:wktLiteral)'));
+            $valueTypeSelect.append($('<option>').val('subshape').text('🔗 Sub-esquema (@<SubForma>)'));
+
+            // Auto-detect value type based on property metadata
+            let propDT = (propertyMetadata[pid] && propertyMetadata[pid].datatype) || '';
+            if (propDT === 'string' || propDT === 'external-id') $valueTypeSelect.val('xsd:string');
+            else if (propDT === 'monolingualtext') $valueTypeSelect.val('rdf:langString');
+            else if (propDT === 'time') $valueTypeSelect.val('xsd:dateTime');
+            else if (propDT === 'quantity') $valueTypeSelect.val('xsd:decimal');
+            else if (propDT === 'globe-coordinate') $valueTypeSelect.val('geo:wktLiteral');
+            else $valueTypeSelect.val('IRI');
+
+            let $valueTypeLabel = $('<label>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'font-size': '12px',
+                'font-weight': 'bold',
+                'color': '#202122'
+            }).text('Tipo de valor: ').append($valueTypeSelect);
+
+            // Alternative Group (OR) input
+            let $orGroupInput = $('<input>').addClass('cradle-input').attr('placeholder', 'Ej: OSM ID').css({
+                'font-size': '12px',
+                'height': '28px',
+                'width': '120px',
+                'padding': '2px 6px'
+            });
+            let $orGroupLabel = $('<label>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '4px',
+                'font-size': '12px',
+                'color': '#54595d'
+            }).text('🔀 Grupo (OR): ').append($orGroupInput);
+
+            $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
             $row.append($optionsRow);
+
+            // SubShape Name Container (hidden unless valueType === 'subshape')
+            let $subShapeGroup = $('<div>').css({'display': 'none', 'gap': '8px', 'align-items': 'center', 'margin-top': '4px'});
+            let $subShapeInput = $('<input>').addClass('cradle-input').attr('placeholder', 'Nombre del sub-esquema (Ej: EstadoConservacion)').css({
+                'font-size': '12px',
+                'height': '28px',
+                'flex': '1'
+            });
+            $subShapeGroup.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text('Nombre del Sub-esquema: ')).append($subShapeInput);
+            $row.append($subShapeGroup);
 
             // Selection options layout: Radio buttons for Value type
             let isHard = !!hardselectQIDs || (defaultValue && defaultValue.startsWith('Q'));
@@ -5502,6 +5610,26 @@ function searchWikidataItems(term) {
             // Chips Container
             let $chipsDiv = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px', 'margin-top': '4px'});
             $valuePresetContainer.append($chipsDiv);
+
+            // Toggle visibility of QID chips / subShape based on ValueType selection
+            function updateVisibilityBasedOnValueType() {
+                let vt = $valueTypeSelect.val();
+                if (vt === 'IRI') {
+                    $radioGroup.show();
+                    $valuePresetContainer.show();
+                    $subShapeGroup.css('display', 'none');
+                } else if (vt === 'subshape') {
+                    $radioGroup.hide();
+                    $valuePresetContainer.hide();
+                    $subShapeGroup.css('display', 'flex');
+                } else {
+                    $radioGroup.hide();
+                    $valuePresetContainer.hide();
+                    $subShapeGroup.css('display', 'none');
+                }
+            }
+            $valueTypeSelect.on('change', updateVisibilityBasedOnValueType);
+            updateVisibilityBasedOnValueType();
 
             let selectedItems = []; // List of { qid, label }
 
@@ -5625,28 +5753,23 @@ function searchWikidataItems(term) {
             });
 
             function updateSearchInputVisibility() {
-                let useNone = $radioNone.is(':checked');
-                if (useNone) {
-                    $valuePresetContainer.hide();
+                let activeType = $radioHard.is(':checked') ? 'hard' : ($radioSoft.is(':checked') ? 'soft' : 'none');
+                if (activeType === 'none') {
+                    $valSearchGroup.hide();
+                    $chipsDiv.hide();
                 } else {
-                    $valuePresetContainer.show();
-                    $valSearchGroup.show();
+                    $chipsDiv.show();
+                    if (activeType === 'hard' && selectedItems.length >= 1) {
+                        $valSearchGroup.hide();
+                    } else {
+                        $valSearchGroup.show();
+                    }
                 }
             }
 
-            $radioNone.on('change', function() {
-                selectedItems = [];
-                $chipsDiv.empty();
-                updateSearchInputVisibility();
-            });
-            $radioHard.on('change', function() {
-                updateSearchInputVisibility();
-            });
-            $radioSoft.on('change', function() {
-                updateSearchInputVisibility();
-            });
-
-            // Set initial visibility
+            $radioNone.on('change', updateSearchInputVisibility);
+            $radioHard.on('change', updateSearchInputVisibility);
+            $radioSoft.on('change', updateSearchInputVisibility);
             updateSearchInputVisibility();
 
             $(document).on('click', function(e) {
@@ -5661,14 +5784,20 @@ function searchWikidataItems(term) {
                 let useHard = $radioHard.is(':checked');
                 let useSoft = $radioSoft.is(':checked');
                 let cardVal = $cardinalitySelect.val();
+                let vType = $valueTypeSelect.val();
+                let sName = $subShapeInput.val().trim();
+                let oGroup = $orGroupInput.val().trim();
                 return {
                     pid: pid,
                     cardinality: cardVal,
                     mandatory: (cardVal === '1' || cardVal === '+'),
                     allowMultiple: (cardVal === '+' || cardVal === '*'),
+                    valueType: vType,
+                    subShapeName: sName,
+                    orGroup: oGroup,
                     defaultValue: '',
-                    hardselect: (useHard && qidString) ? qidString : '',
-                    softselect: (useSoft && qidString) ? qidString : ''
+                    hardselect: (vType === 'IRI' && useHard && qidString) ? qidString : '',
+                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ''
                 };
             });
 
