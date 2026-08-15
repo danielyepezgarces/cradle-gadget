@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.31.0
+ * Version: 1.32.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.31.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.32.0');
  */
 
 (function() {
@@ -5045,8 +5045,8 @@ function searchWikidataItems(term) {
                                 let schemaId = p31ClaimsMap[chosenQID];
                                 if (schemaId) {
                                     $duplicateNoticeBox.html(`
-                                        <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px;">
-                                            ⚠️ <strong>Este esquema ya existe:</strong> La clase seleccionada <strong>${labelsMap[chosenQID] || chosenQID} (${chosenQID})</strong> ya tiene registrado el <strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${schemaId}</a></strong> (declaración P12861).
+                                        <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
+                                            <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> La clase seleccionada <strong>${labelsMap[chosenQID] || chosenQID} (${chosenQID})</strong> ya tiene registrado el <strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${schemaId}</a></strong> (declaración P12861).</span>
                                         </div>
                                     `).show();
                                     $importConfirmBtn.prop('disabled', true).addClass('cdx-button--disabled');
@@ -5068,7 +5068,7 @@ function searchWikidataItems(term) {
                                 selectedP31QID = p31Candidates[0].qid;
                                 let schemaId = p31ClaimsMap[selectedP31QID];
                                 let badgeHtml = schemaId
-                                    ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px;">⚠️ Ya existe: <strong>${schemaId}</strong></span>`
+                                    ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.alert}</span> Ya existe: <strong>${schemaId}</strong></span>`
                                     : '';
                                 $resultArea.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
                                     .html(`Clase/Elemento asociado detectado (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
@@ -5091,7 +5091,7 @@ function searchWikidataItems(term) {
                                         updateSchemaExistenceCheck(cand.qid);
                                     });
                                     let badgeHtml = schemaId
-                                        ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px;">⚠️ Ya existe: <strong>${schemaId}</strong></span>`
+                                        ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.alert}</span> Ya existe: <strong>${schemaId}</strong></span>`
                                         : '';
                                     let $lbl = $('<label>').attr('for', radId).css({'font-size': '13px', 'display': 'flex', 'align-items': 'center', 'gap': '6px', 'cursor': 'pointer'})
                                         .append($rad).append($('<span>').html(`${cand.label} (${cand.qid}) ${badgeHtml}`));
@@ -5259,8 +5259,8 @@ function searchWikidataItems(term) {
 
             if (foundCustom) {
                 $targetNoticeDiv.html(`
-                    <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px;">
-                        ⚠️ <strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya está asociado a tu esquema local <em>"${foundCustom}"</em>.
+                    <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
+                        <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya está asociado a tu esquema local <em>"${foundCustom}"</em>.</span>
                     </div>
                 `);
                 return;
@@ -5290,8 +5290,8 @@ function searchWikidataItems(term) {
                     if (existingSchemaId) {
                         let itemLabel = (ent.labels && (ent.labels[userLang]?.value || ent.labels['en']?.value)) || cleanQID;
                         $targetNoticeDiv.html(`
-                            <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px;">
-                                ⚠️ <strong>Este esquema ya existe:</strong> El elemento <strong>${itemLabel} (${cleanQID})</strong> ya tiene asociado el EntitySchema <strong><a href="/wiki/EntitySchema:${existingSchemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">${existingSchemaId}</a></strong> (declaración P12861).
+                            <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
+                                <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> El elemento <strong>${itemLabel} (${cleanQID})</strong> ya tiene asociado el EntitySchema <strong><a href="/wiki/EntitySchema:${existingSchemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">${existingSchemaId}</a></strong> (declaración P12861).</span>
                             </div>
                         `);
                         return;
@@ -5310,8 +5310,8 @@ function searchWikidataItems(term) {
                     if (items.length > 0) {
                         let match = items[0];
                         $targetNoticeDiv.html(`
-                            <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px;">
-                                ⚠️ <strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya cuenta con el esquema registrado <a href="/wiki/EntitySchema:${match.id}" target="_blank"><strong>${match.id}</strong> (${match.label || ''})</a>.
+                            <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
+                                <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya cuenta con el esquema registrado <a href="/wiki/EntitySchema:${match.id}" target="_blank"><strong>${match.id}</strong> (${match.label || ''})</a>.</span>
                             </div>
                         `);
                     }
@@ -5511,13 +5511,13 @@ function searchWikidataItems(term) {
                 'padding': '2px 6px',
                 'width': 'auto'
             });
-            $valueTypeSelect.append($('<option>').val('IRI').text('🌐 Elemento Wikidata (QID)'));
-            $valueTypeSelect.append($('<option>').val('xsd:string').text('📝 Texto libre (xsd:string)'));
-            $valueTypeSelect.append($('<option>').val('rdf:langString').text('🗣️ Texto en idioma (rdf:langString)'));
-            $valueTypeSelect.append($('<option>').val('xsd:dateTime').text('📅 Fecha / Tiempo (xsd:dateTime)'));
-            $valueTypeSelect.append($('<option>').val('xsd:decimal').text('🔢 Número / Medida (xsd:decimal)'));
-            $valueTypeSelect.append($('<option>').val('geo:wktLiteral').text('📍 Coordenadas (geo:wktLiteral)'));
-            $valueTypeSelect.append($('<option>').val('subshape').text('🔗 Sub-esquema (@<SubForma>)'));
+            $valueTypeSelect.append($('<option>').val('IRI').text('Elemento Wikidata (QID)'));
+            $valueTypeSelect.append($('<option>').val('xsd:string').text('Texto libre (xsd:string)'));
+            $valueTypeSelect.append($('<option>').val('rdf:langString').text('Texto en idioma (rdf:langString)'));
+            $valueTypeSelect.append($('<option>').val('xsd:dateTime').text('Fecha / Tiempo (xsd:dateTime)'));
+            $valueTypeSelect.append($('<option>').val('xsd:decimal').text('Número / Medida (xsd:decimal)'));
+            $valueTypeSelect.append($('<option>').val('geo:wktLiteral').text('Coordenadas (geo:wktLiteral)'));
+            $valueTypeSelect.append($('<option>').val('subshape').text('Sub-esquema (@<SubForma>)'));
 
             // Auto-detect value type based on property metadata
             let propDT = (propertyMetadata[pid] && propertyMetadata[pid].datatype) || '';
@@ -5550,7 +5550,7 @@ function searchWikidataItems(term) {
                 'gap': '4px',
                 'font-size': '12px',
                 'color': '#54595d'
-            }).text('🔀 Grupo (OR): ').append($orGroupInput);
+            }).text('Grupo (OR): ').append($orGroupInput);
 
             $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
             $row.append($optionsRow);
