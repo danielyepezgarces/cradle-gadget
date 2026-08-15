@@ -9,11 +9,11 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.33.0
+ * Version: 1.34.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.33.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.34.0');
  */
 
 (function() {
@@ -945,6 +945,9 @@
             'cradle-schema-target-item-placeholder': 'e.g. Q483110 (Stadium) or Q5 (Human)',
             'cradle-create-custom-schema-desc': 'Search for an existing EntitySchema (e.g. E10, Human) to load its claims and create a new item.',
             'cradle-designer-custom-desc': 'Design a new schema from scratch or by importing properties from an existing item to publish it as an EntitySchema (ShEx).',
+            'cradle-shex-copied-auto': 'All ShEx code selected and copied to clipboard!',
+            'cradle-open-newentityschema': 'Go to Special:NewEntitySchema',
+            'cradle-direct-api-disabled-notice': 'Direct API creation is currently disabled. Use Special:NewEntitySchema to create your schema.',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
             'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
             'cradle-schema-not-found': 'Could not find the schema on the page!',
@@ -4595,7 +4598,7 @@ function searchWikidataItems(term) {
             lines.push(`# Associated Item / Target Class: ${targetQID}`);
         }
         lines.push(`# Schema: ${title || cleanTitle}`);
-        lines.push(`# Generated with Cradle Schema Designer`);
+        lines.push(`# Generated with Cradle Schema Designer on Wikidata (https://www.wikidata.org/wiki/User:Danielyepezgarces/Cradle-gadget)`);
         lines.push(``);
         lines.push(`PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>`);
         lines.push(`PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>`);
@@ -4853,6 +4856,16 @@ function searchWikidataItems(term) {
 
         $modal.append($('<h3>').css({'margin':'0'}).text(mw.msg('cradle-shex-preview')));
 
+        let $noticeBanner = $('<div>').css({
+            'background': '#eaf3ff',
+            'border': '1px solid #36c',
+            'color': '#102a43',
+            'padding': '8px 12px',
+            'border-radius': '4px',
+            'font-size': '12px'
+        }).text(mw.msg('cradle-direct-api-disabled-notice'));
+        $modal.append($noticeBanner);
+
         let $statusBox = $('<div>').css({
             'padding': '8px 12px',
             'border-radius': '4px',
@@ -4874,6 +4887,22 @@ function searchWikidataItems(term) {
             })
             .val(shexText);
 
+        function copyAllShEx() {
+            $textarea.select();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText($textarea.val()).then(function() {
+                    mw.notify(mw.msg('cradle-shex-copied-auto'), { type: 'info' });
+                });
+            } else {
+                document.execCommand('copy');
+                mw.notify(mw.msg('cradle-shex-copied-auto'), { type: 'info' });
+            }
+        }
+
+        $textarea.on('click focus', function() {
+            copyAllShEx();
+        });
+
         $modal.append($textarea);
 
         let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'justify-content': 'flex-end', 'flex-wrap': 'wrap'});
@@ -4881,43 +4910,18 @@ function searchWikidataItems(term) {
         let $copyBtn = $('<button>').addClass('cdx-button')
             .text(mw.msg('cradle-copy-shex'))
             .on('click', function() {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText($textarea.val()).then(function() {
-                        mw.notify('ShEx copied to clipboard!', { type: 'info' });
-                    });
-                } else {
-                    $textarea.select();
-                    document.execCommand('copy');
-                    mw.notify('ShEx copied to clipboard!', { type: 'info' });
-                }
+                copyAllShEx();
             });
 
-        let $publishBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-            .text(mw.msg('cradle-create-entityschema-btn'))
+        let $newEntitySchemaBtn = $('<a>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+            .attr({
+                href: mw.util.getUrl('Special:NewEntitySchema'),
+                target: '_blank'
+            })
+            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'text-decoration': 'none'})
+            .html(ICONS.external + ` <span>${mw.msg('cradle-open-newentityschema')}</span>`)
             .on('click', function() {
-                let code = $textarea.val();
-                let res = validateShExSyntax(code);
-                if (!res.valid) {
-                    mw.notify('Please fix ShEx syntax errors before publishing.', { type: 'error' });
-                    return;
-                }
-
-                $publishBtn.prop('disabled', true).text(mw.msg('cradle-publishing-shex'));
-
-                let schemaDesc = $('#cradle-schema-desc-input').length ? $('#cradle-schema-desc-input').val().trim() : '';
-                let schemaAliases = $('#cradle-schema-aliases-input').length ? $('#cradle-schema-aliases-input').val().trim() : '';
-
-                publishEntitySchemaToWikidata(title, schemaDesc, schemaAliases, code).then(function(newId) {
-                    mw.notify(mw.msg('cradle-publish-shex-success', newId), { type: 'success' });
-                    setTimeout(function() {
-                        window.location.href = mw.util.getUrl('EntitySchema:' + newId);
-                    }, 1200);
-                }).catch(function(err) {
-                    console.warn('[Cradle] wbeditentityschema API failed, opening Special:NewEntitySchema:', err);
-                    mw.notify('Opening Special:NewEntitySchema...', { type: 'warn' });
-                    window.open(mw.util.getUrl('Special:NewEntitySchema'), '_blank');
-                    $publishBtn.prop('disabled', false).text(mw.msg('cradle-create-entityschema-btn'));
-                });
+                copyAllShEx();
             });
 
         function updateValidationUI() {
@@ -4927,10 +4931,9 @@ function searchWikidataItems(term) {
                     'background': '#e6f9f0',
                     'border': '1px solid #00af89',
                     'color': '#00805d'
-                }).html(mw.msg('cradle-shex-valid'));
-                $publishBtn.prop('disabled', false);
+                }).html('ShEx syntax is valid!');
             } else {
-                let $errHtml = $('<div>').append($('<div>').text(mw.msg('cradle-shex-invalid')));
+                let $errHtml = $('<div>').append($('<div>').text('ShEx syntax warnings:'));
                 let $ul = $('<ul>').css({'margin': '4px 0 0 16px', 'padding': '0', 'font-weight': 'normal'});
                 res.errors.forEach(e => $ul.append($('<li>').text(e)));
                 $errHtml.append($ul);
@@ -4939,7 +4942,6 @@ function searchWikidataItems(term) {
                     'border': '1px solid #d33',
                     'color': '#d33'
                 }).html($errHtml);
-                $publishBtn.prop('disabled', true);
             }
         }
 
@@ -4950,10 +4952,15 @@ function searchWikidataItems(term) {
             .text(mw.msg('cradle-cancel'))
             .on('click', function() { $overlay.remove(); });
 
-        $btnRow.append($copyBtn).append($publishBtn).append($closeBtn);
+        $btnRow.append($copyBtn).append($newEntitySchemaBtn).append($closeBtn);
         $modal.append($btnRow);
         $overlay.append($modal);
         $('body').append($overlay);
+
+        // Auto-select and copy ShEx code immediately when modal opens
+        setTimeout(function() {
+            copyAllShEx();
+        }, 150);
     }
 
     /**
