@@ -152,7 +152,10 @@
     "cradle-schema-target-item-label": "Associated class/item",
     "cradle-schema-target-item-placeholder": "e.g. Q483110 (Stadium) or Q5 (Human)",
     "cradle-create-custom-schema-desc": "Search for an existing EntitySchema (e.g. E10, Human) to load its claims and create a new item.",
-    "cradle-designer-custom-desc": "Design a new schema from scratch or by importing properties from an existing item to publish it as an EntitySchema (ShEx)."
+    "cradle-designer-custom-desc": "Design a new schema from scratch or by importing properties from an existing item to publish it as an EntitySchema (ShEx).",
+    "cradle-shex-copied-auto": "All ShEx code selected and copied to clipboard!",
+    "cradle-open-newentityschema": "Go to Special:NewEntitySchema",
+    "cradle-direct-api-disabled-notice": "Direct API creation is currently disabled. Use Special:NewEntitySchema to create your schema."
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -307,6 +310,9 @@
     "cradle-schema-target-item-label": "Elemento asociado",
     "cradle-schema-target-item-placeholder": "Ej: Q483110 (Estadio) o Q5 (Humano)",
     "cradle-create-custom-schema-desc": "Busca un EntitySchema existente (ej. E10, Humano) para cargar sus declaraciones y crear un nuevo elemento.",
-    "cradle-designer-custom-desc": "Diseña un nuevo esquema desde cero o importando propiedades de un elemento existente para publicarlo en Wikidata como un EntitySchema (ShEx)."
+    "cradle-designer-custom-desc": "Diseña un nuevo esquema desde cero o importando propiedades de un elemento existente para publicarlo en Wikidata como un EntitySchema (ShEx).",
+    "cradle-shex-copied-auto": "\u00a1Todo el c\u00f3digo ShEx fue seleccionado y copiado al portapapeles!",
+    "cradle-open-newentityschema": "Ir a Special:NewEntitySchema",
+    "cradle-direct-api-disabled-notice": "La publicaci\u00f3n directa por API est\u00e1 deshabilitada temporalmente. Usa Special:NewEntitySchema para crear tu esquema."
   }
 }
