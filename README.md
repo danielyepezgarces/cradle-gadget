@@ -1,75 +1,54 @@
 # Cradle Wikidata User Gadget
 
-## About Cradle
+Cradle is a modern, schema-guided form editor that brings structured data editing and creation directly into Wikidata item pages and `Special:Cradle`. Instead of manually navigating property by property, Cradle provides a focused sidebar drawer and standalone creation workflow guided by W3C Shape Expressions (ShEx) and EntitySchemas (`EntitySchema:E...`).
 
-Cradle is a schema-guided form editor that brings structured data entry directly into Wikidata item pages. Instead of navigating the full Wikibase interface property by property, you work inside a focused sidebar that understands what kind of item you are editing and which statements are required, optional, or constrained to specific values. The gadget is inspired by the original [Cradle tool](https://cradle.toolforge.org/) by Magnus Manske and is designed for contributors who want faster, more consistent editing without leaving the item they are working on.
-
-Once installed in your personal JavaScript configuration, Cradle appears on every Wikidata item page as an **Edit with Cradle** button next to the page title. When you open it, the gadget inspects the item's classes and automatically loads any linked EntitySchemas (ShEx). If no schema is detected, you can enter one manually. Each property is rendered as a card with labels, descriptions, datatype-aware inputs, and live validation badges that tell you at a glance whether mandatory fields are satisfied. You can add, modify, or remove statements and save everything back to Wikidata in a single action, with an edit summary that records which schema guided the change.
-
-For creating new items, Cradle provides a dedicated full-page experience at `Special:Cradle`. There you can choose from community predefined forms (`Wikidata:Cradle`), load an EntitySchema by ID, use your own custom templates stored in user space, or search schemas shared by other contributors. A built-in visual designer lets you compose personal form templates without writing ShEx: define mandatory properties, fixed option lists (hardselect), suggested values (softselect), and default QIDs, then save them to `User:<YourUsername>/Cradle` for reuse. All interface text is available in English and Spanish.
+Inspired by the original [Cradle tool](https://cradle.toolforge.org/) by Magnus Manske, this user gadget is designed for Wikimedia contributors who want faster, consistent, high-quality editing aligned with community schemas.
 
 ---
 
-## Installation
+## 🚀 Installation
 
-To use this gadget on Wikidata, add the following line to your personal [common.js](https://www.wikidata.org/wiki/Special:MyPage/common.js) page:
+To use Cradle on Wikidata, add the following line to your personal [common.js](https://www.wikidata.org/wiki/Special:MyPage/common.js) page:
 
 ```javascript
-mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.8.2');
+mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.36.0');
 ```
 
-*(Always update the `version` parameter at the end of the URL to bypass browser caching when a new release is published.)*
+*(You can increment the `version` parameter at the end of the URL to bypass browser cache whenever a new release is published).*
 
 ---
 
-## Key Features
+## ✨ Key Features
 
-1. **In-Context Editor**: Adds an "Edit with Cradle" button next to the main heading of Wikidata item pages, opening a custom editing sidebar.
-2. **Automatic Schema Detection**: Reads EntitySchema links (P12861) on the item and on its `instance of` (P31) / `subclass of` (P279) classes.
-3. **Visual Designer**: Build custom form templates directly in the UI. Specify mandatory properties, add default values, and set up input constraints.
-4. **Flexible Options Autocomplete**:
-   - **Hardselect (fixed options)**: Forces the user to select a single predefined QID item.
-   - **Softselect (suggestions)**: Provides multiple pre-selected QID options as recommendations, while allowing the user to search and add custom QIDs.
-5. **Real-Time Codex Validation**: Form fields automatically change colors and display Wikimedia Codex SVG icons indicating whether properties satisfy the schema requirements.
-6. **Three Template Sources**: Predefined community forms, EntitySchema (ShEx), and personal custom schemas in user space.
-7. **Community Schema Search**: Discover and load form templates published by other users under `User:*/Cradle`.
+1. **In-Context Drawer Editor**: Adds an *Edit with Cradle* button on Wikidata item pages, opening a modern, non-destructive sidebar drawer to inspect, edit, add, or remove statements in place.
+2. **Automatic Schema Discovery**: Automatically detects linked EntitySchemas (via Property P12861) on the item itself, its classes (`P31` instance of, `P279` subclass of), and occupation hierarchies (`P106` for human items).
+3. **Full ShEx EntitySchema Support**: Direct search, loading, and real-time validation against native Wikidata EntitySchemas (`namespace 640`).
+4. **Visual Schema Designer & ShEx Generator**: Interactive visual builder to create new ShEx EntitySchemas without manual coding. Supports custom DataTypes, Cardinalities (`1`, `?`, `+`, `*`), OR Groups, Geo-literals, Sub-shapes / Derivations (e.g. extending E10 for Q5), and auto-generated `IMPORT` statements.
+5. **1-Click Export & Publishing**: Export valid ShEx with rich syntax highlighting or publish directly to `Special:NewEntitySchema`.
+6. **Qualifiers, Ranks & References**: Comprehensive statement editing including snaks, ranks (preferred, normal, deprecated), qualifiers, and references.
+7. **Citoid Integration**: Automatic reference metadata extraction via Wikimedia Citoid REST API from URLs, DOIs, ISBNs, and PMIDs.
+8. **Live Quality Constraints (WBQC)**: Evaluates input values against Wikidata Property Constraints in real-time, displaying warning badges and suggestions.
+9. **Full 23 Wikibase Datatypes**: Support for items, properties, strings, monolingual text, dates/times, quantities, URLs, Commons media, coordinates, external identifiers, and more.
+10. **Wikimedia Codex & 100% i18n**: Adheres to Wikimedia Codex UI guidelines, using official Codex SVG icons (no raw emojis) and full internationalization (`CradleI18n.json`).
 
 ---
 
-## Custom Schema Format
+## 🛠️ Automated Deployment
 
-Custom templates designed with the visual builder are stored on your personal user page subpage (`User:<Username>/Cradle`). They are saved as standard wiki sections:
+This repository includes `deploy_to_wikidata.py` to deploy script updates and i18n catalogs directly to Wikidata user space:
 
-```wikitext
-== Actor or Film Director ==
-; P31 : hardselect:Q5 | mandatory
-; P106 : softselect:Q33999,Q2526255
+```bash
+# Copy and configure your bot credentials
+cp .env.example .env
+
+# Deploy to production (stable)
+python3 deploy_to_wikidata.py --target-env stable --upload-i18n
 ```
 
-When you open the **Custom Schemas** tab, Cradle downloads this page, parses the headers, and displays your forms in the template list.
-
-| Token | Meaning |
-|-------|---------|
-| `mandatory` | At least one value is required before saving |
-| `hardselect:Q1,Q2` | User must pick from the listed QIDs (dropdown) |
-| `softselect:Q1,Q2` | Suggested QIDs shown first; free search still allowed |
-| `default:Q5` | Pre-filled default value for the property |
-
-Optional per-language labels can be added with lines like `:de:Antike Töpfer`.
-
 ---
 
-## Further Documentation
-
-| Document | Audience | Description |
-|----------|----------|-------------|
-| [GADGET_TECHNICAL.md](GADGET_TECHNICAL.md) | Developers & maintainers | Full requirements list and technical decision record |
-| [GADGET_ARCHITECTURE.puml](GADGET_ARCHITECTURE.puml) | Developers & architects | PlantUML component and data-flow diagram |
-
----
-
-## Credits & License
+## 👥 Credits & License
 
 - Based on [Cradle](https://cradle.toolforge.org/) by [Magnus Manske](https://meta.wikimedia.org/wiki/User:Magnus_Manske).
 - Developed and maintained by [Daniel Yepez Garces](https://github.com/danielyepezgarces) and [Ismael Olea](https://meta.wikimedia.org/wiki/User:Olea).
-- License: MIT.
+- License: [MIT](https://opensource.org/licenses/MIT).
