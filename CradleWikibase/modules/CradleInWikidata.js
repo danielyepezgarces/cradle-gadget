@@ -18,7 +18,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.36.0';
+    const CRADLE_VERSION = '1.37.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -1037,7 +1037,11 @@
             'cradle-shex-valid': '✓ Valid ShEx syntax for Wikidata',
             'cradle-shex-invalid': '⚠ Invalid ShEx syntax:',
             'cradle-publishing-shex': 'Publishing EntitySchema to Wikidata...',
-            'cradle-publish-shex-success': 'EntitySchema $1 published successfully on Wikidata!'
+            'cradle-publish-shex-success': 'EntitySchema $1 published successfully on Wikidata!',
+            'cradle-publish-shex-failed': 'Failed to publish EntitySchema: $1',
+            'cradle-open-created-schema': 'View EntitySchema ($1)',
+            'cradle-schema-form-not-found': 'Special:NewEntitySchema form was not found. Check your account permissions.',
+            'cradle-schema-load-form-failed': 'Could not load Special:NewEntitySchema.'
         };
 
         // Load local English fallbacks first
@@ -1123,6 +1127,10 @@
                     'cradle-shex-invalid': '⚠ Sintaxis ShEx no válida:',
                     'cradle-publishing-shex': 'Publicando EntitySchema en Wikidata...',
                     'cradle-publish-shex-success': '¡EntitySchema $1 publicado con éxito en Wikidata!',
+                    'cradle-publish-shex-failed': 'Error al publicar EntitySchema: $1',
+                    'cradle-open-created-schema': 'Ver EntitySchema ($1)',
+                    'cradle-schema-form-not-found': 'No se encontró el formulario de Special:NewEntitySchema. Comprueba los permisos de tu cuenta.',
+                    'cradle-schema-load-form-failed': 'No se pudo cargar Special:NewEntitySchema.',
                     'cradle-sidebar-header': 'Esquemas',
                     'cradle-sidebar-create-schema': 'Crear un esquema nuevo',
                     'cradle-sidebar-recent-schemas': 'Cambios recientes',
@@ -4809,54 +4817,141 @@ function searchWikidataItems(term) {
     }
 
     /**
-     * Publishes a new EntitySchema to Wikidata via the wbeditentityschema MediaWiki API.
+     * Publishes a new EntitySchema to Wikidata by submitting the Special:NewEntitySchema form directly.
      */
     function publishEntitySchemaToWikidata(title, desc, aliasesStr, shexText) {
-        let userLang = mw.config.get('wgUserLanguage') || 'en';
-        let cleanTitle = (title || 'Custom Schema').trim();
+        const ENTITY_SCHEMA_ID_PATTERN = /EntitySchema:(E\d+)/;
+        const TOKEN_FIELD_PATTERN = /(?:token|wpEditToken)$/i;
+        const userLang = String(
+            mw.config.get('wgUserLanguage') ||
+            mw.config.get('wgContentLanguage') ||
+            'en'
+        ).trim();
 
-        let api = new mw.Api();
-        let payload = {
-            labels: {
-                [userLang]: { language: userLang, value: cleanTitle }
-            },
-            schemaText: shexText
-        };
-
-        if (desc && desc.trim()) {
-            payload.descriptions = {
-                [userLang]: { language: userLang, value: desc.trim() }
-            };
+        const cleanTitle = String(title || '').trim();
+        if (!cleanTitle) {
+            return Promise.reject(new Error(mw.msg('cradle-schema-title-required')));
         }
 
-        if (aliasesStr && aliasesStr.trim()) {
-            let aliasList = aliasesStr.split('|').map(a => a.trim()).filter(Boolean);
-            if (aliasList.length > 0) {
-                payload.aliases = {
-                    [userLang]: aliasList.map(a => ({ language: userLang, value: a }))
-                };
-            }
+        let aliasesFormatted = '';
+        if (aliasesStr) {
+            aliasesFormatted = Array.isArray(aliasesStr)
+                ? aliasesStr.map(a => String(a).trim()).filter(Boolean).join('|')
+                : String(aliasesStr).trim();
         }
 
-        return api.postWithEditToken({
-            action: 'wbeditentityschema',
-            new: 'entityschema',
-            data: JSON.stringify(payload),
-            summary: 'Created EntitySchema using Cradle Wikidata Gadget'
-        }).then(function(res) {
-            if (res && res.entityschema && res.entityschema.id) {
-                return res.entityschema.id;
-            } else if (res && res.entity && res.entity.id) {
-                return res.entity.id;
-            }
-            throw new Error(res.error ? res.error.info : 'Unknown API response');
+        return mw.loader.using(['mediawiki.api', 'mediawiki.util']).then(function() {
+            return new mw.Api().getToken('csrf');
+        }).then(function(csrfToken) {
+            return fetch(mw.util.getUrl('Special:NewEntitySchema'), {
+                credentials: 'same-origin'
+            }).then(function(response) {
+                if (!response.ok) {
+                    throw new Error(mw.msg('cradle-schema-load-form-failed') || 'Could not load Special:NewEntitySchema');
+                }
+                return response.text();
+            }).then(function(html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const submitButton = doc.querySelector('#entityschema-newschema-submit');
+                const form = submitButton ? submitButton.closest('form') : doc.querySelector('form');
+                if (!form) {
+                    throw new Error(mw.msg('cradle-schema-form-not-found') || 'Special:NewEntitySchema form was not found. Check that your account can create pages.');
+                }
+
+                const actionUrl = new URL(form.getAttribute('action') || window.location.href, window.location.origin);
+                const formData = new URLSearchParams();
+
+                Array.prototype.forEach.call(form.querySelectorAll('input[type="hidden"]'), function(input) {
+                    const name = input.getAttribute('name');
+                    if (name) {
+                        formData.set(name, input.value || '');
+                    }
+                });
+
+                Array.prototype.forEach.call(Array.from(formData.keys()), function(name) {
+                    if (TOKEN_FIELD_PATTERN.test(name)) {
+                        formData.set(name, csrfToken);
+                    }
+                });
+
+                if (!Array.from(formData.keys()).some(name => TOKEN_FIELD_PATTERN.test(name))) {
+                    formData.set('wpEditToken', csrfToken);
+                }
+
+                formData.set('label', cleanTitle);
+                formData.set('description', String(desc || '').trim());
+                formData.set('aliases', aliasesFormatted);
+                formData.set('schema-text', String(shexText || ''));
+                formData.set('languagecode', userLang);
+                formData.set('submit', '1');
+
+                return fetch(actionUrl.href, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData.toString()
+                });
+            }).then(function(postResponse) {
+                return postResponse.text().then(function(postHtml) {
+                    return {
+                        url: postResponse.url,
+                        html: postHtml
+                    };
+                });
+            }).then(function(result) {
+                const responseDoc = new DOMParser().parseFromString(result.html, 'text/html');
+                let match = ENTITY_SCHEMA_ID_PATTERN.exec(decodeURIComponent(result.url || ''));
+                let schemaId = match ? match[1] : null;
+
+                if (!schemaId) {
+                    const link = responseDoc.querySelector('a[href*="EntitySchema:E"], a[title^="EntitySchema:E"]');
+                    if (link) {
+                        match = ENTITY_SCHEMA_ID_PATTERN.exec(
+                            decodeURIComponent(link.getAttribute('href') || link.getAttribute('title') || '')
+                        );
+                        if (match) {
+                            schemaId = match[1];
+                        }
+                    }
+                }
+
+                if (!schemaId) {
+                    const errorNodes = responseDoc.querySelectorAll(
+                        '.permissions-errors, .error, .warning, .cdx-message--error, .oo-ui-messageWidget-error, .mw-htmlform-ooui .oo-ui-fieldLayout-messages'
+                    );
+                    const errorTexts = [];
+                    Array.prototype.forEach.call(errorNodes, function(node) {
+                        const t = node.textContent.trim().replace(/\s+/g, ' ');
+                        if (t && errorTexts.indexOf(t) === -1) {
+                            errorTexts.push(t);
+                        }
+                    });
+                    const errDetail = errorTexts.join(' ');
+                    throw new Error(errDetail || mw.msg('cradle-publish-shex-failed', 'Unknown error') || 'EntitySchema creation failed.');
+                }
+
+                return new mw.Api().get({
+                    action: 'query',
+                    titles: 'EntitySchema:' + schemaId,
+                    prop: 'info',
+                    formatversion: 2
+                }).then(function(verifyData) {
+                    const pages = verifyData.query && verifyData.query.pages || [];
+                    if (!pages[0] || pages[0].missing) {
+                        throw new Error('Created EntitySchema could not be verified on Wikidata.');
+                    }
+                    return schemaId;
+                });
+            });
         });
     }
 
     /**
-     * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata via MediaWiki API.
+     * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata directly.
      */
-    function openShExExportModal(title, propRows, labelsMap, targetItem, baseSchema) {
+    function openShExExportModal(title, propRows, labelsMap, targetItem, baseSchema, desc, aliases) {
         let shexText = generateShExCode(title, propRows, labelsMap, targetItem, null, baseSchema);
 
         let $overlay = $('<div>').addClass('cradle-modal-overlay').css({
@@ -4885,16 +4980,6 @@ function searchWikidataItems(term) {
         });
 
         $modal.append($('<h3>').css({'margin':'0'}).text(mw.msg('cradle-shex-preview')));
-
-        let $noticeBanner = $('<div>').css({
-            'background': '#eaf3ff',
-            'border': '1px solid #36c',
-            'color': '#102a43',
-            'padding': '8px 12px',
-            'border-radius': '4px',
-            'font-size': '12px'
-        }).text(mw.msg('cradle-direct-api-disabled-notice'));
-        $modal.append($noticeBanner);
 
         let $statusBox = $('<div>').css({
             'padding': '8px 12px',
@@ -4935,7 +5020,20 @@ function searchWikidataItems(term) {
 
         $modal.append($textarea);
 
-        let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'justify-content': 'flex-end', 'flex-wrap': 'wrap'});
+        let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'justify-content': 'flex-end', 'align-items': 'center', 'flex-wrap': 'wrap'});
+
+        let $manualLink = $('<a>').attr({
+            href: mw.util.getUrl('Special:NewEntitySchema'),
+            target: '_blank'
+        }).css({
+            'display': 'inline-flex',
+            'align-items': 'center',
+            'gap': '4px',
+            'font-size': '11px',
+            'color': '#72777d',
+            'text-decoration': 'none',
+            'margin-right': 'auto'
+        }).html(ICONS.external + ` <span>${mw.msg('cradle-open-newentityschema')}</span>`);
 
         let $copyBtn = $('<button>').addClass('cdx-button')
             .text(mw.msg('cradle-copy-shex'))
@@ -4943,15 +5041,59 @@ function searchWikidataItems(term) {
                 copyAllShEx();
             });
 
-        let $newEntitySchemaBtn = $('<a>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-            .attr({
-                href: mw.util.getUrl('Special:NewEntitySchema'),
-                target: '_blank'
-            })
-            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'text-decoration': 'none'})
-            .html(ICONS.external + ` <span>${mw.msg('cradle-open-newentityschema')}</span>`)
+        let $publishBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
+            .html(ICONS.check + ` <span>${mw.msg('cradle-create-entityschema-btn')}</span>`)
             .on('click', function() {
-                copyAllShEx();
+                let currentShex = $textarea.val();
+                let validation = validateShExSyntax(currentShex);
+                if (!validation.valid) {
+                    let proceed = confirm(mw.msg('cradle-shex-invalid') + '\n' + validation.errors.join('\n') + '\n\nDo you want to proceed anyway?');
+                    if (!proceed) return;
+                }
+
+                $publishBtn.prop('disabled', true);
+                $copyBtn.prop('disabled', true);
+                $statusBox.css({
+                    'background': 'rgba(0, 175, 137, 0.08)',
+                    'border': '1px solid var(--color-progressive, #36c)',
+                    'color': 'var(--color-progressive, #36c)'
+                }).text(mw.msg('cradle-publishing-shex'));
+
+                publishEntitySchemaToWikidata(title, desc, aliases, currentShex)
+                    .then(function(schemaId) {
+                        mw.notify(mw.msg('cradle-publish-shex-success', schemaId), { type: 'success' });
+                        $statusBox.css({
+                            'background': '#e6f9f0',
+                            'border': '1px solid #00af89',
+                            'color': '#00805d'
+                        }).html(`<strong>${mw.msg('cradle-publish-shex-success', `EntitySchema:${schemaId}`)}</strong>: ` +
+                               `<a href="${mw.util.getUrl('EntitySchema:' + schemaId)}" target="_blank" style="color:#00805d; text-decoration:underline;">` +
+                               `${mw.msg('cradle-open-created-schema', schemaId)}</a>`);
+
+                        $publishBtn.remove();
+                        $copyBtn.prop('disabled', false);
+
+                        let $viewBtn = $('<a>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+                            .attr({
+                                href: mw.util.getUrl('EntitySchema:' + schemaId),
+                                target: '_blank'
+                            })
+                            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'text-decoration': 'none'})
+                            .html(ICONS.external + ` <span>${mw.msg('cradle-open-created-schema', schemaId)}</span>`);
+                        $btnRow.append($viewBtn);
+                    })
+                    .catch(function(err) {
+                        $publishBtn.prop('disabled', false);
+                        $copyBtn.prop('disabled', false);
+                        let errMessage = (err && err.message) ? err.message : String(err);
+                        $statusBox.css({
+                            'background': '#fef2f2',
+                            'border': '1px solid #d33',
+                            'color': '#d33'
+                        }).text(mw.msg('cradle-publish-shex-failed', errMessage));
+                        mw.notify(mw.msg('cradle-publish-shex-failed', errMessage), { type: 'error' });
+                    });
             });
 
         function updateValidationUI() {
@@ -4961,9 +5103,9 @@ function searchWikidataItems(term) {
                     'background': '#e6f9f0',
                     'border': '1px solid #00af89',
                     'color': '#00805d'
-                }).html('ShEx syntax is valid!');
+                }).html(mw.msg('cradle-shex-valid'));
             } else {
-                let $errHtml = $('<div>').append($('<div>').text('ShEx syntax warnings:'));
+                let $errHtml = $('<div>').append($('<div>').text(mw.msg('cradle-shex-invalid')));
                 let $ul = $('<ul>').css({'margin': '4px 0 0 16px', 'padding': '0', 'font-weight': 'normal'});
                 res.errors.forEach(e => $ul.append($('<li>').text(e)));
                 $errHtml.append($ul);
@@ -4982,7 +5124,7 @@ function searchWikidataItems(term) {
             .text(mw.msg('cradle-cancel'))
             .on('click', function() { $overlay.remove(); });
 
-        $btnRow.append($copyBtn).append($newEntitySchemaBtn).append($closeBtn);
+        $btnRow.append($manualLink).append($copyBtn).append($publishBtn).append($closeBtn);
         $modal.append($btnRow);
         $overlay.append($modal);
         $('body').append($overlay);
@@ -6011,6 +6153,8 @@ function searchWikidataItems(term) {
 
         let $saveBtn = $('<button>').addClass('cradle-btn-primary').text(mw.msg('cradle-create-entityschema-btn')).on('click', function() {
             let name = $titleInput.val().trim() || 'CustomSchema';
+            let desc = $('#cradle-schema-desc-input').length ? $('#cradle-schema-desc-input').val().trim() : '';
+            let aliases = $('#cradle-schema-aliases-input').length ? $('#cradle-schema-aliases-input').val().trim() : '';
             let targetQID = $targetItemInput.val().trim();
             let baseSchema = $('#cradle-schema-base-schema-input').length ? $('#cradle-schema-base-schema-input').val().trim() : '';
             let propRows = gatherDesignerProps();
@@ -6020,7 +6164,7 @@ function searchWikidataItems(term) {
             }
             let pids = propRows.map(r => r.pid);
             fetchLabelsInBatches(pids, function(labelsMap) {
-                openShExExportModal(name, propRows, labelsMap, targetQID, baseSchema);
+                openShExExportModal(name, propRows, labelsMap, targetQID, baseSchema, desc, aliases);
             });
         });
 
@@ -6029,6 +6173,8 @@ function searchWikidataItems(term) {
             .text(mw.msg('cradle-export-shex'))
             .on('click', function() {
                 let name = $titleInput.val().trim() || 'CustomSchema';
+                let desc = $('#cradle-schema-desc-input').length ? $('#cradle-schema-desc-input').val().trim() : '';
+                let aliases = $('#cradle-schema-aliases-input').length ? $('#cradle-schema-aliases-input').val().trim() : '';
                 let targetQID = $targetItemInput.val().trim();
                 let baseSchema = $('#cradle-schema-base-schema-input').length ? $('#cradle-schema-base-schema-input').val().trim() : '';
                 let propRows = gatherDesignerProps();
@@ -6038,7 +6184,7 @@ function searchWikidataItems(term) {
                 }
                 let pids = propRows.map(r => r.pid);
                 fetchLabelsInBatches(pids, function(labelsMap) {
-                    openShExExportModal(name, propRows, labelsMap, targetQID, baseSchema);
+                    openShExExportModal(name, propRows, labelsMap, targetQID, baseSchema, desc, aliases);
                 });
             });
 
