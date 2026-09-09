@@ -172,7 +172,8 @@
     "cradle-importer-select-occupation": "Select occupation:",
     "cradle-importer-p106-schema-exists": "Existing schema detected for this occupation ($1). Review existing schema to avoid duplicates.",
     "cradle-importer-p106-no-schema": "No previous schema detected for this occupation (Ideal for new specialized schema).",
-    "cradle-importer-p106-available-badge": "No previous schema"
+    "cradle-importer-p106-available-badge": "No previous schema",
+    "cradle-set-as-base-schema-btn": "Set $1 as Base Schema for derivation"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -347,6 +348,7 @@
     "cradle-importer-select-occupation": "Selecciona la ocupación:",
     "cradle-importer-p106-schema-exists": "Se detectó un esquema existente para esta ocupación ($1). Revisa el esquema existente para evitar duplicados.",
     "cradle-importer-p106-no-schema": "Sin esquema previo para esta ocupación (Ideal para crear un nuevo esquema derivado).",
-    "cradle-importer-p106-available-badge": "Sin esquema previo"
+    "cradle-importer-p106-available-badge": "Sin esquema previo",
+    "cradle-set-as-base-schema-btn": "Establecer $1 como esquema base para derivación"
   }
 }
