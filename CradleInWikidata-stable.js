@@ -9,16 +9,16 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.37.0
+ * Version: 1.38.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.37.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.38.0');
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.37.0';
+    const CRADLE_VERSION = '1.38.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -968,6 +968,13 @@
             'cradle-base-schema-placeholder': 'e.g. E10 (Human) or E519',
             'cradle-base-schema-notice': 'Existing base schema detected ($1). You can create a specialized derivation (e.g. Firefighter derived from Human).',
             'cradle-use-base-schema-checkbox': 'Set $1 as base schema for this derivation',
+            'cradle-importer-target-mode-label': 'Schema target type:',
+            'cradle-importer-target-p31': 'General Class (P31)',
+            'cradle-importer-target-p106': 'Occupation specialization (P106)',
+            'cradle-importer-select-occupation': 'Select occupation:',
+            'cradle-importer-p106-schema-exists': 'Existing schema detected for this occupation ($1). Review existing schema to avoid duplicates.',
+            'cradle-importer-p106-no-schema': 'No previous schema detected for this occupation (Ideal for new specialized schema).',
+            'cradle-importer-p106-available-badge': 'No previous schema',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
             'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
             'cradle-schema-not-found': 'Could not find the schema on the page!',
@@ -5204,6 +5211,15 @@ function searchWikidataItems(term) {
                         }
                     });
                 }
+                let p106QIDs = [];
+                if (claims.P106) {
+                    claims.P106.forEach(c => {
+                        if (c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id) {
+                            p106QIDs.push(c.mainsnak.datavalue.value.id);
+                        }
+                    });
+                }
+                let isHumanItem = p31QIDs.includes('Q5');
 
                 let targetClassQID = p31QIDs.length > 0 ? p31QIDs[0] : qid;
                 fetchRecoinData(targetClassQID, function(recoinData) {
@@ -5218,7 +5234,7 @@ function searchWikidataItems(term) {
                         });
                     }
 
-                    let allQIDsToFetch = [...fetchedPropPIDs, ...p31QIDs];
+                    let allQIDsToFetch = [...new Set([...fetchedPropPIDs, ...p31QIDs, ...p106QIDs])];
 
                     fetchLabelsInBatches(allQIDsToFetch, function(labelsMap, datatypesMap) {
                         // Exclude external identifier properties (datatype: external-id)
@@ -5229,6 +5245,7 @@ function searchWikidataItems(term) {
                         let userLang = mw.config.get('wgUserLanguage') || 'en';
                         let itemLabel = (ent.labels && (ent.labels[userLang]?.value || ent.labels['en']?.value)) || labelsMap[qid] || qid;
                         p31Candidates = p31QIDs.map(id => ({ qid: id, label: labelsMap[id] || id }));
+                        let p106Candidates = p106QIDs.map(id => ({ qid: id, label: labelsMap[id] || id }));
 
                         let $info = $('<div>').css({
                             'background': '#eaf3ff', 'border': '1px solid #36c',
@@ -5236,9 +5253,15 @@ function searchWikidataItems(term) {
                         }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} properties found.`);
                         $resultArea.append($info);
 
-                        // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
-                        let p31ClaimsMap = {};
-                        let p31FetchDone = function() {
+                        // Fetch claims.P12861 (EntitySchema ID) for both p31QIDs and p106QIDs
+                        let schemasMap = {};
+                        let entitiesToCheckSchemas = [...new Set([...p31QIDs, ...p106QIDs])];
+
+                        let metaFetchDone = function() {
+                            let targetMode = (p106Candidates.length > 0 && isHumanItem) ? 'p106' : 'p31';
+                            let selectedP106QID = p106Candidates.length > 0 ? p106Candidates[0].qid : null;
+                            selectedP31QID = p31Candidates.length > 0 ? p31Candidates[0].qid : qid;
+
                             let $duplicateNoticeBox = $('<div>').css({'margin-top': '6px'});
                             let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
                                 .css({'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'})
@@ -5247,55 +5270,129 @@ function searchWikidataItems(term) {
                             let $editExistingSchemaBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive')
                                 .css({'display': 'none', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'});
 
-                            function updateSchemaExistenceCheck(chosenQID) {
-                                let schemaId = p31ClaimsMap[chosenQID];
-                                if (schemaId) {
-                                    $duplicateNoticeBox.html(`
-                                        <div style="background:#eaf3ff; border:1px solid #36c; color:#102a43; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
-                                            <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.info}</span>
-                                            <span>${mw.msg('cradle-base-schema-notice', schemaId)} (<strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#36c; text-decoration:underline;">EntitySchema ${schemaId}</a></strong>).</span>
-                                        </div>
-                                    `).show();
-                                    $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
-                                    $editExistingSchemaBtn.html(ICONS.external + ` <span>Ver EntitySchema ${schemaId}</span>`).off('click').on('click', function() {
-                                        window.open('/wiki/EntitySchema:' + schemaId, '_blank');
-                                    }).css('display', 'inline-flex');
-                                    $btnRow.css({'justify-content': 'space-between'});
-                                    $importConfirmBtn.css({'flex': '1'});
+                            function updateActiveSchemaCheck() {
+                                if (targetMode === 'p106' && selectedP106QID) {
+                                    let occSchemaId = schemasMap[selectedP106QID];
+                                    let occLabel = labelsMap[selectedP106QID] || selectedP106QID;
+                                    if (occSchemaId) {
+                                        $duplicateNoticeBox.html(`
+                                            <div style="background:#fef2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
+                                                <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span>
+                                                <span>${mw.msg('cradle-importer-p106-schema-exists', occSchemaId)} (<strong><a href="/wiki/EntitySchema:${occSchemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${occSchemaId}</a></strong>).</span>
+                                            </div>
+                                        `).show();
+                                        $editExistingSchemaBtn.html(ICONS.external + ` <span>Ver EntitySchema ${occSchemaId}</span>`).off('click').on('click', function() {
+                                            window.open('/wiki/EntitySchema:' + occSchemaId, '_blank');
+                                        }).css('display', 'inline-flex');
+                                        $btnRow.css({'justify-content': 'space-between'});
+                                        $importConfirmBtn.css({'flex': '1'});
+                                    } else {
+                                        $duplicateNoticeBox.html(`
+                                            <div style="background:#eaf3ff; border:1px solid #36c; color:#102a43; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
+                                                <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.info}</span>
+                                                <span>${mw.msg('cradle-importer-p106-no-schema')} ${isHumanItem ? mw.msg('cradle-base-schema-notice', 'E10') : ''}</span>
+                                            </div>
+                                        `).show();
+                                        $editExistingSchemaBtn.hide();
+                                        $btnRow.css({'justify-content': 'center'});
+                                        $importConfirmBtn.css({'flex': '0 1 auto'});
+                                    }
                                 } else {
-                                    $duplicateNoticeBox.empty().hide();
-                                    $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
-                                    $editExistingSchemaBtn.hide();
-                                    $btnRow.css({'justify-content': 'center'});
-                                    $importConfirmBtn.css({'flex': '0 1 auto'});
+                                    let p31SchemaId = schemasMap[selectedP31QID];
+                                    if (p31SchemaId) {
+                                        $duplicateNoticeBox.html(`
+                                            <div style="background:#eaf3ff; border:1px solid #36c; color:#102a43; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
+                                                <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.info}</span>
+                                                <span>${mw.msg('cradle-base-schema-notice', p31SchemaId)} (<strong><a href="/wiki/EntitySchema:${p31SchemaId}" target="_blank" style="color:#36c; text-decoration:underline;">EntitySchema ${p31SchemaId}</a></strong>).</span>
+                                            </div>
+                                        `).show();
+                                        $editExistingSchemaBtn.html(ICONS.external + ` <span>Ver EntitySchema ${p31SchemaId}</span>`).off('click').on('click', function() {
+                                            window.open('/wiki/EntitySchema:' + p31SchemaId, '_blank');
+                                        }).css('display', 'inline-flex');
+                                        $btnRow.css({'justify-content': 'space-between'});
+                                        $importConfirmBtn.css({'flex': '1'});
+                                    } else {
+                                        $duplicateNoticeBox.empty().hide();
+                                        $editExistingSchemaBtn.hide();
+                                        $btnRow.css({'justify-content': 'center'});
+                                        $importConfirmBtn.css({'flex': '0 1 auto'});
+                                    }
                                 }
                             }
 
-                            if (p31Candidates.length === 1) {
-                                selectedP31QID = p31Candidates[0].qid;
-                                let schemaId = p31ClaimsMap[selectedP31QID];
-                                let badgeHtml = schemaId
-                                    ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.info}</span> Base: <strong>${schemaId}</strong></span>`
-                                    : '';
-                                $resultArea.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
-                                    .html(`Class (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
-                            } else if (p31Candidates.length > 1) {
-                                let $p31Box = $('<div>').css({
+                            // Render Target Mode Selector when P106 is present
+                            let $p106Box = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '6px'});
+                            let $p31Box = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '6px'});
+
+                            if (p106Candidates.length > 0) {
+                                let $modeContainer = $('<div>').css({
                                     'display': 'flex', 'flex-direction': 'column', 'gap': '6px',
                                     'background': '#f8f9fa', 'border': '1px solid #c8ccd1',
                                     'padding': '10px', 'border-radius': '4px'
                                 });
-                                $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text(mw.msg('cradle-select-p31-class')));
+                                $modeContainer.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text(mw.msg('cradle-importer-target-mode-label')));
 
+                                let $modeRow = $('<div>').css({'display': 'flex', 'gap': '16px', 'margin-bottom': '4px'});
+                                let $radP106 = $('<input>').attr({ type: 'radio', name: 'target-choice', id: 'target-mode-p106', checked: (targetMode === 'p106') })
+                                    .on('change', function() {
+                                        targetMode = 'p106';
+                                        $p106Box.show();
+                                        $p31Box.hide();
+                                        updateActiveSchemaCheck();
+                                    });
+                                let $radP31 = $('<input>').attr({ type: 'radio', name: 'target-choice', id: 'target-mode-p31', checked: (targetMode === 'p31') })
+                                    .on('change', function() {
+                                        targetMode = 'p31';
+                                        $p106Box.hide();
+                                        $p31Box.show();
+                                        updateActiveSchemaCheck();
+                                    });
+
+                                $modeRow.append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '13px'}).append($radP106).append($('<span>').text(mw.msg('cradle-importer-target-p106'))));
+                                $modeRow.append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '13px'}).append($radP31).append($('<span>').text(mw.msg('cradle-importer-target-p31'))));
+                                $modeContainer.append($modeRow);
+                                $resultArea.append($modeContainer);
+
+                                // Setup P106 candidate selection
+                                $p106Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text(mw.msg('cradle-importer-select-occupation')));
+                                p106Candidates.forEach((cand, idx) => {
+                                    let occSchemaId = schemasMap[cand.qid];
+                                    let radId = `p106-cand-${cand.qid}-${idx}`;
+                                    let $rad = $('<input>').attr({
+                                        type: 'radio', name: 'p106-candidate', id: radId, value: cand.qid, checked: idx === 0
+                                    }).on('change', function() {
+                                        selectedP106QID = cand.qid;
+                                        updateActiveSchemaCheck();
+                                    });
+                                    let badgeHtml = occSchemaId
+                                        ? `<span style="background:#fef2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.alert}</span> <strong>${occSchemaId}</strong></span>`
+                                        : `<span style="background:#e6f9f0; color:#00805d; border:1px solid #00af89; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.check}</span> ${mw.msg('cradle-importer-p106-available-badge')}</span>`;
+                                    let $lbl = $('<label>').attr('for', radId).css({'font-size': '13px', 'display': 'flex', 'align-items': 'center', 'gap': '6px', 'cursor': 'pointer'})
+                                        .append($rad).append($('<span>').html(`<strong>${cand.label}</strong> (${cand.qid}) ${badgeHtml}`));
+                                    $p106Box.append($lbl);
+                                });
+                                $resultArea.append($p106Box);
+                            }
+
+                            // Setup P31 candidate selection
+                            if (p31Candidates.length === 1) {
                                 selectedP31QID = p31Candidates[0].qid;
+                                let schemaId = schemasMap[selectedP31QID];
+                                let badgeHtml = schemaId
+                                    ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.info}</span> Base: <strong>${schemaId}</strong></span>`
+                                    : '';
+                                $p31Box.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
+                                    .html(`Class (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
+                            } else if (p31Candidates.length > 1) {
+                                $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text(mw.msg('cradle-select-p31-class')));
                                 p31Candidates.forEach((cand, idx) => {
-                                    let schemaId = p31ClaimsMap[cand.qid];
+                                    let schemaId = schemasMap[cand.qid];
                                     let radId = `p31-cand-${cand.qid}-${idx}`;
                                     let $rad = $('<input>').attr({
                                         type: 'radio', name: 'p31-candidate', id: radId, value: cand.qid, checked: idx === 0
                                     }).on('change', function() {
                                         selectedP31QID = cand.qid;
-                                        updateSchemaExistenceCheck(cand.qid);
+                                        updateActiveSchemaCheck();
                                     });
                                     let badgeHtml = schemaId
                                         ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.info}</span> Base: <strong>${schemaId}</strong></span>`
@@ -5304,9 +5401,15 @@ function searchWikidataItems(term) {
                                         .append($rad).append($('<span>').html(`${cand.label} (${cand.qid}) ${badgeHtml}`));
                                     $p31Box.append($lbl);
                                 });
-                                $resultArea.append($p31Box);
+                            }
+                            $resultArea.append($p31Box);
+
+                            if (targetMode === 'p106') {
+                                $p106Box.show();
+                                $p31Box.hide();
                             } else {
-                                selectedP31QID = qid;
+                                $p106Box.hide();
+                                $p31Box.show();
                             }
 
                             // Checkboxes to select properties
@@ -5362,7 +5465,14 @@ function searchWikidataItems(term) {
                                 }
                                 $overlay.remove();
                                 if (onImportCallback) {
-                                    onImportCallback(selectedP31QID, selectedPIDs, labelsMap, recoinFreqMap, p31ClaimsMap[selectedP31QID]);
+                                    let finalTargetQID = (targetMode === 'p106' && selectedP106QID) ? selectedP106QID : selectedP31QID;
+                                    let finalBaseSchema = (targetMode === 'p106') ? (isHumanItem ? (schemasMap['Q5'] || 'E10') : '') : (schemasMap[selectedP31QID] || '');
+                                    let occupationPreset = (targetMode === 'p106' && selectedP106QID) ? {
+                                        pid: 'P106',
+                                        qid: selectedP106QID,
+                                        label: labelsMap[selectedP106QID] || selectedP106QID
+                                    } : null;
+                                    onImportCallback(finalTargetQID, selectedPIDs, labelsMap, recoinFreqMap, finalBaseSchema, occupationPreset);
                                 }
                             });
 
@@ -5371,46 +5481,44 @@ function searchWikidataItems(term) {
                                 .append($editExistingSchemaBtn);
                             $resultArea.append($btnRow);
 
-                        // Trigger initial check for selected candidate
-                        if (selectedP31QID) {
-                            updateSchemaExistenceCheck(selectedP31QID);
-                        }
-                    };
+                            // Trigger initial check
+                            updateActiveSchemaCheck();
+                        };
 
-                    if (p31QIDs.length > 0) {
-                        let userLang = mw.config.get('wgUserLanguage') || 'en';
-                        let langsToFetch = userLang === 'en' ? 'en' : `${userLang}|en`;
-                        api.get({
-                            action: 'wbgetentities',
-                            ids: p31QIDs.join('|'),
-                            props: 'claims',
-                            languages: langsToFetch,
-                            format: 'json'
-                        }).done(function(p31Res) {
-                            if (p31Res && p31Res.entities) {
-                                p31QIDs.forEach(p31Id => {
-                                    if (p31Res.entities[p31Id] && p31Res.entities[p31Id].claims) {
-                                        let cMap = p31Res.entities[p31Id].claims;
-                                        if (cMap.P12861 && cMap.P12861.length > 0) {
-                                            let sId = parseEntitySchemaID(cMap.P12861[0].mainsnak?.datavalue);
-                                            if (sId) p31ClaimsMap[p31Id] = sId;
+                        if (entitiesToCheckSchemas.length > 0) {
+                            let userLang = mw.config.get('wgUserLanguage') || 'en';
+                            let langsToFetch = userLang === 'en' ? 'en' : `${userLang}|en`;
+                            api.get({
+                                action: 'wbgetentities',
+                                ids: entitiesToCheckSchemas.join('|'),
+                                props: 'claims',
+                                languages: langsToFetch,
+                                format: 'json'
+                            }).done(function(checkRes) {
+                                if (checkRes && checkRes.entities) {
+                                    entitiesToCheckSchemas.forEach(eId => {
+                                        if (checkRes.entities[eId] && checkRes.entities[eId].claims) {
+                                            let cMap = checkRes.entities[eId].claims;
+                                            if (cMap.P12861 && cMap.P12861.length > 0) {
+                                                let sId = parseEntitySchemaID(cMap.P12861[0].mainsnak?.datavalue);
+                                                if (sId) schemasMap[eId] = sId;
+                                            }
                                         }
-                                    }
-                                });
-                            }
-                            p31FetchDone();
-                        }).fail(function() {
-                            p31FetchDone();
-                        });
-                    } else {
-                        p31FetchDone();
-                    }
+                                    });
+                                }
+                                metaFetchDone();
+                            }).fail(function() {
+                                metaFetchDone();
+                            });
+                        } else {
+                            metaFetchDone();
+                        }
+                    });
                 });
+            }).fail(function() {
+                $searchBtn.prop('disabled', false).text(mw.msg('cradle-load-item-btn'));
+                $resultArea.html('<div style="color:#d33; font-size:13px;">Error connecting to Wikidata</div>');
             });
-        }).fail(function() {
-            $searchBtn.prop('disabled', false).text(mw.msg('cradle-load-item-btn'));
-            $resultArea.html('<div style="color:#d33; font-size:13px;">Error connecting to Wikidata</div>');
-        });
         });
 
         $overlay.append($modal);
@@ -5545,19 +5653,25 @@ function searchWikidataItems(term) {
             .html(ICONS.download + ` <span>${mw.msg('cradle-import-from-item')}</span>`)
             .on('click', function(e) {
                 e.preventDefault();
-                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, modalLabelsMap, recoinFreqMap, importedBaseSchema) {
-                    if (importedTargetQID && !$targetItemInput.val().trim()) {
+                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, modalLabelsMap, recoinFreqMap, importedBaseSchema, occupationPreset) {
+                    if (importedTargetQID) {
                         $targetItemInput.val(importedTargetQID);
                         checkTargetItemDuplicateSchema(importedTargetQID);
                     }
                     if (importedBaseSchema) {
                         $baseSchemaInput.val(importedBaseSchema);
                     }
+                    if (occupationPreset && occupationPreset.label && !$titleInput.val().trim()) {
+                        $titleInput.val(occupationPreset.label);
+                    }
                     
                     // Clear previous property rows so new import starts fresh
                     $propsList.empty();
 
                     let newPIDs = sortPropertyIDs(importedPIDs || []);
+                    if (occupationPreset && !newPIDs.includes('P106')) {
+                        newPIDs.unshift('P106');
+                    }
                     if (newPIDs.length === 0) {
                         mw.notify('No properties selected for import.', { type: 'info' });
                         return;
@@ -5567,7 +5681,11 @@ function searchWikidataItems(term) {
                         let mergedMap = Object.assign({}, modalLabelsMap || {}, freshLabelsMap || {});
                         newPIDs.forEach(pid => {
                             try {
-                                renderPropRow(pid, false, '', null, null, mergedMap, recoinFreqMap);
+                                if (occupationPreset && pid === 'P106') {
+                                    renderPropRow(pid, true, '', [occupationPreset.qid], null, mergedMap, recoinFreqMap);
+                                } else {
+                                    renderPropRow(pid, false, '', null, null, mergedMap, recoinFreqMap);
+                                }
                             } catch (err) {
                                 console.error('[Cradle Importer Error]', err);
                             }
