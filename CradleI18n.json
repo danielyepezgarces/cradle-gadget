@@ -165,7 +165,14 @@
     "cradle-base-schema-label": "Base Schema / Derivation (IMPORT)",
     "cradle-base-schema-placeholder": "e.g. E10 (Human) or E519",
     "cradle-base-schema-notice": "Existing base schema detected ($1). You can create a specialized derivation (e.g. Firefighter derived from Human).",
-    "cradle-use-base-schema-checkbox": "Set $1 as base schema for this derivation"
+    "cradle-use-base-schema-checkbox": "Set $1 as base schema for this derivation",
+    "cradle-importer-target-mode-label": "Schema target type:",
+    "cradle-importer-target-p31": "General Class (P31)",
+    "cradle-importer-target-p106": "Occupation specialization (P106)",
+    "cradle-importer-select-occupation": "Select occupation:",
+    "cradle-importer-p106-schema-exists": "Existing schema detected for this occupation ($1). Review existing schema to avoid duplicates.",
+    "cradle-importer-p106-no-schema": "No previous schema detected for this occupation (Ideal for new specialized schema).",
+    "cradle-importer-p106-available-badge": "No previous schema"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -333,6 +340,13 @@
     "cradle-base-schema-label": "Esquema base / Derivaci\u00f3n (IMPORT)",
     "cradle-base-schema-placeholder": "ej. E10 (Humano) o E519",
     "cradle-base-schema-notice": "Esquema base existente detectado ($1). Puedes crear una derivaci\u00f3n especializada (ej. Bombero derivado de Humano).",
-    "cradle-use-base-schema-checkbox": "Establecer $1 como esquema base para esta derivaci\u00f3n"
+    "cradle-use-base-schema-checkbox": "Establecer $1 como esquema base para esta derivaci\u00f3n",
+    "cradle-importer-target-mode-label": "Tipo de objetivo para el esquema:",
+    "cradle-importer-target-p31": "Clase general (P31)",
+    "cradle-importer-target-p106": "Especialización por ocupación (P106)",
+    "cradle-importer-select-occupation": "Selecciona la ocupación:",
+    "cradle-importer-p106-schema-exists": "Se detectó un esquema existente para esta ocupación ($1). Revisa el esquema existente para evitar duplicados.",
+    "cradle-importer-p106-no-schema": "Sin esquema previo para esta ocupación (Ideal para crear un nuevo esquema derivado).",
+    "cradle-importer-p106-available-badge": "Sin esquema previo"
   }
 }
