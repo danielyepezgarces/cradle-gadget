@@ -9,16 +9,16 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.38.0
+ * Version: 1.39.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.38.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.39.0');
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.38.0';
+    const CRADLE_VERSION = '1.39.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -975,6 +975,7 @@
             'cradle-importer-p106-schema-exists': 'Existing schema detected for this occupation ($1). Review existing schema to avoid duplicates.',
             'cradle-importer-p106-no-schema': 'No previous schema detected for this occupation (Ideal for new specialized schema).',
             'cradle-importer-p106-available-badge': 'No previous schema',
+            'cradle-set-as-base-schema-btn': 'Set $1 as Base Schema for derivation',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
             'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
             'cradle-schema-not-found': 'Could not find the schema on the page!',
@@ -5575,7 +5576,7 @@ function searchWikidataItems(term) {
             if (foundCustom) {
                 $targetNoticeDiv.html(`
                     <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
-                        <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya está asociado a tu esquema local <em>"${foundCustom}"</em>.</span>
+                        <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>${mw.msg('cradle-schema-exists-notice')}</strong> ${cleanQID} -> <em>"${foundCustom}"</em>.</span>
                     </div>
                 `);
                 return;
@@ -5604,11 +5605,35 @@ function searchWikidataItems(term) {
 
                     if (existingSchemaId) {
                         let itemLabel = (ent.labels && (ent.labels[userLang]?.value || ent.labels['en']?.value)) || cleanQID;
-                        $targetNoticeDiv.html(`
-                            <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
-                                <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> El elemento <strong>${itemLabel} (${cleanQID})</strong> ya tiene asociado el EntitySchema <strong><a href="/wiki/EntitySchema:${existingSchemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">${existingSchemaId}</a></strong> (declaración P12861).</span>
-                            </div>
-                        `);
+                        let currentBase = ($('#cradle-schema-base-schema-input').val() || '').trim().toUpperCase();
+                        let cleanExisting = existingSchemaId.toUpperCase();
+                        let isDerivation = (currentBase === cleanExisting || currentBase === ('E' + cleanExisting.replace(/\D/g, '')));
+
+                        if (isDerivation) {
+                            $targetNoticeDiv.html(`
+                                <div style="background:#eaf3ff; border:1px solid #36c; color:#102a43; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
+                                    <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.info}</span>
+                                    <span>${mw.msg('cradle-base-schema-notice', existingSchemaId)} (<strong><a href="/wiki/EntitySchema:${existingSchemaId}" target="_blank" style="color:#36c; text-decoration:underline;">EntitySchema ${existingSchemaId}</a></strong>).</span>
+                                </div>
+                            `);
+                        } else {
+                            let $dupBox = $('<div>').css({
+                                'background': '#fcf2f2', 'border': '1px solid #d33', 'color': '#b32424',
+                                'padding': '8px 12px', 'border-radius': '4px', 'font-size': '12px',
+                                'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between', 'gap': '8px', 'flex-wrap': 'wrap'
+                            });
+                            let $dupText = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'flex': '1'})
+                                .html(`<span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>${mw.msg('cradle-schema-exists-notice')}</strong> ${itemLabel} (${cleanQID}) -> <strong><a href="/wiki/EntitySchema:${existingSchemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${existingSchemaId}</a></strong> (P12861).</span>`);
+                            let $useAsBaseBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet').css({'font-size': '11px', 'height': '26px'})
+                                .text(mw.msg('cradle-set-as-base-schema-btn', existingSchemaId))
+                                .on('click', function(e) {
+                                    e.preventDefault();
+                                    $baseSchemaInput.val(existingSchemaId);
+                                    checkTargetItemDuplicateSchema(cleanQID);
+                                });
+                            $dupBox.append($dupText).append($useAsBaseBtn);
+                            $targetNoticeDiv.empty().append($dupBox);
+                        }
                         return;
                     }
                 }
@@ -5624,11 +5649,35 @@ function searchWikidataItems(term) {
                     let items = resSearch.search || [];
                     if (items.length > 0) {
                         let match = items[0];
-                        $targetNoticeDiv.html(`
-                            <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
-                                <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya cuenta con el esquema registrado <a href="/wiki/EntitySchema:${match.id}" target="_blank"><strong>${match.id}</strong> (${match.label || ''})</a>.</span>
-                            </div>
-                        `);
+                        let currentBase = ($('#cradle-schema-base-schema-input').val() || '').trim().toUpperCase();
+                        let cleanExisting = match.id.toUpperCase();
+                        let isDerivation = (currentBase === cleanExisting || currentBase === ('E' + cleanExisting.replace(/\D/g, '')));
+
+                        if (isDerivation) {
+                            $targetNoticeDiv.html(`
+                                <div style="background:#eaf3ff; border:1px solid #36c; color:#102a43; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
+                                    <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.info}</span>
+                                    <span>${mw.msg('cradle-base-schema-notice', match.id)} (<strong><a href="/wiki/EntitySchema:${match.id}" target="_blank" style="color:#36c; text-decoration:underline;">EntitySchema ${match.id}</a></strong>).</span>
+                                </div>
+                            `);
+                        } else {
+                            let $dupBox = $('<div>').css({
+                                'background': '#fff3cd', 'border': '1px solid #ffe8a1', 'color': '#856404',
+                                'padding': '8px 12px', 'border-radius': '4px', 'font-size': '12px',
+                                'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between', 'gap': '8px', 'flex-wrap': 'wrap'
+                            });
+                            let $dupText = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'flex': '1'})
+                                .html(`<span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>${mw.msg('cradle-schema-exists-notice')}</strong> ${cleanQID} -> <a href="/wiki/EntitySchema:${match.id}" target="_blank"><strong>${match.id}</strong> (${match.label || ''})</a>.</span>`);
+                            let $useAsBaseBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet').css({'font-size': '11px', 'height': '26px'})
+                                .text(mw.msg('cradle-set-as-base-schema-btn', match.id))
+                                .on('click', function(e) {
+                                    e.preventDefault();
+                                    $baseSchemaInput.val(match.id);
+                                    checkTargetItemDuplicateSchema(cleanQID);
+                                });
+                            $dupBox.append($dupText).append($useAsBaseBtn);
+                            $targetNoticeDiv.empty().append($dupBox);
+                        }
                     }
                 });
             });
@@ -5646,6 +5695,8 @@ function searchWikidataItems(term) {
             type: 'text',
             id: 'cradle-schema-base-schema-input',
             placeholder: mw.msg('cradle-base-schema-placeholder')
+        }).on('input change', function() {
+            checkTargetItemDuplicateSchema($targetItemInput.val());
         });
 
         let $openImporterBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet')
@@ -5654,12 +5705,12 @@ function searchWikidataItems(term) {
             .on('click', function(e) {
                 e.preventDefault();
                 openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, modalLabelsMap, recoinFreqMap, importedBaseSchema, occupationPreset) {
+                    if (importedBaseSchema) {
+                        $baseSchemaInput.val(importedBaseSchema);
+                    }
                     if (importedTargetQID) {
                         $targetItemInput.val(importedTargetQID);
                         checkTargetItemDuplicateSchema(importedTargetQID);
-                    }
-                    if (importedBaseSchema) {
-                        $baseSchemaInput.val(importedBaseSchema);
                     }
                     if (occupationPreset && occupationPreset.label && !$titleInput.val().trim()) {
                         $titleInput.val(occupationPreset.label);
