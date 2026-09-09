@@ -1,0 +1,166 @@
+PREFIX p: <http://www.wikidata.org/prop/>
+PREFIX ps: <http://www.wikidata.org/prop/statement/>
+PREFIX pq: <http://www.wikidata.org/prop/qualifier/>
+PREFIX psn: <http://www.wikidata.org/prop/statement/value-normalized/>
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX psv: <http://www.wikidata.org/prop/statement/value/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+
+start = @<object_with_inscription>
+
+<object_with_inscription> {
+ # required
+ # instance of
+    p:P31 {        ps:P31 [ wd:Q1640824 ]    } + ;
+
+ # writing system
+    p:P282 {       ps:P282 @<writing_system>  } + ;
+
+ # location
+    p:P276 {
+    (      ps:P276 [ <http://www.wikidata.org/entity>~ ]  + ; |
+
+           ps:P276 [  ] ;
+               psv:P276 [ <http://www.wikidata.org/.well-known/genid>~ ]  )  }  ;
+
+ # language of work or name
+    p:P407 {       ps:P407 @<language>   } +   ;
+
+ # inscription 
+    p:P1684 {      ps:P1684  xsd:string   } +  ;
+
+# optional
+# inception (TBD: add in or, for for the case when we know the date
+    p:P571 {        ps:P571 [  ] ;
+        psv:P571 [ <http://www.wikidata.org/.well-known/genid>~ ] ;
+		 pq:P1319  xsd:dateTime ? ;
+		 pq:P1326  xsd:dateTime ? ;     } * ; 
+
+# location of discovery
+    p:P189 {
+    (      ps:P189 [ <http://www.wikidata.org/entity>~ ]  * ; |
+
+           ps:P189 [  ] ;
+               psv:P189 [ <http://www.wikidata.org/.well-known/genid>~ ]  )  }  ;
+
+# location of creation
+    p:P1071 {
+    (      ps:P1071 [ <http://www.wikidata.org/entity>~ ]  * ; |
+
+           ps:P1071 [  ] ;
+               psv:P1071 [ <http://www.wikidata.org/.well-known/genid>~ ]  )  }  ;
+
+# made from material
+    p:P186 {        ps:P186 [ <http://www.wikidata.org/entity>~  ]    } * ;
+
+# image
+    p:P18 {        ps:P18 [ <http://commons.wikimedia.org/wiki/Special:FilePath>~ ]    } * ;
+
+# collection
+    p:P195 {        ps:P195 [ <http://www.wikidata.org/entity>~  ]    } * ;
+
+# inventory number 
+	p:P217 {        ps:P217 xsd:string  } * ;
+
+# creator 
+	p:P170 {        ps:P170 [ <http://www.wikidata.org/entity>~ ] } * ;
+
+# height
+	p:P2048 {        ps:P2048 xsd:decimal } * ;
+
+# width
+	p:P2049 {	ps:P2049 xsd:decimal } * ;
+
+# height of letters
+	p:P12549 {	psv:P12549 [ <http://www.wikidata.org/value>~ ] * ;
+	psn:P12549 [ <http://www.wikidata.org/value>~ ] ;
+	ps:P12549 [ <http://www.wikidata.org/value>~ ] ; 
+	} ;
+
+# depicts
+	p:P180 {		ps:P180 [ <http://www.wikidata.org/entity>~ ] } * ;
+
+# literal translation
+	p:P2441 {	ps:P2441 rdf:langString } * ;
+
+# described by source
+	p:P1343 {	ps:P1343 [ <http://www.wikidata.org/entity>~ ]    } * ;
+
+# described at URL
+	p:P973 {		ps:P973 IRI } * ;
+
+# time period
+	p:P2348 {	ps:P2348 [ <http://www.wikidata.org/entity>~ ]  } * ;
+
+# state of conservation
+	p:P5816 {       ps:P5816 [ <http://www.wikidata.org/entity>~ ]  } * ;
+
+# significant event
+	p:P793 { ps:P793 [<http://www.wikidata.org/entity>~ ] } * ;
+	
+# significant place
+	p:P7153 { ps:P7153 [<http://www.wikidata.org/entity>~]} * ;
+	
+# discovery date 
+	p:P575 xsd:dateTime * ;
+
+# inscription mentions
+	p:P6568 { ps:P6568 [<http://www.wikidata.org/entity>~ ] } * ;
+
+# religion or worldview
+	p:P140 { ps:P140 <@religion_or_worldview> } * ;
+
+# writing technique
+	p:P12876 { ps:P12876 <@writing_technique> } * ;
+
+# commissioned by (P88)
+	p:P88 { ps:P88 [<http://www.wikidata.org/entity>~]  } * ;
+
+# U.S. Epigraphy Project (USEP) ID 
+       p:P11708    {ps:P11708  xsd:string  } * ; 
+
+# Packard Humanities Institute (PHI) Greek Inscriptions ID
+     p:P11299      {ps:P11299  xsd:string  } * ; 
+
+# Epigraphic Database Heidelberg ID 
+     p:P11273      {ps:P11273  xsd:string  } * ; 
+
+# Epigraphik-Datenbank Clauss / Slaby ID 
+     p:P11656      {ps:P11656  xsd:string  } * ; 
+
+# Trismegistos text ID
+     p:P8532         {ps:P8532  xsd:string  } * ; 
+
+# Epigraphic Database Roma ID
+     p:P12495     {ps:P12495  xsd:string  } * ; 
+
+# Arachne entity ID 
+     p:P10510     {ps:P10510   xsd:string  } * ; 
+
+# Roman Inscriptions of Britain Online ID
+     p:P13241     {ps:P13241   xsd:string  } * ; 
+
+# Scandinavian Runic-text Database ID 
+     p:P1261        {ps:P1261   xsd:string  } * ; 
+
+}
+ <writing_system>  {
+    p:P31  {     ps:P31  [wd:Q8192]    } * ;
+}
+
+<language> {
+   p:P31    {    ps:P31 [wd:Q20162172] } + ;
+}
+
+<religion_or_worldview> {
+   p:P31   {   ps:P31 [wd:Q71966963] } * ;
+}
+
+<writing_technique> {
+   p:P31   {   ps:P31 [wd:Q125400578] } * ;
+
+}

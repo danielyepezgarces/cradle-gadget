@@ -9,16 +9,15 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.37.0
+ * Version: 1.39.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.37.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.39.0');
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.37.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -276,16 +275,18 @@
             pointer-events: auto;
         }
 
-        /* Wikimedia-styled flat side panel */
+        /* Wikimedia-styled flat side panel — 50% Viewport Width Drawer */
         .cradle-drawer {
             position: fixed;
             top: 0;
-            right: -480px;
-            width: 440px;
+            right: -55vw;
+            width: 50vw;
+            min-width: 500px;
+            max-width: 95vw;
             height: 100vh;
             background-color: var(--background-color-base, #ffffff);
             border-left: 1px solid var(--border-color-base, #a2a9b1);
-            box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.25);
             z-index: 10001;
             transition: right 0.25s cubic-bezier(0.2, 0.8, 0.4, 1);
             display: flex;
@@ -428,50 +429,352 @@
             margin-bottom: 16px;
         }
         
-        /* Form fields cards - Flat Wikimedia styling */
-        .cradle-field-card {
-            background-color: var(--background-color-base, #ffffff);
-            border: 1px solid var(--border-color-base, #a2a9b1);
-            border-radius: 2px;
-            padding: 16px;
-            margin-bottom: 16px;
-            transition: border-color 0.2s ease;
-            position: relative;
-        }
-        .cradle-field-card:hover {
-            border-color: var(--border-color-progressive, #36c);
-        }
-        .cradle-field-card.mandatory {
-            border-left: 3px solid var(--border-color-progressive, #36c);
-        }
-        .cradle-field-card.valid {
-            border-left: 4px solid var(--color-success, #00af89) !important;
-        }
-        .cradle-field-card.invalid {
-            border-left: 4px solid var(--color-destructive, #d33) !important;
-            background-color: rgba(211, 51, 51, 0.01);
-        }
-        .cradle-field-card.optional-present {
-            border-left: 4px solid var(--color-progressive, #36c) !important;
-        }
-        .cradle-field-card.optional-missing {
-            border-left: 4px solid var(--color-warning, #fc3) !important;
-            background-color: var(--background-color-warning-subtle, #fef8ee);
+        /* Wikibase exact layout — 2 column flexbox from cradle_desing_test.html */
+        .cradle-wikibase-statementgrouplistview {
+            width: 100%;
         }
 
-        /* Strict sizing for all SVG icons inside Cradle elements and buttons */
-        .cradle-drawer svg,
-        .cradle-modal-overlay svg,
-        .cdx-button svg,
-        .cradle-btn-secondary svg,
-        .cradle-btn-icon svg {
-            width: 1.1em !important;
-            height: 1.1em !important;
-            max-width: 20px !important;
-            max-height: 20px !important;
-            vertical-align: middle !important;
-            fill: currentColor;
+        /* Property Group Boxes — Dynamic Validation States */
+        .cradle-wikibase-statementgroupview {
+            display: flex;
+            flex-direction: row;
+            border: 2px solid #c8ccd1;
+            margin-bottom: 16px;
+            position: relative;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .cradle-wikibase-statementgroupview.valid {
+            border: 2px solid #00af89;
+        }
+
+        .cradle-wikibase-statementgroupview.invalid {
+            border: 2px solid #d33;
+            background-color: rgba(211, 51, 51, 0.02);
+        }
+
+        .cradle-wikibase-statementgroupview.optional-present {
+            border: 2px solid #36c;
+        }
+
+        .cradle-wikibase-statementgroupview.optional-missing {
+            border: 2px solid #fc3;
+            background-color: #fef8ee;
+        }
+
+        .cradle-card-validation-badge {
+            display: inline-block;
+            margin-right: 4px;
+            font-size: 0.9rem;
+        }
+
+        /* Left column: property label (160px) */
+        .cradle-wikibase-statementgroupview-property {
+            width: 160px;
             flex-shrink: 0;
+            background: #f8f9fa;
+            border-right: 1px solid #c8ccd1;
+            padding: 10px;
+            box-sizing: border-box;
+            align-self: stretch;
+        }
+
+        .cradle-wikibase-statementgroupview-property-label {
+            word-wrap: break-word;
+            font-size: 0.875rem;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+
+        .cradle-wikibase-statementgroupview-property-label a {
+            color: #0645ad;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .cradle-wikibase-statementgroupview-property-label a:hover {
+            text-decoration: underline;
+        }
+
+        .cradle-prop-pid {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: normal;
+            color: #54595d;
+            margin-top: 2px;
+        }
+
+        .cradle-prop-desc {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: normal;
+            color: #54595d;
+            margin-top: 4px;
+        }
+
+        .cradle-card-validation-badge {
+            display: none;
+        }
+
+        /* Right column: statement list */
+        .cradle-wikibase-statementlistview {
+            flex: 1;
+            min-width: 0;
+            background: #ffffff;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cradle-wikibase-statementlistview-listview {
+            padding: 8px;
+        }
+
+        .cradle-wikibase-statementview {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .cradle-wikibase-statementview:last-child {
+            margin-bottom: 0;
+        }
+
+        .cradle-wikibase-statementview-rankselector {
+            flex-shrink: 0;
+            width: 24px;
+            margin-right: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            color: #a2a9b1;
+            font-size: 0.75rem;
+            line-height: 1;
+            margin-top: 2px;
+        }
+
+        .cradle-wikibase-statementview-rankselector .cradle-rank-up,
+        .cradle-wikibase-statementview-rankselector .cradle-rank-down {
+            cursor: pointer;
+            color: #a2a9b1;
+        }
+        
+        .cradle-wikibase-statementview-rankselector .cradle-rank-circle {
+            font-size: 0.85rem;
+            margin: 2px 0;
+            color: #72777d;
+        }
+
+        .cradle-wikibase-statementview-mainsnak-container {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .cradle-wikibase-snakview {
+            padding: 2px 0;
+        }
+
+        .cradle-wikibase-snakview-value-container {
+            min-height: 1.6em;
+        }
+
+        .cradle-wikibase-snakview-body {
+            width: 100%;
+        }
+
+        .cradle-valueview-value input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 4px 6px;
+            border: 1px solid transparent;
+            background: #fff;
+            color: #202122;
+            font-size: 0.875rem;
+            font-family: inherit;
+            border-radius: 0;
+            height: 28px;
+        }
+
+        .cradle-valueview-value input:focus {
+            border-color: #36c;
+            box-shadow: inset 0 0 0 1px #36c;
+            outline: none;
+        }
+        
+        /* Qualifiers */
+        .cradle-wikibase-qualifiers {
+            padding: 4px 8px;
+            margin-left: 24px;
+            font-size: 0.8rem;
+        }
+        
+        .cradle-qualifier-row {
+            display: flex;
+            margin-bottom: 4px;
+        }
+        
+        .cradle-qualifier-prop {
+            width: 120px;
+            color: #0645ad;
+        }
+        
+        .cradle-qualifier-val {
+            flex: 1;
+            color: #202122;
+        }
+
+        /* References Outer Container & Header */
+        .cradle-wikibase-statementview-references-container {
+            margin-top: 8px;
+            margin-left: 24px;
+        }
+
+        .cradle-reference-header {
+            color: #0645ad;
+            cursor: pointer;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        /* Light grey box for reference list */
+        .cradle-wikibase-references {
+            padding: 8px 10px;
+            background-color: #f8f9fa;
+            border-radius: 2px;
+            border: 1px solid #eaecf0;
+        }
+
+        /* Distinct white card for each reference block */
+        .cradle-reference-block {
+            background-color: #ffffff;
+            border: 1px solid #c8ccd1;
+            border-radius: 2px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+
+        .cradle-reference-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .cradle-reference-row {
+            display: flex;
+            margin-bottom: 4px;
+        }
+        .cradle-reference-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .cradle-reference-prop {
+            width: 140px;
+            color: #0645ad;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .cradle-reference-val {
+            flex: 1;
+            color: #202122;
+            font-size: 0.8rem;
+        }
+        
+        /* Wikibase Statement Edit Action Bar */
+        .cradle-statement-edit-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #eaecf0;
+            flex-wrap: wrap;
+        }
+
+        .cradle-btn-publish {
+            background-color: #36c;
+            color: #ffffff;
+            border: 1px solid #36c;
+            border-radius: 2px;
+            padding: 4px 14px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        .cradle-btn-publish:hover {
+            background-color: #447ff5;
+        }
+
+        .cradle-btn-cancel {
+            background-color: #ffffff;
+            color: #202122;
+            border: 1px solid #a2a9b1;
+            border-radius: 2px;
+            padding: 4px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        .cradle-btn-cancel:hover {
+            background-color: #f8f9fa;
+        }
+
+        .cradle-btn-remove {
+            background-color: transparent;
+            color: #d33;
+            border: none;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        .cradle-btn-remove:hover {
+            text-decoration: underline;
+        }
+
+        .cradle-add-qualifier-link,
+        .cradle-add-reference-inline-link {
+            font-size: 0.8rem;
+            color: #0645ad;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .cradle-add-qualifier-link:hover,
+        .cradle-add-reference-inline-link:hover {
+            text-decoration: underline;
+        }
+
+        .cradle-wikibase-toolbar-container {
+            flex-shrink: 0;
+            padding-top: 4px;
+            margin-left: 8px;
+        }
+
+        .cradle-wikibase-toolbar-wrapper {
+            background: #eaecf0;
+            padding: 4px 10px;
+            text-align: right;
+            border-top: 1px solid #eaecf0;
+        }
+
+        .cradle-addstatement-link {
+            font-size: 0.75rem;
+            color: #0645ad;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .cradle-addstatement-link:hover {
+            text-decoration: underline;
         }
 
         .cradle-field-title {
@@ -873,7 +1176,7 @@
 
     // SVG Icons
     const ICONS = {
-        cradle: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
+        cradle: `<svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
         close: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m4.34 2.93 12.73 12.73-1.41 1.41L2.93 4.34z"/><path d="M17.07 4.34 4.34 17.07l-1.41-1.41L15.66 2.93z"/></svg>`,
         plus: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M11 9V4H9v5H4v2h5v5h2v-5h5V9z"/></svg>`,
         trash: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M17 2h-3.5l-1-1h-5l-1 1H3v2h14zm-12 4v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6zm3 11H6V8h2zm3 0H9V8h2zm3 0h-2V8h2z"/></svg>`,
@@ -883,7 +1186,7 @@
         alert: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M11.53 2.3A1.85 1.85 0 0 0 10 1.25 1.85 1.85 0 0 0 8.47 2.3L1.31 14.73A1.82 1.82 0 0 0 1.3 16.5a1.76 1.76 0 0 0 1.54.85h14.32a1.76 1.76 0 0 0 1.54-.85 1.82 1.82 0 0 0 0-1.77ZM11 15H9v-2h2Zm0-4H9V6h2z"/></svg>`,
         info: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 0a10 10 0 1 0 10 10A10 10 0 0 0 10 0m1 15H9v-6h2Zm0-8H9V5h2z"/></svg>`,
         download: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M17 12v5H3v-5H1v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"/><path d="M10 15l5-6h-3V1H8v8H5z"/></svg>`,
-        external: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
+        external: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
     };
 
     /**
@@ -934,40 +1237,6 @@
             'cradle-schema-title-required': 'Schema title is required!',
             'cradle-schema-desc-placeholder': 'Schema description (e.g. Schema for football stadiums)...',
             'cradle-schema-aliases-placeholder': 'Schema aliases (pipe-separated |, e.g. stadium | arena)...',
-            'cradle-load-item-btn': 'Load item',
-            'cradle-loading-item': 'Loading...',
-            'cradle-fetching-wikidata-recoin': 'Querying Wikidata and Recoin API...',
-            'cradle-select-p31-class': 'Select associated class (P31) for this schema:',
-            'cradle-select-props-to-import': 'Select properties to import:',
-            'cradle-select-all': 'Select all',
-            'cradle-cardinality-1': '1 (Required, single)',
-            "cradle-cardinality-opt-single": "0..1 / ? (Optional, single)",
-            "cradle-cardinality-req-multi": "1..* / + (Required, multiple)",
-            "cradle-cardinality-opt-multi": "0..* / * (Optional, multiple)",
-            'cradle-cardinality-label': 'Cardinality: ',
-            'cradle-valtype-qid': 'Wikidata Item (QID)',
-            'cradle-valtype-string': 'Free text (xsd:string)',
-            'cradle-valtype-langstring': 'Monolingual text (rdf:langString)',
-            'cradle-valtype-datetime': 'Date / Time (xsd:dateTime)',
-            'cradle-valtype-decimal': 'Number / Quantity (xsd:decimal)',
-            'cradle-valtype-geo': 'Coordinates (geo:wktLiteral)',
-            'cradle-valtype-subshape': 'Sub-schema (@<SubShape>)',
-            'cradle-valtype-label': 'Value type: ',
-            'cradle-orgroup-label': 'Alternative group (OR): ',
-            'cradle-subshape-name-label': 'Sub-schema name: ',
-            'cradle-import-from-item': 'Import from item',
-            'cradle-schema-exists-notice': 'Schema already exists: ',
-            'cradle-schema-target-item-label': 'Associated class/item',
-            'cradle-schema-target-item-placeholder': 'e.g. Q483110 (Stadium) or Q5 (Human)',
-            'cradle-create-custom-schema-desc': 'Search for an existing EntitySchema (e.g. E10, Human) to load its claims and create a new item.',
-            'cradle-designer-custom-desc': 'Design a new schema from scratch or by importing properties from an existing item to publish it as an EntitySchema (ShEx).',
-            'cradle-shex-copied-auto': 'All ShEx code selected and copied to clipboard!',
-            'cradle-open-newentityschema': 'Go to Special:NewEntitySchema',
-            'cradle-direct-api-disabled-notice': 'Direct API creation is currently disabled. Use Special:NewEntitySchema to create your schema.',
-            'cradle-base-schema-label': 'Base Schema / Derivation (IMPORT)',
-            'cradle-base-schema-placeholder': 'e.g. E10 (Human) or E519',
-            'cradle-base-schema-notice': 'Existing base schema detected ($1). You can create a specialized derivation (e.g. Firefighter derived from Human).',
-            'cradle-use-base-schema-checkbox': 'Set $1 as base schema for this derivation',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
             'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
             'cradle-schema-not-found': 'Could not find the schema on the page!',
@@ -1037,11 +1306,7 @@
             'cradle-shex-valid': '✓ Valid ShEx syntax for Wikidata',
             'cradle-shex-invalid': '⚠ Invalid ShEx syntax:',
             'cradle-publishing-shex': 'Publishing EntitySchema to Wikidata...',
-            'cradle-publish-shex-success': 'EntitySchema $1 published successfully on Wikidata!',
-            'cradle-publish-shex-failed': 'Failed to publish EntitySchema: $1',
-            'cradle-open-created-schema': 'View EntitySchema ($1)',
-            'cradle-schema-form-not-found': 'Special:NewEntitySchema form was not found. Check your account permissions.',
-            'cradle-schema-load-form-failed': 'Could not load Special:NewEntitySchema.'
+            'cradle-publish-shex-success': 'EntitySchema $1 published successfully on Wikidata!'
         };
 
         // Load local English fallbacks first
@@ -1127,10 +1392,6 @@
                     'cradle-shex-invalid': '⚠ Sintaxis ShEx no válida:',
                     'cradle-publishing-shex': 'Publicando EntitySchema en Wikidata...',
                     'cradle-publish-shex-success': '¡EntitySchema $1 publicado con éxito en Wikidata!',
-                    'cradle-publish-shex-failed': 'Error al publicar EntitySchema: $1',
-                    'cradle-open-created-schema': 'Ver EntitySchema ($1)',
-                    'cradle-schema-form-not-found': 'No se encontró el formulario de Special:NewEntitySchema. Comprueba los permisos de tu cuenta.',
-                    'cradle-schema-load-form-failed': 'No se pudo cargar Special:NewEntitySchema.',
                     'cradle-sidebar-header': 'Esquemas',
                     'cradle-sidebar-create-schema': 'Crear un esquema nuevo',
                     'cradle-sidebar-recent-schemas': 'Cambios recientes',
@@ -1970,122 +2231,111 @@
     }
 
     /**
-     * Extracts inner content of a shape block matching <shapeName> { ... } while respecting nested braces.
-     */
-    function extractShapeContent(text, shapeName) {
-        let tag = '<' + shapeName + '>';
-        let startIdx = text.indexOf(tag);
-        if (startIdx === -1) return text;
-        let braceStart = text.indexOf('{', startIdx);
-        if (braceStart === -1) return text;
-        let depth = 0;
-        let endIdx = -1;
-        for (let i = braceStart; i < text.length; i++) {
-            if (text[i] === '{') depth++;
-            else if (text[i] === '}') {
-                depth--;
-                if (depth === 0) {
-                    endIdx = i;
-                    break;
-                }
-            }
-        }
-        return endIdx !== -1 ? text.substring(braceStart + 1, endIdx) : text.substring(braceStart + 1);
-    }
-
-    /**
-     * A robust ShEx schema parser supporting nested shapes, multiline blocks, and cardinalities.
+     * A lightweight ShEx schema parser.
      */
     function parseShEx(shexText) {
-        // 1. Remove comments (#...)
-        let cleaned = shexText.replace(/(?<!\<)#.*(\n|$)/mg, "\n");
-
-        // 2. Find start shape or first shape
-        let startMatch = cleaned.match(/start\s*=\s*@<\s*(.+?)\s*>/i);
+        // Remove comments
+        shexText = shexText.replace(/(?<!\<)#.*(\n|$)/mg, "\n");
+        
+        // Find start shape
+        let startMatch = shexText.match(/start\s*=\s*@<\s*(.+?)\s*>/i);
         let startShape = startMatch ? startMatch[1] : null;
-
-        if (!startShape) {
-            let firstShapeMatch = cleaned.match(/<([^>]+)>\s*(?:EXTRA\s+[^{]+)?\s*\{/i);
-            if (firstShapeMatch) startShape = firstShapeMatch[1];
-        }
-
-        let targetText = startShape ? extractShapeContent(cleaned, startShape) : cleaned;
-
-        // Extract shape EXTRA properties if any
+        
+        // Find shape contents and EXTRA properties
+        let shapes = {};
         let shapeExtraPids = [];
-        let extraMatch = cleaned.match(/EXTRA\s+([^{]+)/i);
-        if (extraMatch) {
-            let pids = extraMatch[1].match(/P\d+/gi) || [];
-            shapeExtraPids = pids.map(p => p.toUpperCase());
-            if (shapeExtraPids.length === 0) shapeExtraPids.push('ALL');
-        }
-
-        // 3. Extract statement blocks split by ';'
-        let props = {};
-        let statementBlocks = targetText.split(';');
-
-        statementBlocks.forEach(rawBlock => {
-            let block = rawBlock.trim();
-            if (!block) return;
-
-            // Match main statement property (p:P123, wdt:P123, or inner ps:P123)
-            let mainPropMatch = block.match(/(?:wdt|p):(P\d+)/i) || block.match(/(?:ps|pq|psn|psv|pxt):(P\d+)/i);
-            if (!mainPropMatch) return;
-
-            let pid = mainPropMatch[1].toUpperCase();
-
-            let mandatory = false;
-            let min = 0;
-            let max = 1;
-
-            if (block.includes('+')) {
-                min = 1;
-                mandatory = true;
-                max = Infinity;
-            } else if (block.includes('*')) {
-                min = 0;
-                max = Infinity;
-                mandatory = false;
-            } else if (block.includes('?')) {
-                min = 0;
-                max = 1;
-                mandatory = false;
-            } else {
-                let cardMatch = block.match(/\{\s*(\d+)\s*(?:,\s*(\d+)?)?\s*\}/);
-                if (cardMatch) {
-                    min = parseInt(cardMatch[1]);
-                    max = cardMatch[2] ? parseInt(cardMatch[2]) : min;
-                    mandatory = min > 0;
-                } else {
-                    min = 1;
-                    max = 1;
-                    mandatory = true;
+        let shapeRegex = /<([^>]+)>\s*(?:EXTRA\s+([^{]+))?\s*\{([\s\S]*?)\}/gi;
+        let match;
+        while ((match = shapeRegex.exec(shexText)) !== null) {
+            let shapeName = match[1];
+            let extraStr = match[2] || '';
+            let shapeContent = match[3];
+            shapes[shapeName] = shapeContent;
+            
+            if (!startShape || startShape === shapeName) {
+                startShape = shapeName;
+                if (extraStr) {
+                    let pids = extraStr.match(/P\d+/gi) || [];
+                    shapeExtraPids = pids.map(p => p.toUpperCase());
+                    if (shapeExtraPids.length === 0) {
+                        shapeExtraPids.push('ALL');
+                    }
                 }
             }
+        }
+        
+        let targetText = shexText;
+        if (startShape && shapes[startShape]) {
+            targetText = shapes[startShape];
+        }
 
-            if (shapeExtraPids.includes(pid) || shapeExtraPids.includes('ALL')) {
+        let props = {};
+        let parts = targetText.split(';');
+        parts.forEach(part => {
+            part = part.trim();
+            if (!part) return;
+            
+            // Match wdt:P123 or ps:P123
+            let m = part.match(/(?:wdt|p|ps|pxt):(P\d+)\s*(.*)/);
+            if (!m) return;
+            
+            let propId = m[1];
+            let rest = m[2].trim();
+            
+            let min = 0;
+            let max = Infinity;
+            let mandatory = false;
+            
+            // Cardinality checks
+            if (rest.endsWith('+')) {
+                min = 1;
+                mandatory = true;
+            } else if (rest.endsWith('*')) {
+                min = 0;
+            } else if (rest.endsWith('?')) {
+                min = 0;
+                max = 1;
+            } else {
+                let cardMatch = rest.match(/\{\s*(\d+)\s*\}/);
+                if (cardMatch) {
+                    min = parseInt(cardMatch[1]);
+                    max = min;
+                } else {
+                    let rangeMatch = rest.match(/\{\s*(\d+)\s*,\s*(\d+)?\s*\}/);
+                    if (rangeMatch) {
+                        min = parseInt(rangeMatch[1]);
+                        max = rangeMatch[2] ? parseInt(rangeMatch[2]) : Infinity;
+                    } else {
+                        min = 1;
+                        max = 1;
+                        mandatory = true;
+                    }
+                }
+            }
+            if (min > 0) mandatory = true;
+            
+            // Extract softselect [wd:Q1 wd:Q2]
+            let softselect = [];
+            let allowedMatch = rest.match(/\[\s*([^\]]+)\s*\]/);
+            if (allowedMatch) {
+                let itemsText = allowedMatch[1];
+                let qids = itemsText.match(/Q\d+/g) || [];
+                softselect = qids;
+            }
+            
+            if (shapeExtraPids.includes(propId) || shapeExtraPids.includes('ALL')) {
                 max = Infinity;
             }
 
-            // Softselect QIDs
-            let softselect = [];
-            let qids = block.match(/(?:wd:|Q)(Q\d+)/gi) || [];
-            qids.forEach(q => {
-                let cleanQ = q.replace(/wd:/i, '').toUpperCase();
-                if (!softselect.includes(cleanQ)) softselect.push(cleanQ);
-            });
-
-            if (!props[pid] || mandatory) {
-                props[pid] = {
-                    id: pid,
-                    min: min,
-                    max: max,
-                    mandatory: mandatory,
-                    softselect: softselect
-                };
-            }
+            props[propId] = {
+                id: propId,
+                min: min,
+                max: max,
+                mandatory: mandatory,
+                softselect: softselect
+            };
         });
-
+        
         return props;
     }
 
@@ -2334,8 +2584,10 @@
                         let value = '';
                         if (snaktype === 'value' && snak.datavalue) {
                             value = parseClaimValue(snak.datavalue);
-                        } else if (snaktype === 'somevalue' || snaktype === 'novalue') {
-                            value = snaktype;
+                        } else if (snaktype === 'somevalue') {
+                            value = 'somevalue';
+                        } else if (snaktype === 'novalue') {
+                            value = 'novalue';
                         }
 
                         if (snaktype === 'value' || snaktype === 'somevalue' || snaktype === 'novalue') {
@@ -2967,7 +3219,7 @@
                     'width': '100%',
                     'line-height': '1.3'
                 })
-                .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink, magnusLink) + ` <span style="font-weight:bold; color:#72777d; margin-left:4px;">v${CRADLE_VERSION}</span>`);
+                .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink, magnusLink));
  
             $footer.append($credits);
         }
@@ -3155,54 +3407,125 @@
             $content.append($metaCard);
         }
 
-        // Render properties
+        // Render properties inside cradle-wikibase-statementgrouplistview
+        let $groupList = $('<div>').addClass('cradle-wikibase-statementgrouplistview');
+        $content.append($groupList);
+
         propIds.forEach(pid => {
             let propDef = schemaProperties[pid];
             let meta = propertyMetadata[pid] || { label: pid, description: '', datatype: 'string' };
             
             let $card = $('<div>')
-                .addClass('cradle-field-card')
-                .attr('id', `cradle-card-${pid}`);
+                .addClass('cradle-wikibase-statementgroupview')
+                .attr({'id': `cradle-card-${pid}`, 'data-property-id': pid});
                 
-            if (propDef.mandatory) {
-                $card.addClass('mandatory');
-            }
-
-            // Header of card
-            let $cardHeader = $('<div>').addClass('cradle-field-header');
-            let $label = $('<h3>').addClass('cradle-field-title');
+            let $propCol = $('<div>').addClass('cradle-wikibase-statementgroupview-property');
+            let $labelDiv = $('<div>').addClass('cradle-wikibase-statementgroupview-property-label').attr('dir', 'auto');
             
-            // Prepend validation badge span next to title
-            let $badge = $('<span>').addClass('cradle-card-validation-badge').css({'margin-right': '6px', 'font-size': '1.1rem'});
-            $label.append($badge);
-
-            $label.append($('<a>').attr({
+            let $badge = $('<span>').addClass('cradle-card-validation-badge');
+            $labelDiv.append($badge);
+            $labelDiv.append($('<a>').attr({
                 href: `/wiki/Property:${pid}`,
                 target: '_blank'
             }).text(meta.label));
-            if (propDef.mandatory) {
-                $label.append($('<span>').addClass('cradle-field-required-marker').text('*'));
-            }
-            $cardHeader.append($label);
+
+            $labelDiv.append($('<span>').addClass('cradle-prop-pid').text(pid + (propDef.mandatory ? ' *' : '')));
             if (meta.description) {
-                $cardHeader.append($('<p>').addClass('cradle-field-description').text(meta.description));
+                $labelDiv.append($('<span>').addClass('cradle-prop-desc').text(meta.description));
             }
-            $card.append($cardHeader);
-            // Container for statement input rows
-            let $rowsContainer = $('<div>').attr('id', `cradle-rows-${pid}`);
-            $card.append($rowsContainer);
+            $propCol.append($labelDiv);
 
-            // Container for action bar
-            let $actionsContainer = $('<div>').attr('id', `cradle-actions-${pid}`);
-            $card.append($actionsContainer);
+            let $stmtList = $('<div>').addClass('cradle-wikibase-statementlistview');
+            let $rowsContainer = $('<div>').addClass('cradle-wikibase-statementlistview-listview').attr('id', `cradle-rows-${pid}`);
+            let $actionsContainer = $('<div>').addClass('cradle-wikibase-toolbar-wrapper').attr('id', `cradle-actions-${pid}`);
 
-            $content.append($card);
-            
+            $stmtList.append($rowsContainer).append($actionsContainer);
+            $card.append($propCol).append($stmtList);
+            $groupList.append($card);
+
             renderPropertyRows(pid);
         });
 
         updateDrawerFooter(true);
         liveUpdateValidation();
+    }
+
+    /**
+     * Formats any Wikibase snak object, datavalue, QID, string or date into a human-readable text value.
+     */
+    function formatSnakValue(snak) {
+        if (snak === null || snak === undefined) return '';
+        if (typeof snak === 'string' || typeof snak === 'number') {
+            let strVal = String(snak).trim();
+            if (/^[QP]\d+$/i.test(strVal) && softselectLabels[strVal]) {
+                return `${softselectLabels[strVal]} (${strVal})`;
+            }
+            return strVal;
+        }
+
+        let dv = snak.datavalue ? snak.datavalue : (snak.value !== undefined ? { value: snak.value, type: snak.datatype } : null);
+        if (dv) {
+            let val = dv.value;
+            let type = dv.type || snak.datatype || typeof val;
+
+            if (typeof val === 'string') {
+                if (/^[QP]\d+$/i.test(val) && softselectLabels[val]) {
+                    return `${softselectLabels[val]} (${val})`;
+                }
+                return val;
+            }
+            if (typeof val === 'object' && val !== null) {
+                if (val['entity-type'] || val.id) {
+                    let qid = val.id || (val['numeric-id'] ? `Q${val['numeric-id']}` : '');
+                    if (qid) {
+                        return softselectLabels[qid] ? `${softselectLabels[qid]} (${qid})` : qid;
+                    }
+                }
+                if (val.time) {
+                    let timeStr = val.time.replace(/^\+/, '');
+                    if (timeStr.includes('T')) {
+                        timeStr = timeStr.split('T')[0];
+                    }
+                    return timeStr;
+                }
+                if (val.amount !== undefined) {
+                    let amt = val.amount.replace(/^\+/, '');
+                    let unit = val.unit && val.unit.includes('Q') ? ` (${val.unit.split('/').pop()})` : '';
+                    return amt + unit;
+                }
+                if (val.text) {
+                    return val.text + (val.language ? ` [${val.language}]` : '');
+                }
+                if (val.latitude !== undefined && val.longitude !== undefined) {
+                    return `${val.latitude}°, ${val.longitude}°`;
+                }
+            }
+        }
+
+        if (typeof snak === 'object') {
+            if (snak.text) return snak.text;
+            if (snak.id) return softselectLabels[snak.id] ? `${softselectLabels[snak.id]} (${snak.id})` : snak.id;
+            if (snak.time) return snak.time;
+            if (snak.label) return snak.label;
+        }
+
+        return String(snak);
+    }
+
+    /**
+     * Formats any Wikibase snak object or QID into a clickable HTML link (Wikibase style).
+     */
+    function formatSnakValueHTML(snak) {
+        let text = formatSnakValue(snak);
+        if (!text) return '<span style="color:#72777d;font-style:italic;">(sin valor)</span>';
+        
+        let qidMatch = text.match(/\(([QP]\d+)\)$/);
+        let qid = qidMatch ? qidMatch[1] : (typeof snak === 'string' && /^[QP]\d+$/i.test(snak) ? snak : null);
+        
+        if (qid) {
+            return `<a href="/wiki/${qid}" target="_blank" style="color:#0645ad;text-decoration:none;font-weight:bold;">${text}</a>`;
+        }
+        return $('<div>').text(text).html();
     }
 
     /**
@@ -3217,27 +3540,241 @@
 
         rows.forEach((row, index) => {
             let $row = $('<div>')
-                .addClass('cradle-row')
+                .addClass('cradle-wikibase-statementview cradle-listview-item')
                 .attr('id', `cradle-row-${row.id}`);
 
             if (row.isDeleted) {
                 $row.addClass('deleted');
             }
 
-            let $inputElement = createInputForDatatype(pid, row);
-            let $indicators = $('<div>').addClass('wikibase-snakview-indicators').attr('id', `cradle-indicators-${row.id}`).css({'margin-left': '6px', 'display': 'inline-flex'});
-            let $inputWithIndicators = $('<div>').css({'display': 'flex', 'align-items': 'center', 'flex': '1'}).append($inputElement).append($indicators);
-            $row.append($inputWithIndicators);
+            // 1. Rank Selector Column
+            let $rankWrapper = $('<div>').addClass('cradle-wikibase-statementview-rankselector');
+            let $rankUp = $('<span>').addClass('cradle-rank-up').text('▵').attr('title', 'Aumentar rango').on('click', function() {
+                row.rank = row.rank === 'normal' ? 'preferred' : (row.rank === 'deprecated' ? 'normal' : 'preferred');
+                renderPropertyRows(pid);
+            });
+            let rankChar = row.rank === 'preferred' ? '★' : (row.rank === 'deprecated' ? '▼' : '●');
+            let $rankCircle = $('<span>').addClass('cradle-rank-circle').text(rankChar);
+            let $rankDown = $('<span>').addClass('cradle-rank-down').text('▿').attr('title', 'Disminuir rango').on('click', function() {
+                row.rank = row.rank === 'normal' ? 'deprecated' : (row.rank === 'preferred' ? 'normal' : 'deprecated');
+                renderPropertyRows(pid);
+            });
+            $rankWrapper.append($rankUp).append($rankCircle).append($rankDown);
+            $row.append($rankWrapper);
 
+            // 2. Mainsnak Container
+            let $mainsnakContainer = $('<div>').addClass('cradle-wikibase-statementview-mainsnak-container');
+            let $mainsnak = $('<div>').addClass('cradle-wikibase-statementview-mainsnak');
+            let $snakview = $('<div>').addClass('cradle-wikibase-snakview ' + (row.isEditing ? 'cradle-wb-edit' : 'cradle-wb-view'));
+            let $snakValueContainer = $('<div>').addClass('cradle-wikibase-snakview-value-container');
+            let $snakBody = $('<div>').addClass('cradle-wikibase-snakview-body');
+            let $snakValue = $('<div>').addClass('cradle-wikibase-snakview-value');
+            let $valueView = $('<div>').addClass('cradle-valueview-value');
+            
+            if (row.isEditing) {
+                let $inputElem = createInputForDatatype(pid, row);
+                $valueView.append($inputElem);
+            } else {
+                let formattedHtml = formatSnakValueHTML(row.value);
+                $valueView.html(formattedHtml);
+            }
+
+            $snakValue.append($valueView);
+            $snakBody.append($snakValue);
+            $snakValueContainer.append($snakBody);
+            $snakview.append($snakValueContainer);
+            $mainsnak.append($snakview);
+
+            // Collect missing PIDs and QIDs from qualifiers and references to pre-fetch metadata & labels
+            let missingPidsToFetch = [];
+            let missingQidsToFetch = [];
+
+            // 1. Render Qualifiers Section if qualifiers exist or are defined
+            let $qualBox = $('<div>').addClass('cradle-wikibase-qualifiers');
+            let qualPids = Object.keys(row.qualifiers || {});
+            if (qualPids.length > 0 || (propDef && propDef.qualifiers && propDef.qualifiers.length > 0)) {
+                let displayQualPids = qualPids.length > 0 ? qualPids : (propDef.qualifiers || []);
+                displayQualPids.forEach(qPid => {
+                    if (!propertyMetadata[qPid] || !propertyMetadata[qPid].label || propertyMetadata[qPid].label === qPid) {
+                        missingPidsToFetch.push(qPid);
+                    }
+                    let qMeta = propertyMetadata[qPid] || { label: qPid };
+                    let qVals = (row.qualifiers && row.qualifiers[qPid]) ? row.qualifiers[qPid] : [''];
+                    qVals.forEach((qVal, qIdx) => {
+                        let formattedVal = formatSnakValue(qVal);
+                        
+                        let qidCandidate = typeof qVal === 'string' ? qVal : (qVal && qVal.id ? qVal.id : (qVal && qVal.datavalue && qVal.datavalue.value ? qVal.datavalue.value.id : null));
+                        if (qidCandidate && /^[QP]\d+$/i.test(qidCandidate) && !softselectLabels[qidCandidate]) {
+                            missingQidsToFetch.push(qidCandidate);
+                        }
+
+                        let $qRow = $('<div>').addClass('cradle-qualifier-row').attr('data-qpid', qPid);
+                        let $qProp = $('<div>').addClass('cradle-qualifier-prop').text(qMeta.label || qPid);
+                        let $qValDiv = $('<div>').addClass('cradle-qualifier-val');
+                        
+                        if (row.isEditing) {
+                            let $qInput = $('<input>')
+                                .addClass('cradle-input')
+                                .attr('type', 'text')
+                                .val(formattedVal)
+                                .on('change input', function() {
+                                    if (!row.qualifiers) row.qualifiers = {};
+                                    row.qualifiers[qPid] = [$(this).val()];
+                                    liveUpdateValidation();
+                                });
+                            $qValDiv.append($qInput);
+                        } else {
+                            $qValDiv.html(formatSnakValueHTML(qVal));
+                        }
+
+                        $qRow.append($qProp).append($qValDiv);
+                        $qualBox.append($qRow);
+                    });
+                });
+                $mainsnakContainer.append($qualBox);
+            }
+
+            // 2. Render References Section
+            let $refContainer = $('<div>').addClass('cradle-wikibase-statementview-references-container');
+            let refList = row.references || [];
+            let refCount = refList.length;
+            let refHeaderText = refCount === 1 ? `▼ 1 referencia` : (refCount > 0 ? `▼ ${refCount} referencias` : '▶ 0 referencias');
+            let $refHeader = $('<div>').addClass('cradle-reference-header').text(refHeaderText);
+            
+            let $refBox = $('<div>').addClass('cradle-wikibase-references').css({'display': refCount > 0 ? 'block' : 'none'});
+            $refHeader.on('click', function() {
+                $refBox.toggle();
+                let isVis = $refBox.is(':visible');
+                let count = (row.references || []).length;
+                let text = count === 1 ? '1 referencia' : `${count} referencias`;
+                $(this).text(isVis ? `▼ ${text}` : `▶ ${text}`);
+            });
+
+            refList.forEach((refObj, rIdx) => {
+                let $refBlock = $('<div>').addClass('cradle-reference-block');
+                let refSnaks = refObj.snaks || refObj;
+                Object.keys(refSnaks).forEach(rPid => {
+                    if (rPid !== 'snaks-order' && rPid !== 'hash') {
+                        if (!propertyMetadata[rPid] || !propertyMetadata[rPid].label || propertyMetadata[rPid].label === rPid) {
+                            missingPidsToFetch.push(rPid);
+                        }
+                        let rMeta = propertyMetadata[rPid] || { label: rPid };
+                        let snakArr = Array.isArray(refSnaks[rPid]) ? refSnaks[rPid] : [refSnaks[rPid]];
+                        snakArr.forEach(s => {
+                            let rQidCandidate = typeof s === 'string' ? s : (s && s.id ? s.id : (s && s.datavalue && s.datavalue.value ? (s.datavalue.value.id || (s.datavalue.value['numeric-id'] ? `Q${s.datavalue.value['numeric-id']}` : null)) : null));
+                            if (rQidCandidate && /^[QP]\d+$/i.test(rQidCandidate) && !softselectLabels[rQidCandidate]) {
+                                missingQidsToFetch.push(rQidCandidate);
+                            }
+
+                            let $rRow = $('<div>').addClass('cradle-reference-row').attr('data-rpid', rPid);
+                            let $rProp = $('<div>').addClass('cradle-reference-prop').text(rMeta.label || rPid);
+                            let $rVal = $('<div>').addClass('cradle-reference-val').html(formatSnakValueHTML(s));
+                            $rRow.append($rProp).append($rVal);
+                            $refBlock.append($rRow);
+                        });
+                    }
+                });
+                $refBox.append($refBlock);
+            });
+
+            let $addRefLink = $('<a>').addClass('cradle-add-reference-link').text('+ ' + (mw.msg('cradle-add-reference') || 'añadir referencia'))
+                .on('click', function(e) {
+                    e.preventDefault();
+                    if (!row.references) row.references = [];
+                    row.references.push({ snaks: { P248: [{ datavalue: { value: '' } }] } });
+                    renderPropertyRows(pid);
+                });
+
+            $refBox.append($addRefLink);
+            $refContainer.append($refHeader).append($refBox);
+            $mainsnakContainer.append($refContainer);
+
+            // 3. Edit Action Bar when statement is in Edit Mode (Publicar, Cancelar, Eliminar, + añadir calificativo)
+            if (row.isEditing) {
+                let $editActionBar = $('<div>').addClass('cradle-statement-edit-toolbar');
+                let $publishBtn = $('<button>').addClass('cradle-btn-publish').text('Publicar').on('click', function() {
+                    row.isEditing = false;
+                    renderPropertyRows(pid);
+                    liveUpdateValidation();
+                });
+                let $cancelBtn = $('<button>').addClass('cradle-btn-cancel').text('Cancelar').on('click', function() {
+                    row.isEditing = false;
+                    renderPropertyRows(pid);
+                });
+                let $removeBtn = $('<button>').addClass('cradle-btn-remove').text('Eliminar').on('click', function() {
+                    toggleDeleteRow(pid, row.id);
+                });
+                let $addQualLink = $('<a>').addClass('cradle-add-qualifier-link').text('+ añadir calificativo').on('click', function(e) {
+                    e.preventDefault();
+                    if (!row.qualifiers) row.qualifiers = {};
+                    let firstQualPid = (propDef && propDef.qualifiers && propDef.qualifiers[0]) ? propDef.qualifiers[0] : 'P580';
+                    if (!row.qualifiers[firstQualPid]) row.qualifiers[firstQualPid] = [];
+                    row.qualifiers[firstQualPid].push('');
+                    renderPropertyRows(pid);
+                });
+
+                $editActionBar.append($publishBtn).append($cancelBtn).append($removeBtn).append($addQualLink);
+                $mainsnakContainer.append($editActionBar);
+            }
+
+            // Top Right Toolbar (Edit / Delete buttons when in view mode)
+            let $toolbarContainer = $('<div>').addClass('cradle-wikibase-toolbar-container');
+            let $editBtn = $('<button>')
+                .addClass('cradle-btn-icon')
+                .html(row.isEditing ? '✓' : '✏️')
+                .attr('title', row.isEditing ? 'Guardar edición' : 'Editar declaración')
+                .on('click', function() {
+                    row.isEditing = !row.isEditing;
+                    renderPropertyRows(pid);
+                });
             let $deleteBtn = $('<button>')
-                .addClass('cradle-btn-delete')
+                .addClass('cradle-btn-icon')
                 .html(row.isDeleted ? ICONS.undo : ICONS.trash)
-                .attr('title', row.isDeleted ? 'Restore Claim' : 'Delete Claim')
+                .attr('title', row.isDeleted ? 'Restaurar' : 'Eliminar')
                 .on('click', function() {
                     toggleDeleteRow(pid, row.id);
                 });
+            $toolbarContainer.append($editBtn).append($deleteBtn);
+            $row.append($toolbarContainer);
 
-            $row.append($deleteBtn);
+            // Fetch missing property metadata (PIDs) and item labels (QIDs) in parallel for user's language
+            let loadPromises = [];
+            if (missingPidsToFetch.length > 0) {
+                let uniquePids = [...new Set(missingPidsToFetch)];
+                loadPromises.push(loadPropertiesMetadata(uniquePids).then(newMeta => {
+                    Object.assign(propertyMetadata, newMeta);
+                }));
+            }
+            if (missingQidsToFetch.length > 0) {
+                let uniqueQids = [...new Set(missingQidsToFetch)];
+                loadPromises.push(loadItemLabels(uniqueQids).then(newLabels => {
+                    Object.assign(softselectLabels, newLabels);
+                }));
+            }
+
+            if (loadPromises.length > 0) {
+                Promise.all(loadPromises).then(() => {
+                    $qualBox.find('.cradle-qualifier-row').each(function() {
+                        let qPid = $(this).attr('data-qpid');
+                        if (qPid && propertyMetadata[qPid] && propertyMetadata[qPid].label) {
+                            $(this).find('.cradle-qualifier-prop').text(propertyMetadata[qPid].label);
+                        }
+                    });
+                    $refContainer.find('.cradle-reference-row').each(function() {
+                        let rPid = $(this).attr('data-rpid');
+                        if (rPid && propertyMetadata[rPid] && propertyMetadata[rPid].label) {
+                            $(this).find('.cradle-reference-prop').text(propertyMetadata[rPid].label);
+                        }
+                        let valElem = $(this).find('.cradle-reference-val');
+                        let txt = valElem.text();
+                        if (/^[QP]\d+$/i.test(txt) && softselectLabels[txt]) {
+                            valElem.text(`${softselectLabels[txt]} (${txt})`);
+                        }
+                    });
+                });
+            }
+
+            $row.append($mainsnakContainer).append($toolbarContainer);
             $container.append($row);
         });
 
@@ -3247,10 +3784,11 @@
         let showAddButton = (maxLimit === '*' || maxLimit === Infinity || nonDeletedRows.length < maxLimit);
 
         if (showAddButton) {
-            let $addBtn = $('<button>')
-                .addClass('cradle-btn-text')
-                .html(`${ICONS.plus} ${mw.msg('cradle-add-value')}`)
-                .on('click', function() {
+            let $addBtn = $('<a>')
+                .addClass('cradle-addstatement-link')
+                .html(`+ ${mw.msg('cradle-add-value')}`)
+                .on('click', function(e) {
+                    e.preventDefault();
                     addRow(pid);
                 });
             $actionsContainer.append($addBtn);
@@ -3261,8 +3799,55 @@
      * Creates appropriate jQuery inputs for a datatype.
      */
     function createInputForDatatype(pid, row) {
-        let propDef = schemaProperties[pid];
+        let propDef = schemaProperties[pid] || {};
+
+        // Special handling for Wikidata 'somevalue' (unknown value) and 'novalue' (no value)
+        if (row.snaktype === 'somevalue' || row.value === 'somevalue') {
+            return $('<span>')
+                .addClass('cdx-badge cdx-badge--style-subtle')
+                .css({'font-size': '0.85rem', 'padding': '4px 8px', 'font-style': 'italic', 'color': '#54595d', 'background': '#f8f9fa', 'border': '1px solid #c8ccd1', 'border-radius': '2px'})
+                .text('valor desconocido (somevalue)');
+        }
+        if (row.snaktype === 'novalue' || row.value === 'novalue') {
+            return $('<span>')
+                .addClass('cdx-badge cdx-badge--style-subtle')
+                .css({'font-size': '0.85rem', 'padding': '4px 8px', 'font-style': 'italic', 'color': '#54595d', 'background': '#f8f9fa', 'border': '1px solid #c8ccd1', 'border-radius': '2px'})
+                .text('sin valor (novalue)');
+        }
         
+        // Support for dropdown select when predefined values / hardselect / softselect / allowedValues exist
+        let allowedList = propDef.hardselect || propDef.softselect || propDef.allowedValues || propDef.values;
+        if (allowedList && Array.isArray(allowedList) && allowedList.length > 0) {
+            let $select = $('<select>').addClass('cradle-select').css({
+                'width': '100%',
+                'height': '32px',
+                'padding': '4px 6px',
+                'border': '1px solid #a2a9b1',
+                'border-radius': '2px',
+                'font-size': '0.875rem'
+            });
+            
+            function buildOptions() {
+                $select.empty().append($('<option>').val('').text('-- ' + (mw.msg('cradle-select') || 'Seleccionar') + ' --'));
+                allowedList.forEach(opt => {
+                    let optVal = typeof opt === 'object' ? (opt.id || opt.value) : opt;
+                    let optLabel = typeof opt === 'object' ? (opt.label || opt.name || optVal) : (softselectLabels[optVal] || optVal);
+                    let labelText = (optLabel && optLabel !== optVal) ? `${optLabel} (${optVal})` : optVal;
+                    $select.append($('<option>').val(optVal).text(labelText));
+                });
+                if (row.value) {
+                    $select.val(typeof row.value === 'object' ? row.value.id : row.value);
+                }
+            }
+
+            buildOptions();
+            $select.on('change', function() {
+                row.value = $select.val();
+                liveUpdateValidation();
+            });
+            return $select;
+        }
+
         // 1. wikibase-item & wikibase-property datatype
         if (row.datatype === 'wikibase-item' || row.datatype === 'wikibase-property') {
             if (propDef && propDef.hardselect && propDef.hardselect.length > 0) {
@@ -4192,31 +4777,37 @@ function searchWikidataItems(term) {
             rows.forEach(row => {
                 if (row.isDeleted) {
                     if (row.guid) {
-                        propertyClaims.push({
-                            id: row.guid,
-                            remove: ""
-                        });
-                        hasChanges = true;
+                        let origClaim = original.find(c => c.id === row.guid);
+                        if (origClaim) {
+                            propertyClaims.push({
+                                id: row.guid,
+                                remove: ""
+                            });
+                            hasChanges = true;
+                        }
                     }
                     return;
                 }
 
-                if (isEmptyValue(row.value, row.datatype)) return;
+                let snaktype = (row.snaktype && (row.snaktype === 'somevalue' || row.snaktype === 'novalue')) ? row.snaktype : (row.value === 'somevalue' || row.value === 'novalue' ? row.value : 'value');
+                let mainsnak = {
+                    snaktype: snaktype,
+                    property: pid
+                };
 
-                let datavalue = constructDataValue(row.value, row.datatype);
-                if (!datavalue) return;
+                if (snaktype === 'value') {
+                    let datavalue = constructDataValue(row.value, row.datatype);
+                    if (!datavalue) return;
+                    mainsnak.datavalue = datavalue;
+                }
 
                 if (row.guid) {
                     // Update claim
                     let origClaim = original.find(c => c.id === row.guid);
-                    if (origClaim && isValueChanged(origClaim, datavalue)) {
+                    if (origClaim) {
                         propertyClaims.push({
                             id: row.guid,
-                            mainsnak: {
-                                snaktype: 'value',
-                                property: pid,
-                                datavalue: datavalue
-                            },
+                            mainsnak: mainsnak,
                             type: 'statement'
                         });
                         hasChanges = true;
@@ -4224,11 +4815,7 @@ function searchWikidataItems(term) {
                 } else {
                     // Add new claim
                     propertyClaims.push({
-                        mainsnak: {
-                            snaktype: 'value',
-                            property: pid,
-                            datavalue: datavalue
-                        },
+                        mainsnak: mainsnak,
                         type: 'statement'
                     });
                     hasChanges = true;
@@ -4615,70 +5202,47 @@ function searchWikidataItems(term) {
     /**
      * Generates rich Wikidata-standard ShEx (Shape Expression) code for an EntitySchema.
      */
-    function generateShExCode(title, propRows, propertyLabels, targetItem, subShapes, baseSchema) {
+    function generateShExCode(title, propRows, propertyLabels, targetItem) {
         let cleanTitle = (title || 'custom_shape').toLowerCase().replace(/[^a-z0-9_]/g, '');
         if (!cleanTitle) cleanTitle = 'custom_shape';
         let targetQID = (targetItem || '').trim().toUpperCase();
-        let cleanBaseSchema = (baseSchema || '').trim().toUpperCase();
 
         let lines = [];
         if (targetQID && /^Q\d+$/i.test(targetQID)) {
             lines.push(`# targetItem: ${targetQID}`);
             lines.push(`# Associated Item / Target Class: ${targetQID}`);
         }
-        if (cleanBaseSchema) {
-            if (!cleanBaseSchema.startsWith('E') && !cleanBaseSchema.startsWith('@')) {
-                cleanBaseSchema = 'E' + cleanBaseSchema.replace(/\D/g, '');
-            }
-            let schemaNum = cleanBaseSchema.replace(/^@/, '');
-            lines.push(`# Base Schema / Derivation: EntitySchema:${schemaNum}`);
-            lines.push(`IMPORT <http://www.wikidata.org/wiki/Special:EntitySchemaText/${schemaNum}>`);
-        }
         lines.push(`# Schema: ${title || cleanTitle}`);
-        lines.push(`# Generated with Cradle Schema Designer on Wikidata (https://www.wikidata.org/wiki/User:Danielyepezgarces/Cradle-gadget)`);
+        lines.push(`# Generated with Cradle Schema Designer`);
         lines.push(``);
         lines.push(`PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>`);
         lines.push(`PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>`);
         lines.push(`PREFIX wd: <http://www.wikidata.org/entity/>`);
         lines.push(`PREFIX wdt: <http://www.wikidata.org/prop/direct/>`);
         lines.push(`PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>`);
-        lines.push(`PREFIX geo: <http://www.opengis.net/ont/geosparql#>`);
         lines.push(``);
         lines.push(`start = @<${cleanTitle}>`);
         lines.push(``);
-        let extraClause = cleanBaseSchema ? ` EXTRA wdt:P31 AND @<${cleanBaseSchema.replace(/^@/, '')}>` : ` EXTRA wdt:P31`;
-        lines.push(`<${cleanTitle}>${extraClause} {`);
+        lines.push(`<${cleanTitle}> EXTRA wdt:P31 {`);
 
         let propMap = propertyLabels || propertyMetadata || {};
-        let orGroups = {};
 
         propRows.forEach((row) => {
             let pid = row.pid;
             let meta = propMap[pid] || {};
             let label = meta.label || pid;
 
-            let valueExpr = '.';
-            let valueType = row.valueType || 'IRI';
-
-            if (valueType === 'xsd:string') valueExpr = 'xsd:string';
-            else if (valueType === 'rdf:langString') valueExpr = 'rdf:langString';
-            else if (valueType === 'xsd:dateTime') valueExpr = 'xsd:dateTime';
-            else if (valueType === 'xsd:decimal') valueExpr = 'xsd:decimal';
-            else if (valueType === 'geo:wktLiteral') valueExpr = 'geo:wktLiteral';
-            else if (valueType && valueType.startsWith('@<')) valueExpr = valueType;
-            else if (valueType === 'subshape' && row.subShapeName) valueExpr = `@<${row.subShapeName.toLowerCase().replace(/[^a-z0-9_]/g, '')}>`;
-            else {
-                let options = [];
-                let qidsStr = row.hardselect || row.softselect || '';
-                if (qidsStr) {
-                    let qids = qidsStr.split(',').map(q => q.trim()).filter(q => /^Q\d+$/i.test(q));
-                    if (qids.length > 0) {
-                        options = qids.map(q => `wd:${q.toUpperCase()}`);
-                    }
+            let options = [];
+            let qidsStr = row.hardselect || row.softselect || '';
+            if (qidsStr) {
+                let qids = qidsStr.split(',').map(q => q.trim()).filter(q => /^Q\d+$/i.test(q));
+                if (qids.length > 0) {
+                    options = qids.map(q => `wd:${q.toUpperCase()}`);
                 }
-                valueExpr = options.length > 0 ? `[${options.join(' ')}]` : (valueType === 'IRI' ? 'IRI' : '.');
             }
 
+            let valueExpr = options.length > 0 ? `[${options.join(' ')}]` : '.';
+            
             let cardSymbol = ';';
             if (row.cardinality === '+') cardSymbol = '+ ;';
             else if (row.cardinality === '*') cardSymbol = '* ;';
@@ -4688,49 +5252,11 @@ function searchWikidataItems(term) {
             else cardSymbol = row.allowMultiple ? '* ;' : '? ;';
 
             let comment = label ? `   # ${label}` : '';
-            
-            if (row.orGroup) {
-                let gName = row.orGroup.trim();
-                if (!orGroups[gName]) orGroups[gName] = [];
-                orGroups[gName].push(`  wdt:${pid} ${valueExpr}${comment}`);
-            } else {
-                lines.push(`  wdt:${pid} ${valueExpr} ${cardSymbol}${comment}`);
-            }
-        });
-
-        Object.keys(orGroups).forEach(groupName => {
-            lines.push(`  # Grupo alternativo (OR): ${groupName}`);
-            lines.push(`  (`);
-            let items = orGroups[groupName];
-            items.forEach((item, idx) => {
-                let isLast = (idx === items.length - 1);
-                lines.push(`  ${item}${isLast ? '' : ' |'}`);
-            });
-            lines.push(`  ) ;`);
+            lines.push(`  wdt:${pid} ${valueExpr} ${cardSymbol}${comment}`);
         });
 
         lines.push(`  rdfs:label rdf:langString+;`);
         lines.push(`}`);
-
-        if (subShapes && Array.isArray(subShapes) && subShapes.length > 0) {
-            subShapes.forEach(sub => {
-                let subName = (sub.name || 'sub_shape').toLowerCase().replace(/[^a-z0-9_]/g, '');
-                lines.push(``);
-                lines.push(`<${subName}> {`);
-                if (sub.props && Array.isArray(sub.props)) {
-                    sub.props.forEach(sp => {
-                        let sPid = sp.pid;
-                        let sMeta = propMap[sPid] || {};
-                        let sLabel = sMeta.label || sPid;
-                        let sValExpr = sp.valueType || 'IRI';
-                        let sCard = sp.cardinality || ';';
-                        lines.push(`  wdt:${sPid} ${sValExpr} ${sCard}   # ${sLabel}`);
-                    });
-                }
-                lines.push(`}`);
-            });
-        }
-
         return lines.join('\n');
     }
 
@@ -4817,142 +5343,55 @@ function searchWikidataItems(term) {
     }
 
     /**
-     * Publishes a new EntitySchema to Wikidata by submitting the Special:NewEntitySchema form directly.
+     * Publishes a new EntitySchema to Wikidata via the wbeditentityschema MediaWiki API.
      */
     function publishEntitySchemaToWikidata(title, desc, aliasesStr, shexText) {
-        const ENTITY_SCHEMA_ID_PATTERN = /EntitySchema:(E\d+)/;
-        const TOKEN_FIELD_PATTERN = /(?:token|wpEditToken)$/i;
-        const userLang = String(
-            mw.config.get('wgUserLanguage') ||
-            mw.config.get('wgContentLanguage') ||
-            'en'
-        ).trim();
+        let userLang = mw.config.get('wgUserLanguage') || 'en';
+        let cleanTitle = (title || 'Custom Schema').trim();
 
-        const cleanTitle = String(title || '').trim();
-        if (!cleanTitle) {
-            return Promise.reject(new Error(mw.msg('cradle-schema-title-required')));
+        let api = new mw.Api();
+        let payload = {
+            labels: {
+                [userLang]: { language: userLang, value: cleanTitle }
+            },
+            schemaText: shexText
+        };
+
+        if (desc && desc.trim()) {
+            payload.descriptions = {
+                [userLang]: { language: userLang, value: desc.trim() }
+            };
         }
 
-        let aliasesFormatted = '';
-        if (aliasesStr) {
-            aliasesFormatted = Array.isArray(aliasesStr)
-                ? aliasesStr.map(a => String(a).trim()).filter(Boolean).join('|')
-                : String(aliasesStr).trim();
+        if (aliasesStr && aliasesStr.trim()) {
+            let aliasList = aliasesStr.split('|').map(a => a.trim()).filter(Boolean);
+            if (aliasList.length > 0) {
+                payload.aliases = {
+                    [userLang]: aliasList.map(a => ({ language: userLang, value: a }))
+                };
+            }
         }
 
-        return mw.loader.using(['mediawiki.api', 'mediawiki.util']).then(function() {
-            return new mw.Api().getToken('csrf');
-        }).then(function(csrfToken) {
-            return fetch(mw.util.getUrl('Special:NewEntitySchema'), {
-                credentials: 'same-origin'
-            }).then(function(response) {
-                if (!response.ok) {
-                    throw new Error(mw.msg('cradle-schema-load-form-failed') || 'Could not load Special:NewEntitySchema');
-                }
-                return response.text();
-            }).then(function(html) {
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                const submitButton = doc.querySelector('#entityschema-newschema-submit');
-                const form = submitButton ? submitButton.closest('form') : doc.querySelector('form');
-                if (!form) {
-                    throw new Error(mw.msg('cradle-schema-form-not-found') || 'Special:NewEntitySchema form was not found. Check that your account can create pages.');
-                }
-
-                const actionUrl = new URL(form.getAttribute('action') || window.location.href, window.location.origin);
-                const formData = new URLSearchParams();
-
-                Array.prototype.forEach.call(form.querySelectorAll('input[type="hidden"]'), function(input) {
-                    const name = input.getAttribute('name');
-                    if (name) {
-                        formData.set(name, input.value || '');
-                    }
-                });
-
-                Array.prototype.forEach.call(Array.from(formData.keys()), function(name) {
-                    if (TOKEN_FIELD_PATTERN.test(name)) {
-                        formData.set(name, csrfToken);
-                    }
-                });
-
-                if (!Array.from(formData.keys()).some(name => TOKEN_FIELD_PATTERN.test(name))) {
-                    formData.set('wpEditToken', csrfToken);
-                }
-
-                formData.set('label', cleanTitle);
-                formData.set('description', String(desc || '').trim());
-                formData.set('aliases', aliasesFormatted);
-                formData.set('schema-text', String(shexText || ''));
-                formData.set('languagecode', userLang);
-                formData.set('submit', '1');
-
-                return fetch(actionUrl.href, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: formData.toString()
-                });
-            }).then(function(postResponse) {
-                return postResponse.text().then(function(postHtml) {
-                    return {
-                        url: postResponse.url,
-                        html: postHtml
-                    };
-                });
-            }).then(function(result) {
-                const responseDoc = new DOMParser().parseFromString(result.html, 'text/html');
-                let match = ENTITY_SCHEMA_ID_PATTERN.exec(decodeURIComponent(result.url || ''));
-                let schemaId = match ? match[1] : null;
-
-                if (!schemaId) {
-                    const link = responseDoc.querySelector('a[href*="EntitySchema:E"], a[title^="EntitySchema:E"]');
-                    if (link) {
-                        match = ENTITY_SCHEMA_ID_PATTERN.exec(
-                            decodeURIComponent(link.getAttribute('href') || link.getAttribute('title') || '')
-                        );
-                        if (match) {
-                            schemaId = match[1];
-                        }
-                    }
-                }
-
-                if (!schemaId) {
-                    const errorNodes = responseDoc.querySelectorAll(
-                        '.permissions-errors, .error, .warning, .cdx-message--error, .oo-ui-messageWidget-error, .mw-htmlform-ooui .oo-ui-fieldLayout-messages'
-                    );
-                    const errorTexts = [];
-                    Array.prototype.forEach.call(errorNodes, function(node) {
-                        const t = node.textContent.trim().replace(/\s+/g, ' ');
-                        if (t && errorTexts.indexOf(t) === -1) {
-                            errorTexts.push(t);
-                        }
-                    });
-                    const errDetail = errorTexts.join(' ');
-                    throw new Error(errDetail || mw.msg('cradle-publish-shex-failed', 'Unknown error') || 'EntitySchema creation failed.');
-                }
-
-                return new mw.Api().get({
-                    action: 'query',
-                    titles: 'EntitySchema:' + schemaId,
-                    prop: 'info',
-                    formatversion: 2
-                }).then(function(verifyData) {
-                    const pages = verifyData.query && verifyData.query.pages || [];
-                    if (!pages[0] || pages[0].missing) {
-                        throw new Error('Created EntitySchema could not be verified on Wikidata.');
-                    }
-                    return schemaId;
-                });
-            });
+        return api.postWithEditToken({
+            action: 'wbeditentityschema',
+            new: 'entityschema',
+            data: JSON.stringify(payload),
+            summary: 'Created EntitySchema using Cradle Wikidata Gadget'
+        }).then(function(res) {
+            if (res && res.entityschema && res.entityschema.id) {
+                return res.entityschema.id;
+            } else if (res && res.entity && res.entity.id) {
+                return res.entity.id;
+            }
+            throw new Error(res.error ? res.error.info : 'Unknown API response');
         });
     }
 
     /**
-     * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata directly.
+     * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata via MediaWiki API.
      */
-    function openShExExportModal(title, propRows, labelsMap, targetItem, baseSchema, desc, aliases) {
-        let shexText = generateShExCode(title, propRows, labelsMap, targetItem, null, baseSchema);
+    function openShExExportModal(title, propRows, labelsMap, targetItem) {
+        let shexText = generateShExCode(title, propRows, labelsMap, targetItem);
 
         let $overlay = $('<div>').addClass('cradle-modal-overlay').css({
             'position': 'fixed',
@@ -5002,98 +5441,50 @@ function searchWikidataItems(term) {
             })
             .val(shexText);
 
-        function copyAllShEx() {
-            $textarea.select();
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText($textarea.val()).then(function() {
-                    mw.notify(mw.msg('cradle-shex-copied-auto'), { type: 'info' });
-                });
-            } else {
-                document.execCommand('copy');
-                mw.notify(mw.msg('cradle-shex-copied-auto'), { type: 'info' });
-            }
-        }
-
-        $textarea.on('click focus', function() {
-            copyAllShEx();
-        });
-
         $modal.append($textarea);
 
-        let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'justify-content': 'flex-end', 'align-items': 'center', 'flex-wrap': 'wrap'});
-
-        let $manualLink = $('<a>').attr({
-            href: mw.util.getUrl('Special:NewEntitySchema'),
-            target: '_blank'
-        }).css({
-            'display': 'inline-flex',
-            'align-items': 'center',
-            'gap': '4px',
-            'font-size': '11px',
-            'color': '#72777d',
-            'text-decoration': 'none',
-            'margin-right': 'auto'
-        }).html(ICONS.external + ` <span>${mw.msg('cradle-open-newentityschema')}</span>`);
+        let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'justify-content': 'flex-end', 'flex-wrap': 'wrap'});
 
         let $copyBtn = $('<button>').addClass('cdx-button')
             .text(mw.msg('cradle-copy-shex'))
             .on('click', function() {
-                copyAllShEx();
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText($textarea.val()).then(function() {
+                        mw.notify('ShEx copied to clipboard!', { type: 'info' });
+                    });
+                } else {
+                    $textarea.select();
+                    document.execCommand('copy');
+                    mw.notify('ShEx copied to clipboard!', { type: 'info' });
+                }
             });
 
         let $publishBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
-            .html(ICONS.check + ` <span>${mw.msg('cradle-create-entityschema-btn')}</span>`)
+            .text(mw.msg('cradle-create-entityschema-btn'))
             .on('click', function() {
-                let currentShex = $textarea.val();
-                let validation = validateShExSyntax(currentShex);
-                if (!validation.valid) {
-                    let proceed = confirm(mw.msg('cradle-shex-invalid') + '\n' + validation.errors.join('\n') + '\n\nDo you want to proceed anyway?');
-                    if (!proceed) return;
+                let code = $textarea.val();
+                let res = validateShExSyntax(code);
+                if (!res.valid) {
+                    mw.notify('Please fix ShEx syntax errors before publishing.', { type: 'error' });
+                    return;
                 }
 
-                $publishBtn.prop('disabled', true);
-                $copyBtn.prop('disabled', true);
-                $statusBox.css({
-                    'background': 'rgba(0, 175, 137, 0.08)',
-                    'border': '1px solid var(--color-progressive, #36c)',
-                    'color': 'var(--color-progressive, #36c)'
-                }).text(mw.msg('cradle-publishing-shex'));
+                $publishBtn.prop('disabled', true).text(mw.msg('cradle-publishing-shex'));
 
-                publishEntitySchemaToWikidata(title, desc, aliases, currentShex)
-                    .then(function(schemaId) {
-                        mw.notify(mw.msg('cradle-publish-shex-success', schemaId), { type: 'success' });
-                        $statusBox.css({
-                            'background': '#e6f9f0',
-                            'border': '1px solid #00af89',
-                            'color': '#00805d'
-                        }).html(`<strong>${mw.msg('cradle-publish-shex-success', `EntitySchema:${schemaId}`)}</strong>: ` +
-                               `<a href="${mw.util.getUrl('EntitySchema:' + schemaId)}" target="_blank" style="color:#00805d; text-decoration:underline;">` +
-                               `${mw.msg('cradle-open-created-schema', schemaId)}</a>`);
+                let schemaDesc = $('#cradle-schema-desc-input').length ? $('#cradle-schema-desc-input').val().trim() : '';
+                let schemaAliases = $('#cradle-schema-aliases-input').length ? $('#cradle-schema-aliases-input').val().trim() : '';
 
-                        $publishBtn.remove();
-                        $copyBtn.prop('disabled', false);
-
-                        let $viewBtn = $('<a>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-                            .attr({
-                                href: mw.util.getUrl('EntitySchema:' + schemaId),
-                                target: '_blank'
-                            })
-                            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'text-decoration': 'none'})
-                            .html(ICONS.external + ` <span>${mw.msg('cradle-open-created-schema', schemaId)}</span>`);
-                        $btnRow.append($viewBtn);
-                    })
-                    .catch(function(err) {
-                        $publishBtn.prop('disabled', false);
-                        $copyBtn.prop('disabled', false);
-                        let errMessage = (err && err.message) ? err.message : String(err);
-                        $statusBox.css({
-                            'background': '#fef2f2',
-                            'border': '1px solid #d33',
-                            'color': '#d33'
-                        }).text(mw.msg('cradle-publish-shex-failed', errMessage));
-                        mw.notify(mw.msg('cradle-publish-shex-failed', errMessage), { type: 'error' });
-                    });
+                publishEntitySchemaToWikidata(title, schemaDesc, schemaAliases, code).then(function(newId) {
+                    mw.notify(mw.msg('cradle-publish-shex-success', newId), { type: 'success' });
+                    setTimeout(function() {
+                        window.location.href = mw.util.getUrl('EntitySchema:' + newId);
+                    }, 1200);
+                }).catch(function(err) {
+                    console.warn('[Cradle] wbeditentityschema API failed, opening Special:NewEntitySchema:', err);
+                    mw.notify('Opening Special:NewEntitySchema...', { type: 'warn' });
+                    window.open(mw.util.getUrl('Special:NewEntitySchema'), '_blank');
+                    $publishBtn.prop('disabled', false).text(mw.msg('cradle-create-entityschema-btn'));
+                });
             });
 
         function updateValidationUI() {
@@ -5104,6 +5495,7 @@ function searchWikidataItems(term) {
                     'border': '1px solid #00af89',
                     'color': '#00805d'
                 }).html(mw.msg('cradle-shex-valid'));
+                $publishBtn.prop('disabled', false);
             } else {
                 let $errHtml = $('<div>').append($('<div>').text(mw.msg('cradle-shex-invalid')));
                 let $ul = $('<ul>').css({'margin': '4px 0 0 16px', 'padding': '0', 'font-weight': 'normal'});
@@ -5114,6 +5506,7 @@ function searchWikidataItems(term) {
                     'border': '1px solid #d33',
                     'color': '#d33'
                 }).html($errHtml);
+                $publishBtn.prop('disabled', true);
             }
         }
 
@@ -5124,15 +5517,10 @@ function searchWikidataItems(term) {
             .text(mw.msg('cradle-cancel'))
             .on('click', function() { $overlay.remove(); });
 
-        $btnRow.append($manualLink).append($copyBtn).append($publishBtn).append($closeBtn);
+        $btnRow.append($copyBtn).append($publishBtn).append($closeBtn);
         $modal.append($btnRow);
         $overlay.append($modal);
         $('body').append($overlay);
-
-        // Auto-select and copy ShEx code immediately when modal opens
-        setTimeout(function() {
-            copyAllShEx();
-        }, 150);
     }
 
     /**
@@ -5153,14 +5541,14 @@ function searchWikidataItems(term) {
         });
 
         let $headRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center'});
-        $headRow.append($('<h3>').css({'margin': '0', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'}).html(ICONS.download + ` <span>${mw.msg('cradle-import-from-item')}</span>`));
+        $headRow.append($('<h3>').css({'margin': '0', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'}).html(ICONS.download + ' <span>Importar propiedades desde un elemento</span>'));
         let $closeBtn = $('<button>').addClass('cradle-btn-secondary').html(ICONS.close).on('click', function() { $overlay.remove(); });
         $headRow.append($closeBtn);
         $modal.append($headRow);
 
         let $inputGroup = $('<div>').css({'display': 'flex', 'gap': '8px'});
-        let $input = $('<input>').addClass('cradle-input').attr('placeholder', 'QID (e.g. Q164027, Q483110)').css({'flex': '1'});
-        let $searchBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive').text(mw.msg('cradle-load-item-btn'));
+        let $input = $('<input>').addClass('cradle-input').attr('placeholder', 'QID del elemento (ej: Q164027 Santiago Bernabéu o Q1203)').css({'flex': '1'});
+        let $searchBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive').text('Cargar elemento');
         $inputGroup.append($input).append($searchBtn);
         $modal.append($inputGroup);
 
@@ -5174,11 +5562,11 @@ function searchWikidataItems(term) {
         $searchBtn.on('click', function() {
             let qid = $input.val().trim().toUpperCase();
             if (!qid || !/^Q\d+$/i.test(qid)) {
-                mw.notify(mw.msg('cradle-val-err-qid', qid), { type: 'error' });
+                mw.notify('Por favor ingrese un QID válido (ej: Q164027 o Q483110)', { type: 'error' });
                 return;
             }
-            $searchBtn.prop('disabled', true).text(mw.msg('cradle-loading-item'));
-            $resultArea.empty().append($('<div>').css({'color': '#54595d', 'font-size': '13px'}).text(mw.msg('cradle-fetching-wikidata-recoin')));
+            $searchBtn.prop('disabled', true).text('Cargando...');
+            $resultArea.empty().append($('<div>').css({'color': '#54595d', 'font-size': '13px'}).text('Consultando Wikidata y Recoin API...'));
 
             let api = new mw.Api();
             api.get({
@@ -5188,9 +5576,9 @@ function searchWikidataItems(term) {
                 languages: mw.config.get('wgUserLanguage') || 'en',
                 format: 'json'
             }).done(function(res) {
-                $searchBtn.prop('disabled', false).text(mw.msg('cradle-load-item-btn'));
+                $searchBtn.prop('disabled', false).text('Cargar elemento');
                 if (!res || !res.entities || !res.entities[qid] || !res.entities[qid].claims) {
-                    $resultArea.html('<div style="color:#d33; font-size:13px;">No claims found in ' + qid + '</div>');
+                    $resultArea.html('<div style="color:#d33; font-size:13px;">No se encontraron propiedades en ' + qid + '</div>');
                     return;
                 }
                 let claims = res.entities[qid].claims;
@@ -5233,7 +5621,7 @@ function searchWikidataItems(term) {
                         let $info = $('<div>').css({
                             'background': '#eaf3ff', 'border': '1px solid #36c',
                             'padding': '8px 12px', 'border-radius': '4px', 'font-size': '13px'
-                        }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} properties found.`);
+                        }).html(`<strong>${itemLabel} (${qid})</strong>: ${fetchedPropPIDs.length} propiedades encontradas en el elemento.`);
                         $resultArea.append($info);
 
                         // Fetch claims.P12861 (EntitySchema ID) for p31QIDs
@@ -5242,7 +5630,7 @@ function searchWikidataItems(term) {
                             let $duplicateNoticeBox = $('<div>').css({'margin-top': '6px'});
                             let $importConfirmBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
                                 .css({'display': 'inline-flex', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'})
-                                .html(ICONS.check + ` <span>${mw.msg('cradle-import-from-item')}</span>`);
+                                .html(ICONS.check + ` <span>Importar propiedades seleccionadas al diseñador</span>`);
 
                             let $editExistingSchemaBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive')
                                 .css({'display': 'none', 'align-items': 'center', 'justify-content': 'center', 'gap': '6px', 'flex': '1', 'min-height': '38px', 'box-sizing': 'border-box'});
@@ -5251,13 +5639,12 @@ function searchWikidataItems(term) {
                                 let schemaId = p31ClaimsMap[chosenQID];
                                 if (schemaId) {
                                     $duplicateNoticeBox.html(`
-                                        <div style="background:#eaf3ff; border:1px solid #36c; color:#102a43; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
-                                            <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.info}</span>
-                                            <span>${mw.msg('cradle-base-schema-notice', schemaId)} (<strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#36c; text-decoration:underline;">EntitySchema ${schemaId}</a></strong>).</span>
+                                        <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px;">
+                                            ⚠️ <strong>Este esquema ya existe:</strong> La clase seleccionada <strong>${labelsMap[chosenQID] || chosenQID} (${chosenQID})</strong> ya tiene registrado el <strong><a href="/wiki/EntitySchema:${schemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">EntitySchema ${schemaId}</a></strong> (declaración P12861).
                                         </div>
                                     `).show();
-                                    $importConfirmBtn.prop('disabled', false).removeClass('cdx-button--disabled');
-                                    $editExistingSchemaBtn.html(ICONS.external + ` <span>Ver EntitySchema ${schemaId}</span>`).off('click').on('click', function() {
+                                    $importConfirmBtn.prop('disabled', true).addClass('cdx-button--disabled');
+                                    $editExistingSchemaBtn.html(ICONS.external + ` <span>Editar esquema ${schemaId} existente</span>`).off('click').on('click', function() {
                                         window.open('/wiki/EntitySchema:' + schemaId, '_blank');
                                     }).css('display', 'inline-flex');
                                     $btnRow.css({'justify-content': 'space-between'});
@@ -5275,17 +5662,17 @@ function searchWikidataItems(term) {
                                 selectedP31QID = p31Candidates[0].qid;
                                 let schemaId = p31ClaimsMap[selectedP31QID];
                                 let badgeHtml = schemaId
-                                    ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.info}</span> Base: <strong>${schemaId}</strong></span>`
+                                    ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px;">⚠️ Ya existe: <strong>${schemaId}</strong></span>`
                                     : '';
                                 $resultArea.append($('<div>').css({'font-size': '13px', 'color': '#202122'})
-                                    .html(`Class (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
+                                    .html(`Clase/Elemento asociado detectado (P31): <strong>${p31Candidates[0].label} (${selectedP31QID})</strong> ${badgeHtml}`));
                             } else if (p31Candidates.length > 1) {
                                 let $p31Box = $('<div>').css({
                                     'display': 'flex', 'flex-direction': 'column', 'gap': '6px',
                                     'background': '#f8f9fa', 'border': '1px solid #c8ccd1',
                                     'padding': '10px', 'border-radius': '4px'
                                 });
-                                $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text(mw.msg('cradle-select-p31-class')));
+                                $p31Box.append($('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text('Seleccione la clase asociada (P31) para este esquema:'));
 
                                 selectedP31QID = p31Candidates[0].qid;
                                 p31Candidates.forEach((cand, idx) => {
@@ -5298,7 +5685,7 @@ function searchWikidataItems(term) {
                                         updateSchemaExistenceCheck(cand.qid);
                                     });
                                     let badgeHtml = schemaId
-                                        ? `<span style="background:#eaf3ff; color:#36c; border:1px solid #36c; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; width:14px; height:14px; fill:currentColor;">${ICONS.info}</span> Base: <strong>${schemaId}</strong></span>`
+                                        ? `<span style="background:#fcf2f2; color:#b32424; border:1px solid #d33; padding:1px 6px; border-radius:3px; font-size:11px; margin-left:6px;">⚠️ Ya existe: <strong>${schemaId}</strong></span>`
                                         : '';
                                     let $lbl = $('<label>').attr('for', radId).css({'font-size': '13px', 'display': 'flex', 'align-items': 'center', 'gap': '6px', 'cursor': 'pointer'})
                                         .append($rad).append($('<span>').html(`${cand.label} (${cand.qid}) ${badgeHtml}`));
@@ -5310,7 +5697,7 @@ function searchWikidataItems(term) {
                             }
 
                             // Checkboxes to select properties
-                            let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text(mw.msg('cradle-select-props-to-import'));
+                            let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text('Selecciona las propiedades a importar:');
                             $resultArea.append($propSelectorTitle);
 
                             let $propListContainer = $('<div>').css({
@@ -5321,7 +5708,7 @@ function searchWikidataItems(term) {
 
                             let $selectAllCheckbox = $('<input>').attr({ type: 'checkbox', id: 'cradle-select-all-props', checked: true });
                             let $selectAllRow = $('<div>').css({'font-weight': 'bold', 'margin-bottom': '4px', 'padding-bottom': '4px', 'border-bottom': '1px solid #eaecf0'})
-                                .append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px'}).append($selectAllCheckbox).append($('<span>').text(mw.msg('cradle-select-all'))));
+                                .append($('<label>').css({'cursor': 'pointer', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px'}).append($selectAllCheckbox).append($('<span>').text('Seleccionar todas')));
                             $propListContainer.append($selectAllRow);
 
                             let propCBs = {};
@@ -5348,7 +5735,7 @@ function searchWikidataItems(term) {
 
                             if (recoinData && recoinData.Frequenct_properties) {
                                 let $recoinCreditFooter = $('<div>').css({'font-size': '11px', 'color': '#54595d', 'margin-top': '8px', 'margin-bottom': '4px', 'text-align': 'center', 'font-style': 'italic'})
-                                    .html('Recoin frequency API: <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
+                                    .html('Frecuencia de propiedades según la clase basadas en <a href="https://www.wikidata.org/wiki/Wikidata:Recoin" target="_blank" style="color:#36c; font-weight:bold; text-decoration:underline;">Recoin</a>');
                                 $resultArea.append($recoinCreditFooter);
                             }
 
@@ -5357,12 +5744,12 @@ function searchWikidataItems(term) {
                             $importConfirmBtn.on('click', function() {
                                 let selectedPIDs = fetchedPropPIDs.filter(pid => propCBs[pid] && propCBs[pid].is(':checked'));
                                 if (selectedPIDs.length === 0) {
-                                    mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'warn' });
+                                    mw.notify('Debe seleccionar al menos una propiedad para importar.', { type: 'warn' });
                                     return;
                                 }
                                 $overlay.remove();
                                 if (onImportCallback) {
-                                    onImportCallback(selectedP31QID, selectedPIDs, labelsMap, recoinFreqMap, p31ClaimsMap[selectedP31QID]);
+                                    onImportCallback(selectedP31QID, selectedPIDs, labelsMap, recoinFreqMap);
                                 }
                             });
 
@@ -5408,8 +5795,8 @@ function searchWikidataItems(term) {
                 });
             });
         }).fail(function() {
-            $searchBtn.prop('disabled', false).text(mw.msg('cradle-load-item-btn'));
-            $resultArea.html('<div style="color:#d33; font-size:13px;">Error connecting to Wikidata</div>');
+            $searchBtn.prop('disabled', false).text('Cargar elemento');
+            $resultArea.html('<div style="color:#d33; font-size:13px;">Error al conectar con Wikidata</div>');
         });
         });
 
@@ -5466,8 +5853,8 @@ function searchWikidataItems(term) {
 
             if (foundCustom) {
                 $targetNoticeDiv.html(`
-                    <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
-                        <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya está asociado a tu esquema local <em>"${foundCustom}"</em>.</span>
+                    <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px;">
+                        ⚠️ <strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya está asociado a tu esquema local <em>"${foundCustom}"</em>.
                     </div>
                 `);
                 return;
@@ -5497,8 +5884,8 @@ function searchWikidataItems(term) {
                     if (existingSchemaId) {
                         let itemLabel = (ent.labels && (ent.labels[userLang]?.value || ent.labels['en']?.value)) || cleanQID;
                         $targetNoticeDiv.html(`
-                            <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
-                                <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> El elemento <strong>${itemLabel} (${cleanQID})</strong> ya tiene asociado el EntitySchema <strong><a href="/wiki/EntitySchema:${existingSchemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">${existingSchemaId}</a></strong> (declaración P12861).</span>
+                            <div style="background:#fcf2f2; border:1px solid #d33; color:#b32424; padding:8px 12px; border-radius:4px; font-size:12px;">
+                                ⚠️ <strong>Este esquema ya existe:</strong> El elemento <strong>${itemLabel} (${cleanQID})</strong> ya tiene asociado el EntitySchema <strong><a href="/wiki/EntitySchema:${existingSchemaId}" target="_blank" style="color:#b32424; text-decoration:underline;">${existingSchemaId}</a></strong> (declaración P12861).
                             </div>
                         `);
                         return;
@@ -5517,8 +5904,8 @@ function searchWikidataItems(term) {
                     if (items.length > 0) {
                         let match = items[0];
                         $targetNoticeDiv.html(`
-                            <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px;">
-                                <span style="display:inline-flex; width:16px; height:16px; flex-shrink:0; fill:currentColor;">${ICONS.alert}</span> <span><strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya cuenta con el esquema registrado <a href="/wiki/EntitySchema:${match.id}" target="_blank"><strong>${match.id}</strong> (${match.label || ''})</a>.</span>
+                            <div style="background:#fff3cd; border:1px solid #ffe8a1; color:#856404; padding:8px 12px; border-radius:4px; font-size:12px;">
+                                ⚠️ <strong>Este esquema ya existe:</strong> El elemento <strong>${cleanQID}</strong> ya cuenta con el esquema registrado <a href="/wiki/EntitySchema:${match.id}" target="_blank"><strong>${match.id}</strong> (${match.label || ''})</a>.
                             </div>
                         `);
                     }
@@ -5534,24 +5921,15 @@ function searchWikidataItems(term) {
         let $headerTitleRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '4px'});
         $headerTitleRow.append($('<h3>').css({'margin': '0'}).text(mw.msg('cradle-schema-designer')));
 
-        let $baseSchemaInput = $('<input>').addClass('cradle-input').attr({
-            type: 'text',
-            id: 'cradle-schema-base-schema-input',
-            placeholder: mw.msg('cradle-base-schema-placeholder')
-        });
-
         let $openImporterBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-quiet')
             .css({'height': '32px', 'display': 'inline-flex', 'align-items': 'center', 'gap': '6px'})
-            .html(ICONS.download + ` <span>${mw.msg('cradle-import-from-item')}</span>`)
+            .html(ICONS.download + ' <span>Importar desde elemento</span>')
             .on('click', function(e) {
                 e.preventDefault();
-                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, modalLabelsMap, recoinFreqMap, importedBaseSchema) {
+                openPropertyImporterModal(fetchLabelsInBatches, function(importedTargetQID, importedPIDs, modalLabelsMap, recoinFreqMap) {
                     if (importedTargetQID && !$targetItemInput.val().trim()) {
                         $targetItemInput.val(importedTargetQID);
                         checkTargetItemDuplicateSchema(importedTargetQID);
-                    }
-                    if (importedBaseSchema) {
-                        $baseSchemaInput.val(importedBaseSchema);
                     }
                     
                     // Clear previous property rows so new import starts fresh
@@ -5559,7 +5937,7 @@ function searchWikidataItems(term) {
 
                     let newPIDs = sortPropertyIDs(importedPIDs || []);
                     if (newPIDs.length === 0) {
-                        mw.notify('No properties selected for import.', { type: 'info' });
+                        mw.notify('No hay propiedades seleccionadas para importar.', { type: 'info' });
                         return;
                     }
 
@@ -5572,7 +5950,7 @@ function searchWikidataItems(term) {
                                 console.error('[Cradle Importer Error]', err);
                             }
                         });
-                        mw.notify(`Imported ${newPIDs.length} properties!`, { type: 'success' });
+                        mw.notify(`¡Se importaron ${newPIDs.length} propiedades!`, { type: 'success' });
                     });
                 });
             });
@@ -5581,17 +5959,16 @@ function searchWikidataItems(term) {
 
         let $headerFieldsRow = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'margin-bottom': '12px'});
 
-        // Row 1: Title, Description, Aliases (|) in FULL width flex row
+        // Row 1: Título, Descripción, Alias (|) in FULL width flex row
         let $row1 = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap', 'align-items': 'center'});
         $row1.append($('<div>').css({'flex': '1', 'min-width': '140px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-title'))).append($titleInput));
-        $row1.append($('<div>').css({'flex': '1.5', 'min-width': '160px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-desc'))).append($descInput));
-        $row1.append($('<div>').css({'flex': '1', 'min-width': '130px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-new-item-aliases'))).append($aliasesInput));
+        $row1.append($('<div>').css({'flex': '1.5', 'min-width': '160px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Descripción')).append($descInput));
+        $row1.append($('<div>').css({'flex': '1', 'min-width': '130px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Alias (|)')).append($aliasesInput));
 
-        // Row 2: Associated Item & Base Schema (Derivation)
-        let $row2 = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '4px'});
-        let $row2Inner = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap'});
-        $row2Inner.append($('<div>').css({'flex': '1', 'min-width': '200px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-schema-target-item-label'))).append($targetItemInput));
-        $row2Inner.append($('<div>').css({'flex': '1', 'min-width': '200px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text(mw.msg('cradle-base-schema-label'))).append($baseSchemaInput));
+        // Row 2: Elemento asociado (directly below Título)
+        let $row2 = $('<div>').css({'display': 'flex', 'flex-direction': 'column'});
+        let $row2Inner = $('<div>').css({'display': 'flex', 'gap': '8px'});
+        $row2Inner.append($('<div>').css({'width': '280px', 'max-width': '100%'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px'}).text('Elemento asociado')).append($targetItemInput));
         $row2.append($row2Inner).append($targetNoticeDiv);
 
         $headerFieldsRow.append($row1).append($row2);
@@ -5695,21 +6072,22 @@ function searchWikidataItems(term) {
             $headerRow.append($remove);
             $row.append($headerRow);
 
-            // Cardinality, Value Type, and OR Group row
-            let $optionsRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center', 'flex-wrap': 'wrap'});
-            
+            // Cardinality selection dropdown
+            let $optionsRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center'});
             let $cardinalitySelect = $('<select>').addClass('cradle-select').css({
                 'font-size': '12px',
                 'height': '28px',
                 'padding': '2px 6px',
                 'width': 'auto'
             });
-            $cardinalitySelect.append($('<option>').val('1').text(mw.msg('cradle-cardinality-1')));
-            $cardinalitySelect.append($('<option>').val('?').text(mw.msg('cradle-cardinality-opt-single')));
-            $cardinalitySelect.append($('<option>').val('+').text(mw.msg('cradle-cardinality-req-multi')));
-            $cardinalitySelect.append($('<option>').val('*').text(mw.msg('cradle-cardinality-opt-multi')));
+            $cardinalitySelect.append($('<option>').val('1').text('1 (Obligatorio, único)'));
+            $cardinalitySelect.append($('<option>').val('?').text('0..1 / ? (Opcional, único)'));
+            $cardinalitySelect.append($('<option>').val('+').text('1..* / + (Obligatorio, múltiple)'));
+            $cardinalitySelect.append($('<option>').val('*').text('0..* / * (Opcional, múltiple)'));
 
-            let initialCard = mandatory ? '1' : '?';
+            let initialCard = '1';
+            if (mandatory) initialCard = '1';
+            else initialCard = '?';
             $cardinalitySelect.val(initialCard);
 
             let $cardinalityLabel = $('<label>').css({
@@ -5719,68 +6097,10 @@ function searchWikidataItems(term) {
                 'font-size': '12px',
                 'font-weight': 'bold',
                 'color': '#202122'
-            }).text(mw.msg('cradle-cardinality-label')).append($cardinalitySelect);
+            }).text('Cardinalidad: ').append($cardinalitySelect);
 
-            // Value Type / DataType selector
-            let $valueTypeSelect = $('<select>').addClass('cradle-select').css({
-                'font-size': '12px',
-                'height': '28px',
-                'padding': '2px 6px',
-                'width': 'auto'
-            });
-            $valueTypeSelect.append($('<option>').val('IRI').text(mw.msg('cradle-valtype-qid')));
-            $valueTypeSelect.append($('<option>').val('xsd:string').text(mw.msg('cradle-valtype-string')));
-            $valueTypeSelect.append($('<option>').val('rdf:langString').text(mw.msg('cradle-valtype-langstring')));
-            $valueTypeSelect.append($('<option>').val('xsd:dateTime').text(mw.msg('cradle-valtype-datetime')));
-            $valueTypeSelect.append($('<option>').val('xsd:decimal').text(mw.msg('cradle-valtype-decimal')));
-            $valueTypeSelect.append($('<option>').val('geo:wktLiteral').text(mw.msg('cradle-valtype-geo')));
-            $valueTypeSelect.append($('<option>').val('subshape').text(mw.msg('cradle-valtype-subshape')));
-
-            // Auto-detect value type based on property metadata
-            let propDT = (propertyMetadata[pid] && propertyMetadata[pid].datatype) || '';
-            if (propDT === 'string' || propDT === 'external-id') $valueTypeSelect.val('xsd:string');
-            else if (propDT === 'monolingualtext') $valueTypeSelect.val('rdf:langString');
-            else if (propDT === 'time') $valueTypeSelect.val('xsd:dateTime');
-            else if (propDT === 'quantity') $valueTypeSelect.val('xsd:decimal');
-            else if (propDT === 'globe-coordinate') $valueTypeSelect.val('geo:wktLiteral');
-            else $valueTypeSelect.val('IRI');
-
-            let $valueTypeLabel = $('<label>').css({
-                'display': 'flex',
-                'align-items': 'center',
-                'gap': '6px',
-                'font-size': '12px',
-                'font-weight': 'bold',
-                'color': '#202122'
-            }).text(mw.msg('cradle-valtype-label')).append($valueTypeSelect);
-
-            // Alternative Group (OR) input
-            let $orGroupInput = $('<input>').addClass('cradle-input').attr('placeholder', 'e.g. OSM ID').css({
-                'font-size': '12px',
-                'height': '28px',
-                'width': '120px',
-                'padding': '2px 6px'
-            });
-            let $orGroupLabel = $('<label>').css({
-                'display': 'flex',
-                'align-items': 'center',
-                'gap': '4px',
-                'font-size': '12px',
-                'color': '#54595d'
-            }).text(mw.msg('cradle-orgroup-label')).append($orGroupInput);
-
-            $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
+            $optionsRow.append($cardinalityLabel);
             $row.append($optionsRow);
-
-            // SubShape Name Container (hidden unless valueType === 'subshape')
-            let $subShapeGroup = $('<div>').css({'display': 'none', 'gap': '8px', 'align-items': 'center', 'margin-top': '4px'});
-            let $subShapeInput = $('<input>').addClass('cradle-input').attr('placeholder', 'Nombre del sub-esquema (Ej: EstadoConservacion)').css({
-                'font-size': '12px',
-                'height': '28px',
-                'flex': '1'
-            });
-            $subShapeGroup.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-name-label'))).append($subShapeInput);
-            $row.append($subShapeGroup);
 
             // Selection options layout: Radio buttons for Value type
             let isHard = !!hardselectQIDs || (defaultValue && defaultValue.startsWith('Q'));
@@ -5827,26 +6147,6 @@ function searchWikidataItems(term) {
             // Chips Container
             let $chipsDiv = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px', 'margin-top': '4px'});
             $valuePresetContainer.append($chipsDiv);
-
-            // Toggle visibility of QID chips / subShape based on ValueType selection
-            function updateVisibilityBasedOnValueType() {
-                let vt = $valueTypeSelect.val();
-                if (vt === 'IRI') {
-                    $radioGroup.show();
-                    $valuePresetContainer.show();
-                    $subShapeGroup.css('display', 'none');
-                } else if (vt === 'subshape') {
-                    $radioGroup.hide();
-                    $valuePresetContainer.hide();
-                    $subShapeGroup.css('display', 'flex');
-                } else {
-                    $radioGroup.hide();
-                    $valuePresetContainer.hide();
-                    $subShapeGroup.css('display', 'none');
-                }
-            }
-            $valueTypeSelect.on('change', updateVisibilityBasedOnValueType);
-            updateVisibilityBasedOnValueType();
 
             let selectedItems = []; // List of { qid, label }
 
@@ -5970,23 +6270,28 @@ function searchWikidataItems(term) {
             });
 
             function updateSearchInputVisibility() {
-                let activeType = $radioHard.is(':checked') ? 'hard' : ($radioSoft.is(':checked') ? 'soft' : 'none');
-                if (activeType === 'none') {
-                    $valSearchGroup.hide();
-                    $chipsDiv.hide();
+                let useNone = $radioNone.is(':checked');
+                if (useNone) {
+                    $valuePresetContainer.hide();
                 } else {
-                    $chipsDiv.show();
-                    if (activeType === 'hard' && selectedItems.length >= 1) {
-                        $valSearchGroup.hide();
-                    } else {
-                        $valSearchGroup.show();
-                    }
+                    $valuePresetContainer.show();
+                    $valSearchGroup.show();
                 }
             }
 
-            $radioNone.on('change', updateSearchInputVisibility);
-            $radioHard.on('change', updateSearchInputVisibility);
-            $radioSoft.on('change', updateSearchInputVisibility);
+            $radioNone.on('change', function() {
+                selectedItems = [];
+                $chipsDiv.empty();
+                updateSearchInputVisibility();
+            });
+            $radioHard.on('change', function() {
+                updateSearchInputVisibility();
+            });
+            $radioSoft.on('change', function() {
+                updateSearchInputVisibility();
+            });
+
+            // Set initial visibility
             updateSearchInputVisibility();
 
             $(document).on('click', function(e) {
@@ -6001,20 +6306,14 @@ function searchWikidataItems(term) {
                 let useHard = $radioHard.is(':checked');
                 let useSoft = $radioSoft.is(':checked');
                 let cardVal = $cardinalitySelect.val();
-                let vType = $valueTypeSelect.val();
-                let sName = $subShapeInput.val().trim();
-                let oGroup = $orGroupInput.val().trim();
                 return {
                     pid: pid,
                     cardinality: cardVal,
                     mandatory: (cardVal === '1' || cardVal === '+'),
                     allowMultiple: (cardVal === '+' || cardVal === '*'),
-                    valueType: vType,
-                    subShapeName: sName,
-                    orGroup: oGroup,
                     defaultValue: '',
-                    hardselect: (vType === 'IRI' && useHard && qidString) ? qidString : '',
-                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ''
+                    hardselect: (useHard && qidString) ? qidString : '',
+                    softselect: (useSoft && qidString) ? qidString : ''
                 };
             });
 
@@ -6153,10 +6452,7 @@ function searchWikidataItems(term) {
 
         let $saveBtn = $('<button>').addClass('cradle-btn-primary').text(mw.msg('cradle-create-entityschema-btn')).on('click', function() {
             let name = $titleInput.val().trim() || 'CustomSchema';
-            let desc = $('#cradle-schema-desc-input').length ? $('#cradle-schema-desc-input').val().trim() : '';
-            let aliases = $('#cradle-schema-aliases-input').length ? $('#cradle-schema-aliases-input').val().trim() : '';
             let targetQID = $targetItemInput.val().trim();
-            let baseSchema = $('#cradle-schema-base-schema-input').length ? $('#cradle-schema-base-schema-input').val().trim() : '';
             let propRows = gatherDesignerProps();
             if (propRows.length === 0) {
                 mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
@@ -6164,7 +6460,7 @@ function searchWikidataItems(term) {
             }
             let pids = propRows.map(r => r.pid);
             fetchLabelsInBatches(pids, function(labelsMap) {
-                openShExExportModal(name, propRows, labelsMap, targetQID, baseSchema, desc, aliases);
+                openShExExportModal(name, propRows, labelsMap, targetQID);
             });
         });
 
@@ -6173,10 +6469,7 @@ function searchWikidataItems(term) {
             .text(mw.msg('cradle-export-shex'))
             .on('click', function() {
                 let name = $titleInput.val().trim() || 'CustomSchema';
-                let desc = $('#cradle-schema-desc-input').length ? $('#cradle-schema-desc-input').val().trim() : '';
-                let aliases = $('#cradle-schema-aliases-input').length ? $('#cradle-schema-aliases-input').val().trim() : '';
                 let targetQID = $targetItemInput.val().trim();
-                let baseSchema = $('#cradle-schema-base-schema-input').length ? $('#cradle-schema-base-schema-input').val().trim() : '';
                 let propRows = gatherDesignerProps();
                 if (propRows.length === 0) {
                     mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
@@ -6184,18 +6477,11 @@ function searchWikidataItems(term) {
                 }
                 let pids = propRows.map(r => r.pid);
                 fetchLabelsInBatches(pids, function(labelsMap) {
-                    openShExExportModal(name, propRows, labelsMap, targetQID, baseSchema, desc, aliases);
+                    openShExExportModal(name, propRows, labelsMap, targetQID);
                 });
             });
 
-        let $versionBadge = $('<span>').css({
-            'font-size': '0.75rem',
-            'font-weight': 'bold',
-            'color': '#72777d',
-            'margin-left': '8px'
-        }).text(`v${CRADLE_VERSION}`);
-
-        let $leftGroup = $('<div>').css({'display': 'flex', 'align-items': 'center'}).append($cancelBtn).append($versionBadge);
+        let $leftGroup = $('<div>').append($cancelBtn);
         let $rightGroup = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center'}).append($exportShexBtn).append($saveBtn);
 
         $footer.append($leftGroup).append($rightGroup);
