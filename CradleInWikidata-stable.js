@@ -9,16 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.44.0
+ * Version: 1.45.0
  * 
  * Installation:
- * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.44.0');
+ * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
+ * 
+ * Production loader snippet for your common.js:
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.45.0');
+ * 
+ * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.44.0';
+    const CRADLE_VERSION = '1.45.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -265,7 +269,6 @@
         .vector-main-menu #p-cradle-schemas .vector-menu-heading,
         .vector-main-menu #p-cradle-schemas h3,
         .vector-main-menu #p-cradle-schemas label {
-            font-size: 0.75rem !important;
             font-weight: normal !important;
             color: var(--color-subtle, #54595d) !important;
             padding: 6px 0 !important;
@@ -283,7 +286,6 @@
         }
         .skin-vector-2022 #p-cradle-schemas .vector-menu-heading span,
         .vector-main-menu #p-cradle-schemas .vector-menu-heading span {
-            font-size: 0.75rem !important;
             font-weight: normal !important;
         }
 
