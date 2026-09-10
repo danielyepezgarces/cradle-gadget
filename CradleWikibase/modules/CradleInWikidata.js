@@ -9,16 +9,16 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.40.0
+ * Version: 1.41.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.40.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.41.0');
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.40.0';
+    const CRADLE_VERSION = '1.41.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -256,6 +256,61 @@
         .vector-menu-content #pt-cradle-create a:hover {
             background-color: #eaf3ff !important;
             color: #1e3f8a !important;
+        }
+
+        /* Vector 2010 Legacy Sidebar Styling for Esquemas portlet */
+        .skin-vector-legacy #p-cradle-schemas,
+        #mw-panel #p-cradle-schemas {
+            padding-bottom: 1.5em;
+            direction: ltr;
+        }
+        .skin-vector-legacy #p-cradle-schemas h3,
+        #mw-panel #p-cradle-schemas h3,
+        .skin-vector-legacy #p-cradle-schemas .vector-menu-heading,
+        #mw-panel #p-cradle-schemas .vector-menu-heading {
+            font-size: 0.75em;
+            color: #444;
+            font-weight: normal;
+            margin: 0.5em 0 0 0.66666667em;
+            padding: 0.25em 0;
+            cursor: default;
+            border: none;
+            background: none;
+        }
+        .skin-vector-legacy #p-cradle-schemas .body,
+        #mw-panel #p-cradle-schemas .body,
+        .skin-vector-legacy #p-cradle-schemas .vector-menu-content,
+        #mw-panel #p-cradle-schemas .vector-menu-content {
+            margin: 0 0 0 0.5em;
+            padding-top: 0;
+        }
+        .skin-vector-legacy #p-cradle-schemas ul,
+        #mw-panel #p-cradle-schemas ul {
+            list-style: none !important;
+            list-style-image: none !important;
+            list-style-type: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .skin-vector-legacy #p-cradle-schemas li,
+        #mw-panel #p-cradle-schemas li {
+            line-height: 1.125em;
+            padding: 0.25em 0;
+            font-size: 0.75em;
+            word-wrap: break-word;
+        }
+        .skin-vector-legacy #p-cradle-schemas li a,
+        #mw-panel #p-cradle-schemas li a {
+            color: #0645ad;
+            text-decoration: none;
+        }
+        .skin-vector-legacy #p-cradle-schemas li a:hover,
+        #mw-panel #p-cradle-schemas li a:hover {
+            text-decoration: underline;
+        }
+        .skin-vector-legacy #p-cradle-schemas li a:visited,
+        #mw-panel #p-cradle-schemas li a:visited {
+            color: #0b0080;
         }
 
         /* Drawer Overlay */
@@ -1208,49 +1263,87 @@
         let recentUrl = mw.util.getUrl('Special:RecentChanges', { namespace: 640 });
         let randomUrl = mw.util.getUrl('Special:Random/EntitySchema');
 
-        let $sidebar = $('#mw-panel, #p-navigation, .vector-main-menu-content, #mw-navigation').first();
-        if (!$sidebar.length) return;
+        let beforeSelector = '#p-wikibase-lexeme-lexicographical-data, #p-tb, #p-navigation';
+        let portletAdded = false;
 
-        let $portlet = $('<div>')
-            .addClass('vector-menu mw-portlet mw-portlet-cradle-schemas portal')
-            .attr('id', 'p-cradle-schemas');
-
-        let $heading = $('<div>')
-            .addClass('vector-menu-heading mw-portlet-heading')
-            .text(sectionHeader);
-
-        let $body = $('<div>').addClass('vector-menu-content mw-portlet-body');
-        let $ul = $('<ul>').addClass('vector-menu-content-list body');
-
-        let $liCreate = $('<li>').attr('id', 'n-cradle-newschema').addClass('mw-list-item')
-            .append($('<a>').attr('href', createUrl).append($('<span>').text(createText)).on('click', function(e) {
-                mw.storage.set('cradle-active-tab', 'design');
-                if (isSpecialCradle || isItemPage) {
-                    e.preventDefault();
-                    window.location.hash = 'design';
-                    openCradleDrawer();
-                    renderCreateOptionsSelector();
+        // Preferred: Use native MediaWiki mw.util.addPortlet API (auto-handles Vector 2010, Vector 2022, Monobook, etc.)
+        if (typeof mw.util.addPortlet === 'function') {
+            try {
+                let targetNext = $(beforeSelector).first()[0];
+                let p = mw.util.addPortlet('p-cradle-schemas', sectionHeader, targetNext);
+                if (p) {
+                    portletAdded = true;
+                    let createLink = mw.util.addPortletLink('p-cradle-schemas', createUrl, createText, 'n-cradle-newschema');
+                    if (createLink) {
+                        $(createLink).find('a').addBack('a').on('click', function(e) {
+                            mw.storage.set('cradle-active-tab', 'design');
+                            if (isSpecialCradle || isItemPage) {
+                                e.preventDefault();
+                                window.location.hash = 'design';
+                                openCradleDrawer();
+                                renderCreateOptionsSelector();
+                            }
+                        });
+                    }
+                    mw.util.addPortletLink('p-cradle-schemas', recentUrl, recentText, 'n-cradle-recentchanges-schemas');
+                    mw.util.addPortletLink('p-cradle-schemas', randomUrl, randomText, 'n-cradle-randomschema');
                 }
-            }));
+            } catch (err) {
+                logDebug("[Cradle] mw.util.addPortlet error, fallback to manual DOM:", err);
+            }
+        }
 
-        let $liRecent = $('<li>').attr('id', 'n-cradle-recentchanges-schemas').addClass('mw-list-item')
-            .append($('<a>').attr('href', recentUrl).append($('<span>').text(recentText)));
+        // Fallback: Manually build semantic DOM for Vector 2010 / legacy skins
+        if (!portletAdded) {
+            let $sidebar = $('#mw-panel, #p-navigation, .vector-main-menu-content, #mw-navigation').first();
+            if (!$sidebar.length) return;
 
-        let $liRandom = $('<li>').attr('id', 'n-cradle-randomschema').addClass('mw-list-item')
-            .append($('<a>').attr('href', randomUrl).append($('<span>').text(randomText)));
+            let $portlet = $('<nav>')
+                .addClass('vector-menu vector-menu-portal portal mw-portlet mw-portlet-cradle-schemas')
+                .attr({
+                    'id': 'p-cradle-schemas',
+                    'role': 'navigation',
+                    'aria-labelledby': 'p-cradle-schemas-label'
+                });
 
-        $ul.append($liCreate).append($liRecent).append($liRandom);
-        $body.append($ul);
-        $portlet.append($heading).append($body);
+            let $heading = $('<h3>')
+                .addClass('vector-menu-heading mw-portlet-heading')
+                .attr('id', 'p-cradle-schemas-label')
+                .append($('<span>').text(sectionHeader));
 
-        if ($('#p-wikibase-lexeme-lexicographical-data').length) {
-            $portlet.insertBefore('#p-wikibase-lexeme-lexicographical-data');
-        } else if ($('#p-navigation').length) {
-            $portlet.insertAfter('#p-navigation');
-        } else if ($('#p-tb').length) {
-            $portlet.insertBefore('#p-tb');
-        } else {
-            $sidebar.append($portlet);
+            let $body = $('<div>').addClass('vector-menu-content mw-portlet-body body');
+            let $ul = $('<ul>').addClass('vector-menu-content-list');
+
+            let $liCreate = $('<li>').attr('id', 'n-cradle-newschema').addClass('mw-list-item')
+                .append($('<a>').attr('href', createUrl).append($('<span>').text(createText)).on('click', function(e) {
+                    mw.storage.set('cradle-active-tab', 'design');
+                    if (isSpecialCradle || isItemPage) {
+                        e.preventDefault();
+                        window.location.hash = 'design';
+                        openCradleDrawer();
+                        renderCreateOptionsSelector();
+                    }
+                }));
+
+            let $liRecent = $('<li>').attr('id', 'n-cradle-recentchanges-schemas').addClass('mw-list-item')
+                .append($('<a>').attr('href', recentUrl).append($('<span>').text(recentText)));
+
+            let $liRandom = $('<li>').attr('id', 'n-cradle-randomschema').addClass('mw-list-item')
+                .append($('<a>').attr('href', randomUrl).append($('<span>').text(randomText)));
+
+            $ul.append($liCreate).append($liRecent).append($liRandom);
+            $body.append($ul);
+            $portlet.append($heading).append($body);
+
+            if ($('#p-wikibase-lexeme-lexicographical-data').length) {
+                $portlet.insertBefore('#p-wikibase-lexeme-lexicographical-data');
+            } else if ($('#p-tb').length) {
+                $portlet.insertBefore('#p-tb');
+            } else if ($('#p-navigation').length) {
+                $portlet.insertAfter('#p-navigation');
+            } else {
+                $sidebar.append($portlet);
+            }
         }
     }
 
