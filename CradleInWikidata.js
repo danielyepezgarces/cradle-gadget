@@ -9,16 +9,16 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.41.0
+ * Version: 1.42.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.41.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.42.0');
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.41.0';
+    const CRADLE_VERSION = '1.42.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -311,6 +311,73 @@
         .skin-vector-legacy #p-cradle-schemas li a:visited,
         #mw-panel #p-cradle-schemas li a:visited {
             color: #0b0080;
+        }
+
+        /* Monobook Skin Styling for Esquemas Portlet */
+        .skin-monobook #p-cradle-schemas h5 {
+            font-size: 95%;
+            font-weight: normal;
+            white-space: nowrap;
+            text-transform: lowercase;
+            margin: 0.3em 0 0 0.5em;
+        }
+        .skin-monobook #p-cradle-schemas .pBody {
+            background-color: #fff;
+            border: 1px solid #aaa;
+            padding: 0 0.8em 0.3em 0.5em;
+        }
+        .skin-monobook #p-cradle-schemas ul {
+            line-height: 1.5em;
+            list-style-type: square;
+            font-size: 95%;
+            margin: 0 0 0 1.5em;
+            padding: 0;
+        }
+        .skin-monobook #p-cradle-schemas li a {
+            color: #002bb8;
+            text-decoration: none;
+        }
+        .skin-monobook #p-cradle-schemas li a:hover {
+            text-decoration: underline;
+        }
+
+        /* Minerva Neue / MobileFrontend Skin Styling */
+        .skin-minerva #cradle-heading-edit-btn {
+            float: none !important;
+            display: inline-flex !important;
+            align-items: center;
+            margin: 6px 0 !important;
+            height: 32px;
+            font-size: 0.85rem;
+            vertical-align: middle;
+        }
+        .skin-minerva #mw-mf-page-left #p-cradle-schemas-mobile {
+            border-top: 1px solid #eaecf0;
+            margin-top: 8px;
+        }
+        .skin-minerva #mw-mf-page-left .menu__item__link:hover {
+            background-color: #eaecf0;
+        }
+
+        /* Responsive Drawer for mobile viewports & Minerva skin */
+        @media (max-width: 640px) {
+            .cradle-drawer {
+                width: 100vw !important;
+                max-width: 100vw !important;
+                right: -100vw !important;
+            }
+            .cradle-drawer.open {
+                right: 0 !important;
+            }
+            .cradle-drawer .wikibase-statementgroupview {
+                flex-direction: column !important;
+            }
+            .cradle-drawer .wikibase-statementgroupview-property {
+                width: 100% !important;
+                border-right: none !important;
+                border-bottom: 1px solid #c8ccd1 !important;
+                position: static !important;
+            }
         }
 
         /* Drawer Overlay */
@@ -1252,7 +1319,7 @@
      * Adds a dedicated "Esquemas" section to the Wikidata sidebar matching Wikibase Lexeme portlet structure.
      */
     function setupSidebarSchemasSection() {
-        if ($('#p-cradle-schemas').length) return;
+        if ($('#p-cradle-schemas').length || $('#p-cradle-schemas-mobile').length) return;
 
         let sectionHeader = mw.msg('cradle-sidebar-header') || 'Esquemas';
         let createText = mw.msg('cradle-sidebar-create-schema') || 'Crear un esquema nuevo';
@@ -1263,10 +1330,72 @@
         let recentUrl = mw.util.getUrl('Special:RecentChanges', { namespace: 640 });
         let randomUrl = mw.util.getUrl('Special:Random/EntitySchema');
 
-        let beforeSelector = '#p-wikibase-lexeme-lexicographical-data, #p-tb, #p-navigation';
+        let currentSkin = mw.config.get('skin') || '';
+        let isMinerva = currentSkin === 'minerva' || $('body').hasClass('skin-minerva') || $('#mw-mf-page-left').length > 0;
+
+        // ── 1. Minerva Neue (MobileFrontend) Support ──
+        if (isMinerva) {
+            let injectMinervaLinks = function() {
+                if ($('#p-cradle-schemas-mobile').length) return;
+                let $minervaMenu = $('#mw-mf-page-left .menu__list, #mw-mf-page-left ul').first();
+                if (!$minervaMenu.length) return;
+
+                let $mobileHeader = $('<li>')
+                    .attr('id', 'p-cradle-schemas-mobile')
+                    .addClass('menu__item menu__item--header')
+                    .css({
+                        'font-weight': 'bold',
+                        'padding': '12px 16px 4px 16px',
+                        'color': '#72777d',
+                        'font-size': '0.75rem',
+                        'text-transform': 'uppercase',
+                        'letter-spacing': '0.5px',
+                        'list-style': 'none'
+                    })
+                    .text(sectionHeader);
+
+                let createMobileItem = function(id, href, text, isDesignAction) {
+                    let $a = $('<a>').attr('href', href).addClass('menu__item__link').css({
+                        'display': 'flex',
+                        'align-items': 'center',
+                        'padding': '10px 16px',
+                        'font-size': '0.9rem',
+                        'color': '#202122',
+                        'text-decoration': 'none'
+                    }).append($('<span>').text(text));
+
+                    if (isDesignAction) {
+                        $a.on('click', function(e) {
+                            mw.storage.set('cradle-active-tab', 'design');
+                            if (isSpecialCradle || isItemPage) {
+                                e.preventDefault();
+                                window.location.hash = 'design';
+                                openCradleDrawer();
+                                renderCreateOptionsSelector();
+                            }
+                        });
+                    }
+
+                    return $('<li>').attr('id', id).addClass('menu__item').css({'list-style': 'none'}).append($a);
+                };
+
+                let $mCradle = createMobileItem('n-cradle-home-m', mw.util.getUrl('Special:Cradle'), 'Cradle', false);
+                let $mCreate = createMobileItem('n-cradle-newschema-m', createUrl, createText, true);
+                let $mRecent = createMobileItem('n-cradle-recentchanges-schemas-m', recentUrl, recentText, false);
+                let $mRandom = createMobileItem('n-cradle-randomschema-m', randomUrl, randomText, false);
+
+                $minervaMenu.append($mobileHeader).append($mCradle).append($mCreate).append($mRecent).append($mRandom);
+            };
+
+            injectMinervaLinks();
+            mw.hook('mobileFrontend.mainMenu').add(injectMinervaLinks);
+            return;
+        }
+
+        // ── 2. Desktop Skins via native MediaWiki mw.util.addPortlet API ──
+        let beforeSelector = '#p-wikibase-lexeme-lexicographical-data, #p-tb, #p-navigation, #p-interaction';
         let portletAdded = false;
 
-        // Preferred: Use native MediaWiki mw.util.addPortlet API (auto-handles Vector 2010, Vector 2022, Monobook, etc.)
         if (typeof mw.util.addPortlet === 'function') {
             try {
                 let targetNext = $(beforeSelector).first()[0];
@@ -1293,26 +1422,44 @@
             }
         }
 
-        // Fallback: Manually build semantic DOM for Vector 2010 / legacy skins
+        // ── 3. Fallback: Manual DOM injection tailored for Monobook, Timeless & Vector ──
         if (!portletAdded) {
-            let $sidebar = $('#mw-panel, #p-navigation, .vector-main-menu-content, #mw-navigation').first();
+            let isMonobook = currentSkin === 'monobook' || $('body').hasClass('skin-monobook') || $('#column-one').length > 0;
+
+            let $sidebar = isMonobook
+                ? $('#column-one').first()
+                : $('#mw-panel, #mw-site-navigation, #p-navigation, .vector-main-menu-content, #mw-navigation').first();
+
             if (!$sidebar.length) return;
 
-            let $portlet = $('<nav>')
-                .addClass('vector-menu vector-menu-portal portal mw-portlet mw-portlet-cradle-schemas')
-                .attr({
-                    'id': 'p-cradle-schemas',
-                    'role': 'navigation',
-                    'aria-labelledby': 'p-cradle-schemas-label'
-                });
+            let $portlet, $heading, $body, $ul;
 
-            let $heading = $('<h3>')
-                .addClass('vector-menu-heading mw-portlet-heading')
-                .attr('id', 'p-cradle-schemas-label')
-                .append($('<span>').text(sectionHeader));
-
-            let $body = $('<div>').addClass('vector-menu-content mw-portlet-body body');
-            let $ul = $('<ul>').addClass('vector-menu-content-list');
+            if (isMonobook) {
+                // Monobook native structure: <div class="portlet"><h5>...</h5><div class="pBody"><ul>...
+                $portlet = $('<div>')
+                    .addClass('portlet mw-portlet mw-portlet-cradle-schemas')
+                    .attr({ 'id': 'p-cradle-schemas', 'role': 'navigation' });
+                $heading = $('<h5>')
+                    .attr('id', 'p-cradle-schemas-label')
+                    .text(sectionHeader);
+                $body = $('<div>').addClass('pBody mw-portlet-body');
+                $ul = $('<ul>');
+            } else {
+                // Vector 2010 / 2022 / Timeless native structure
+                $portlet = $('<nav>')
+                    .addClass('vector-menu vector-menu-portal portal mw-portlet mw-portlet-cradle-schemas')
+                    .attr({
+                        'id': 'p-cradle-schemas',
+                        'role': 'navigation',
+                        'aria-labelledby': 'p-cradle-schemas-label'
+                    });
+                $heading = $('<h3>')
+                    .addClass('vector-menu-heading mw-portlet-heading')
+                    .attr('id', 'p-cradle-schemas-label')
+                    .append($('<span>').text(sectionHeader));
+                $body = $('<div>').addClass('vector-menu-content mw-portlet-body body');
+                $ul = $('<ul>').addClass('vector-menu-content-list');
+            }
 
             let $liCreate = $('<li>').attr('id', 'n-cradle-newschema').addClass('mw-list-item')
                 .append($('<a>').attr('href', createUrl).append($('<span>').text(createText)).on('click', function(e) {
