@@ -9,16 +9,16 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.39.0
+ * Version: 1.40.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.39.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.40.0');
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.39.0';
+    const CRADLE_VERSION = '1.40.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -976,6 +976,10 @@
             'cradle-importer-p106-no-schema': 'No previous schema detected for this occupation (Ideal for new specialized schema).',
             'cradle-importer-p106-available-badge': 'No previous schema',
             'cradle-set-as-base-schema-btn': 'Set $1 as Base Schema for derivation',
+            'cradle-importer-sort-label': 'Sort properties:',
+            'cradle-importer-sort-recoin': 'Recoin frequency (highest first)',
+            'cradle-importer-sort-pid': 'Property ID (P1 → P...)',
+            'cradle-importer-sort-alphabetical': 'Alphabetical (A → Z)',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
             'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
             'cradle-schema-not-found': 'Could not find the schema on the page!',
@@ -5225,12 +5229,15 @@ function searchWikidataItems(term) {
                 let targetClassQID = p31QIDs.length > 0 ? p31QIDs[0] : qid;
                 fetchRecoinData(targetClassQID, function(recoinData) {
                     let recoinFreqMap = {};
+                    let recoinNumericFreq = {};
                     if (recoinData && recoinData.Frequenct_properties) {
                         recoinData.Frequenct_properties.forEach(m => {
                             let pid = m['Property ID'] || m.property;
                             let rawFreq = m.Frequency || m.frequency;
                             if (pid && rawFreq !== undefined) {
-                                recoinFreqMap[pid] = parseFloat(rawFreq).toFixed(1) + '%';
+                                let num = parseFloat(rawFreq);
+                                recoinFreqMap[pid] = num.toFixed(1) + '%';
+                                recoinNumericFreq[pid] = num;
                             }
                         });
                     }
@@ -5413,13 +5420,33 @@ function searchWikidataItems(term) {
                                 $p31Box.show();
                             }
 
-                            // Checkboxes to select properties
-                            let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px', 'margin-top': '4px'}).text(mw.msg('cradle-select-props-to-import'));
-                            $resultArea.append($propSelectorTitle);
+                            // Checkboxes and sorting controls for properties
+                            let $propSelectorHeader = $('<div>').css({
+                                'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center',
+                                'flex-wrap': 'wrap', 'gap': '8px', 'margin-top': '4px'
+                            });
+                            let $propSelectorTitle = $('<div>').css({'font-weight': 'bold', 'font-size': '13px'}).text(mw.msg('cradle-select-props-to-import'));
+                            $propSelectorHeader.append($propSelectorTitle);
+
+                            let $sortContainer = $('<div>').css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px'});
+                            let $sortLabel = $('<span>').css({'color': '#54595d'}).text(mw.msg('cradle-importer-sort-label'));
+                            let $sortSelect = $('<select>').addClass('cdx-select').css({
+                                'height': '26px', 'font-size': '11px', 'padding': '0 6px',
+                                'border-radius': '2px', 'border': '1px solid #a2a9b1', 'background': '#fff', 'cursor': 'pointer'
+                            });
+                            $sortSelect.append($('<option>').val('recoin').text(mw.msg('cradle-importer-sort-recoin')));
+                            $sortSelect.append($('<option>').val('pid').text(mw.msg('cradle-importer-sort-pid')));
+                            $sortSelect.append($('<option>').val('alpha').text(mw.msg('cradle-importer-sort-alphabetical')));
+
+                            let hasRecoinData = Object.keys(recoinNumericFreq).length > 0;
+                            $sortSelect.val(hasRecoinData ? 'recoin' : 'pid');
+                            $sortContainer.append($sortLabel).append($sortSelect);
+                            $propSelectorHeader.append($sortContainer);
+                            $resultArea.append($propSelectorHeader);
 
                             let $propListContainer = $('<div>').css({
                                 'display': 'flex', 'flex-direction': 'column', 'gap': '4px',
-                                'max-height': '150px', 'overflow-y': 'auto', 'border': '1px solid #c8ccd1',
+                                'max-height': '160px', 'overflow-y': 'auto', 'border': '1px solid #c8ccd1',
                                 'padding': '8px', 'border-radius': '4px', 'background': '#fff'
                             });
 
@@ -5429,6 +5456,9 @@ function searchWikidataItems(term) {
                             $propListContainer.append($selectAllRow);
 
                             let propCBs = {};
+                            let propElements = {};
+                            let orderedPropPIDs = fetchedPropPIDs.slice();
+
                             fetchedPropPIDs.forEach(pid => {
                                 let propLbl = labelsMap[pid] ? `${labelsMap[pid]} (${pid})` : pid;
                                 let freqBadge = recoinFreqMap[pid]
@@ -5438,12 +5468,43 @@ function searchWikidataItems(term) {
                                 propCBs[pid] = $cb;
                                 let $itemLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'cursor': 'pointer'})
                                     .append($cb).append($('<span>').html(`${propLbl} ${freqBadge}`));
-                                $propListContainer.append($itemLabel);
+                                propElements[pid] = $itemLabel;
+                            });
+
+                            function sortAndRenderProperties(sortMode) {
+                                if (sortMode === 'recoin') {
+                                    orderedPropPIDs.sort((a, b) => {
+                                        let freqA = recoinNumericFreq[a] !== undefined ? recoinNumericFreq[a] : -1;
+                                        let freqB = recoinNumericFreq[b] !== undefined ? recoinNumericFreq[b] : -1;
+                                        if (freqB !== freqA) return freqB - freqA;
+                                        return (parseInt(a.replace(/\D/g, ''), 10) || 0) - (parseInt(b.replace(/\D/g, ''), 10) || 0);
+                                    });
+                                } else if (sortMode === 'alpha') {
+                                    orderedPropPIDs.sort((a, b) => {
+                                        let nameA = (labelsMap[a] || a).toLowerCase();
+                                        let nameB = (labelsMap[b] || b).toLowerCase();
+                                        return nameA.localeCompare(nameB);
+                                    });
+                                } else { // 'pid'
+                                    orderedPropPIDs = sortPropertyIDs(orderedPropPIDs);
+                                }
+
+                                orderedPropPIDs.forEach(pid => {
+                                    if (propElements[pid]) {
+                                        $propListContainer.append(propElements[pid]);
+                                    }
+                                });
+                            }
+
+                            sortAndRenderProperties($sortSelect.val());
+
+                            $sortSelect.on('change', function() {
+                                sortAndRenderProperties($(this).val());
                             });
 
                             $selectAllCheckbox.on('change', function() {
                                 let isChecked = $(this).is(':checked');
-                                fetchedPropPIDs.forEach(pid => {
+                                orderedPropPIDs.forEach(pid => {
                                     if (propCBs[pid]) propCBs[pid].prop('checked', isChecked);
                                 });
                             });
@@ -5459,7 +5520,7 @@ function searchWikidataItems(term) {
                             $resultArea.append($duplicateNoticeBox);
 
                             $importConfirmBtn.on('click', function() {
-                                let selectedPIDs = fetchedPropPIDs.filter(pid => propCBs[pid] && propCBs[pid].is(':checked'));
+                                let selectedPIDs = orderedPropPIDs.filter(pid => propCBs[pid] && propCBs[pid].is(':checked'));
                                 if (selectedPIDs.length === 0) {
                                     mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'warn' });
                                     return;
@@ -5719,12 +5780,12 @@ function searchWikidataItems(term) {
                     // Clear previous property rows so new import starts fresh
                     $propsList.empty();
 
-                    let newPIDs = sortPropertyIDs(importedPIDs || []);
+                    let newPIDs = (importedPIDs || []).slice();
                     if (occupationPreset && !newPIDs.includes('P106')) {
                         newPIDs.unshift('P106');
                     }
                     if (newPIDs.length === 0) {
-                        mw.notify('No properties selected for import.', { type: 'info' });
+                        mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'info' });
                         return;
                     }
 
