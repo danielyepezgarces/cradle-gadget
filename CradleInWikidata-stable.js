@@ -9,16 +9,16 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.42.0
+ * Version: 1.43.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.42.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.43.0');
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.42.0';
+    const CRADLE_VERSION = '1.43.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -351,12 +351,12 @@
             font-size: 0.85rem;
             vertical-align: middle;
         }
-        .skin-minerva #mw-mf-page-left #p-cradle-schemas-mobile {
-            border-top: 1px solid #eaecf0;
-            margin-top: 8px;
-        }
-        .skin-minerva #mw-mf-page-left .menu__item__link:hover {
-            background-color: #eaecf0;
+        .skin-minerva #firstHeading {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
         }
 
         /* Responsive Drawer for mobile viewports & Minerva skin */
@@ -1336,33 +1336,24 @@
         // ── 1. Minerva Neue (MobileFrontend) Support ──
         if (isMinerva) {
             let injectMinervaLinks = function() {
-                if ($('#p-cradle-schemas-mobile').length) return;
-                let $minervaMenu = $('#mw-mf-page-left .menu__list, #mw-mf-page-left ul').first();
-                if (!$minervaMenu.length) return;
+                if ($('#p-cradle-schemas').length) return;
+                let $container = $('#mw-mf-page-left');
+                if (!$container.length) return;
 
-                let $mobileHeader = $('<li>')
-                    .attr('id', 'p-cradle-schemas-mobile')
-                    .addClass('menu__item menu__item--header')
-                    .css({
-                        'font-weight': 'bold',
-                        'padding': '12px 16px 4px 16px',
-                        'color': '#72777d',
-                        'font-size': '0.75rem',
-                        'text-transform': 'uppercase',
-                        'letter-spacing': '0.5px',
-                        'list-style': 'none'
-                    })
-                    .text(sectionHeader);
+                let $cradleUl = $('<ul>')
+                    .attr('id', 'p-cradle-schemas')
+                    .addClass('toggle-list__list');
 
-                let createMobileItem = function(id, href, text, isDesignAction) {
-                    let $a = $('<a>').attr('href', href).addClass('menu__item__link').css({
-                        'display': 'flex',
-                        'align-items': 'center',
-                        'padding': '10px 16px',
-                        'font-size': '0.9rem',
-                        'color': '#202122',
-                        'text-decoration': 'none'
-                    }).append($('<span>').text(text));
+                let createMobileItem = function(id, href, text, iconClass, isDesignAction) {
+                    let $li = $('<li>').addClass('toggle-list-item').attr('id', id);
+                    let $a = $('<a>').addClass('toggle-list-item__anchor')
+                        .attr({
+                            'href': href,
+                            'data-mw-interface': '1'
+                        });
+
+                    let $icon = $('<span>').addClass('minerva-icon ' + iconClass);
+                    let $label = $('<span>').addClass('toggle-list-item__label').text(text);
 
                     if (isDesignAction) {
                         $a.on('click', function(e) {
@@ -1370,21 +1361,33 @@
                             if (isSpecialCradle || isItemPage) {
                                 e.preventDefault();
                                 window.location.hash = 'design';
+                                // Smoothly close Minerva drawer
+                                $('#main-menu-input').prop('checked', false);
                                 openCradleDrawer();
                                 renderCreateOptionsSelector();
                             }
                         });
                     }
 
-                    return $('<li>').attr('id', id).addClass('menu__item').css({'list-style': 'none'}).append($a);
+                    $a.append($icon).append($label);
+                    $li.append($a);
+                    return $li;
                 };
 
-                let $mCradle = createMobileItem('n-cradle-home-m', mw.util.getUrl('Special:Cradle'), 'Cradle', false);
-                let $mCreate = createMobileItem('n-cradle-newschema-m', createUrl, createText, true);
-                let $mRecent = createMobileItem('n-cradle-recentchanges-schemas-m', recentUrl, recentText, false);
-                let $mRandom = createMobileItem('n-cradle-randomschema-m', randomUrl, randomText, false);
+                let $mCradle = createMobileItem('n-cradle-home-m', mw.util.getUrl('Special:Cradle'), 'Cradle', 'minerva-icon--specialPages', false);
+                let $mCreate = createMobileItem('n-cradle-newschema-m', createUrl, createText, 'minerva-icon--articleRedirect', true);
+                let $mRecent = createMobileItem('n-cradle-recentchanges-schemas-m', recentUrl, recentText, 'minerva-icon--recentChanges', false);
+                let $mRandom = createMobileItem('n-cradle-randomschema-m', randomUrl, randomText, 'minerva-icon--die', false);
 
-                $minervaMenu.append($mobileHeader).append($mCradle).append($mCreate).append($mRecent).append($mRandom);
+                $cradleUl.append($mCradle).append($mCreate).append($mRecent).append($mRandom);
+
+                if ($('#p-interaction').length) {
+                    $cradleUl.insertAfter('#p-interaction');
+                } else if ($('#p-navigation').length) {
+                    $cradleUl.insertAfter('#p-navigation');
+                } else {
+                    $container.children('ul').last().after($cradleUl);
+                }
             };
 
             injectMinervaLinks();
