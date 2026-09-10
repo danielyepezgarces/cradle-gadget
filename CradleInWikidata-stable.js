@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.45.0
+ * Version: 1.46.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.45.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.46.0');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.45.0';
+    const CRADLE_VERSION = '1.46.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -1133,6 +1133,12 @@
             'cradle-importer-sort-recoin': 'Recoin frequency (highest first)',
             'cradle-importer-sort-pid': 'Property ID (P1 → P...)',
             'cradle-importer-sort-alphabetical': 'Alphabetical (A → Z)',
+            'cradle-link-p12861-checkbox': 'Link schema to associated class ($1) via P12861 upon creation',
+            'cradle-link-p12861-summary': 'Add EntitySchema $1 (P12861) via Cradle',
+            'cradle-schema-linked-p12861-success': 'EntitySchema $1 linked to $2 via P12861!',
+            'cradle-schema-linked-p12861-notice': 'Property P12861 successfully added to $1',
+            'cradle-schema-linked-p12861-failed': 'Could not link P12861 to $1: $2',
+            'cradle-link-p12861-derivation-skip': 'P12861 will not be added to the target class because this schema is a derivation.',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
             'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
             'cradle-schema-not-found': 'Could not find the schema on the page!',
@@ -4625,6 +4631,17 @@ function searchWikidataItems(term) {
                 }
             };
         }
+        if (datatype === 'entity-schema') {
+            let eid = typeof value === 'string' ? value.trim().toUpperCase() : value.id;
+            if (!eid || !eid.startsWith('E')) return null;
+            return {
+                type: 'wikibase-entityid',
+                value: {
+                    'entity-type': 'entity-schema',
+                    'id': eid
+                }
+            };
+        }
         if (datatype === 'string' || datatype === 'external-id' || datatype === 'url' || datatype === 'commonsMedia') {
             return {
                 type: 'string',
@@ -5256,6 +5273,68 @@ function searchWikidataItems(term) {
     }
 
     /**
+     * Links an EntitySchema to its target class/item via property P12861 (EntitySchema for this class).
+     */
+    function linkEntitySchemaToItem(targetQID, schemaId) {
+        let cleanQID = (targetQID || '').trim().toUpperCase();
+        let cleanEID = (schemaId || '').trim().toUpperCase();
+        if (!cleanEID.startsWith('E')) {
+            cleanEID = 'E' + cleanEID.replace(/\D/g, '');
+        }
+        if (!/^Q\d+$/i.test(cleanQID) || !/^E\d+$/i.test(cleanEID)) {
+            return Promise.resolve({ skipped: true });
+        }
+
+        let api = new mw.Api();
+
+        return api.get({
+            action: 'wbgetclaims',
+            entity: cleanQID,
+            property: 'P12861',
+            format: 'json'
+        }).then(function(res) {
+            let existingClaims = (res && res.claims && res.claims.P12861) || [];
+            let alreadyExists = existingClaims.some(function(claim) {
+                let val = claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value;
+                if (!val) return false;
+                let id = typeof val === 'string' ? val : val.id;
+                return id && id.toUpperCase() === cleanEID;
+            });
+
+            if (alreadyExists) {
+                return { skipped: true, reason: 'already-exists' };
+            }
+
+            let claimPayload = {
+                mainsnak: {
+                    snaktype: 'value',
+                    property: 'P12861',
+                    datavalue: {
+                        type: 'wikibase-entityid',
+                        value: {
+                            'entity-type': 'entity-schema',
+                            'id': cleanEID
+                        }
+                    }
+                },
+                type: 'statement',
+                rank: 'normal'
+            };
+
+            return api.postWithEditToken({
+                action: 'wbeditentity',
+                id: cleanQID,
+                data: JSON.stringify({
+                    claims: [claimPayload]
+                }),
+                summary: mw.msg('cradle-link-p12861-summary', cleanEID) || `Add EntitySchema ${cleanEID} (P12861) via Cradle`
+            }).then(function(editRes) {
+                return { success: true, targetQID: cleanQID, schemaId: cleanEID, editRes: editRes };
+            });
+        });
+    }
+
+    /**
      * Displays a modal overlay to preview ShEx code, copy it, or publish on Wikidata directly.
      */
     function openShExExportModal(title, propRows, labelsMap, targetItem, baseSchema, desc, aliases) {
@@ -5327,6 +5406,43 @@ function searchWikidataItems(term) {
 
         $modal.append($textarea);
 
+        let cleanTargetQID = (targetItem || '').trim().toUpperCase();
+        if (!cleanTargetQID) {
+            let tMatch = (shexText || '').match(/#\s*(?:targetItem|Associated Item.*?):\s*(Q\d+)/i);
+            if (tMatch) cleanTargetQID = tMatch[1].toUpperCase();
+        }
+        let cleanBase = (baseSchema || '').trim().toUpperCase();
+        let isDerivation = Boolean(cleanBase) ||
+            /#\s*(?:baseSchema|Base Schema|Derivation):/i.test(shexText) ||
+            /IMPORT\s+<[^>]*EntitySchemaText\//i.test(shexText);
+
+        let $linkP12861Container = $('<div>').css({'margin': '4px 0'});
+        let $linkCheckbox = null;
+        if (cleanTargetQID && /^Q\d+$/i.test(cleanTargetQID)) {
+            if (!isDerivation) {
+                $linkCheckbox = $('<input>').attr({
+                    type: 'checkbox',
+                    id: 'cradle-link-p12861-cb',
+                    checked: true
+                });
+                let $linkLabel = $('<label>').css({
+                    'font-size': '12px',
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '6px',
+                    'cursor': 'pointer',
+                    'color': '#202122'
+                }).append($linkCheckbox).append($('<span>').text(mw.msg('cradle-link-p12861-checkbox', cleanTargetQID)));
+                $linkP12861Container.append($linkLabel);
+            } else {
+                $linkP12861Container.append(
+                    $('<div>').css({'font-size': '11px', 'color': '#54595d', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
+                        .html(`<span style="display:inline-flex; width:14px; height:14px; flex-shrink:0; fill:currentColor;">${ICONS.info}</span> <span>${mw.msg('cradle-link-p12861-derivation-skip')}</span>`)
+                );
+            }
+        }
+        $modal.append($linkP12861Container);
+
         let $btnRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'justify-content': 'flex-end', 'align-items': 'center', 'flex-wrap': 'wrap'});
 
         let $manualLink = $('<a>').attr({
@@ -5389,6 +5505,30 @@ function searchWikidataItems(term) {
                             .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'text-decoration': 'none'})
                             .html(ICONS.external + ` <span>${mw.msg('cradle-open-created-schema', schemaId)}</span>`);
                         $btnRow.append($viewBtn);
+
+                        // Check if we should link P12861 to the target item
+                        let currentDerivation = isDerivation ||
+                            /#\s*(?:baseSchema|Base Schema|Derivation):/i.test(currentShex) ||
+                            /IMPORT\s+<[^>]*EntitySchemaText\//i.test(currentShex);
+
+                        let shouldLink = !currentDerivation && cleanTargetQID && /^Q\d+$/i.test(cleanTargetQID) &&
+                            (!$linkCheckbox || $linkCheckbox.is(':checked'));
+
+                        if (shouldLink) {
+                            linkEntitySchemaToItem(cleanTargetQID, schemaId).then(function(linkRes) {
+                                if (linkRes && linkRes.success) {
+                                    mw.notify(mw.msg('cradle-schema-linked-p12861-success', schemaId, cleanTargetQID), { type: 'success' });
+                                    $statusBox.append(
+                                        $('<div>').css({'margin-top': '6px', 'font-size': '12px', 'color': '#00805d', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
+                                            .html(`<span style="display:inline-flex; width:14px; height:14px; flex-shrink:0; fill:currentColor;">${ICONS.check}</span> <span>${mw.msg('cradle-schema-linked-p12861-notice', cleanTargetQID, schemaId)} (<a href="${mw.util.getUrl(cleanTargetQID)}" target="_blank" style="color:#00805d; text-decoration:underline;">${cleanTargetQID}</a>).</span>`)
+                                    );
+                                }
+                            }).catch(function(linkErr) {
+                                logError('[Cradle] Error linking P12861 to ' + cleanTargetQID, linkErr);
+                                let msg = (linkErr && linkErr.error && linkErr.error.info) || (linkErr && linkErr.message) || linkErr;
+                                mw.notify(mw.msg('cradle-schema-linked-p12861-failed', cleanTargetQID, String(msg)), { type: 'warn' });
+                            });
+                        }
                     })
                     .catch(function(err) {
                         $publishBtn.prop('disabled', false);
