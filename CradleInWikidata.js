@@ -9,16 +9,16 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.43.0
+ * Version: 1.44.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache):
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.43.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.44.0');
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.43.0';
+    const CRADLE_VERSION = '1.44.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -256,6 +256,35 @@
         .vector-menu-content #pt-cradle-create a:hover {
             background-color: #eaf3ff !important;
             color: #1e3f8a !important;
+        }
+
+        /* Vector 2022 Sidebar Header Styling */
+        .skin-vector-2022 #p-cradle-schemas .vector-menu-heading,
+        .skin-vector-2022 #p-cradle-schemas h3,
+        .skin-vector-2022 #p-cradle-schemas label,
+        .vector-main-menu #p-cradle-schemas .vector-menu-heading,
+        .vector-main-menu #p-cradle-schemas h3,
+        .vector-main-menu #p-cradle-schemas label {
+            font-size: 0.75rem !important;
+            font-weight: normal !important;
+            color: var(--color-subtle, #54595d) !important;
+            padding: 6px 0 !important;
+            margin: 6px 0 !important;
+            border-bottom: 1px solid var(--background-color-interactive, #eaecf0) !important;
+            border-top: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            background: none !important;
+            cursor: default !important;
+            display: block !important;
+            line-height: 1.5 !important;
+            letter-spacing: normal !important;
+            text-transform: none !important;
+        }
+        .skin-vector-2022 #p-cradle-schemas .vector-menu-heading span,
+        .vector-main-menu #p-cradle-schemas .vector-menu-heading span {
+            font-size: 0.75rem !important;
+            font-weight: normal !important;
         }
 
         /* Vector 2010 Legacy Sidebar Styling for Esquemas portlet */
@@ -1405,6 +1434,12 @@
                 let p = mw.util.addPortlet('p-cradle-schemas', sectionHeader, targetNext);
                 if (p) {
                     portletAdded = true;
+                    let $p = $(p);
+                    $p.addClass('vector-menu');
+                    $p.children('div, label, h3').first().addClass('vector-menu-heading').text(sectionHeader);
+                    $p.children('div').last().addClass('vector-menu-content');
+                    $p.find('ul').addClass('vector-menu-content-list');
+
                     let createLink = mw.util.addPortletLink('p-cradle-schemas', createUrl, createText, 'n-cradle-newschema');
                     if (createLink) {
                         $(createLink).find('a').addBack('a').on('click', function(e) {
@@ -1425,7 +1460,7 @@
             }
         }
 
-        // ── 3. Fallback: Manual DOM injection tailored for Monobook, Timeless & Vector ──
+        // ── 3. Fallback: Manual DOM injection tailored for Monobook, Vector 2022, Timeless & Vector 2010 ──
         if (!portletAdded) {
             let isMonobook = currentSkin === 'monobook' || $('body').hasClass('skin-monobook') || $('#column-one').length > 0;
 
@@ -1447,8 +1482,23 @@
                     .text(sectionHeader);
                 $body = $('<div>').addClass('pBody mw-portlet-body');
                 $ul = $('<ul>');
+            } else if (currentSkin === 'vector-2022' || $('body').hasClass('skin-vector-2022') || $('.vector-main-menu').length > 0) {
+                // Vector 2022 native structure: <div class="vector-menu"><div class="vector-menu-heading">...</div><div class="vector-menu-content"><ul>...
+                $portlet = $('<div>')
+                    .addClass('vector-menu mw-portlet mw-portlet-cradle-schemas')
+                    .attr({
+                        'id': 'p-cradle-schemas',
+                        'role': 'navigation',
+                        'aria-labelledby': 'p-cradle-schemas-label'
+                    });
+                $heading = $('<div>')
+                    .addClass('vector-menu-heading')
+                    .attr('id', 'p-cradle-schemas-label')
+                    .text(sectionHeader);
+                $body = $('<div>').addClass('vector-menu-content');
+                $ul = $('<ul>').addClass('vector-menu-content-list');
             } else {
-                // Vector 2010 / 2022 / Timeless native structure
+                // Vector 2010 / Timeless native structure
                 $portlet = $('<nav>')
                     .addClass('vector-menu vector-menu-portal portal mw-portlet mw-portlet-cradle-schemas')
                     .attr({
