@@ -177,7 +177,13 @@
     "cradle-importer-sort-label": "Sort properties:",
     "cradle-importer-sort-recoin": "Recoin frequency (highest first)",
     "cradle-importer-sort-pid": "Property ID (P1 → P...)",
-    "cradle-importer-sort-alphabetical": "Alphabetical (A → Z)"
+    "cradle-importer-sort-alphabetical": "Alphabetical (A → Z)",
+    "cradle-link-p12861-checkbox": "Link schema to associated class ($1) via P12861 upon creation",
+    "cradle-link-p12861-summary": "Add EntitySchema $1 (P12861) via Cradle",
+    "cradle-schema-linked-p12861-success": "EntitySchema $1 linked to $2 via P12861!",
+    "cradle-schema-linked-p12861-notice": "Property P12861 successfully added to $1",
+    "cradle-schema-linked-p12861-failed": "Could not link P12861 to $1: $2",
+    "cradle-link-p12861-derivation-skip": "P12861 will not be added to the target class because this schema is a derivation."
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -357,6 +363,12 @@
     "cradle-importer-sort-label": "Ordenar propiedades:",
     "cradle-importer-sort-recoin": "Frecuencia Recoin (mayor a menor)",
     "cradle-importer-sort-pid": "Identificador (P1 → P...)",
-    "cradle-importer-sort-alphabetical": "Alfabético (A → Z)"
+    "cradle-importer-sort-alphabetical": "Alfabético (A → Z)",
+    "cradle-link-p12861-checkbox": "Vincular esquema a la clase asociada ($1) mediante P12861 al publicar",
+    "cradle-link-p12861-summary": "Añadir EntitySchema $1 (P12861) mediante Cradle",
+    "cradle-schema-linked-p12861-success": "¡EntitySchema $1 vinculado a $2 mediante P12861!",
+    "cradle-schema-linked-p12861-notice": "Propiedad P12861 añadida exitosamente a $1",
+    "cradle-schema-linked-p12861-failed": "No se pudo vincular P12861 a $1: $2",
+    "cradle-link-p12861-derivation-skip": "No se añadirá P12861 a la clase asociada porque este esquema es una derivación."
   }
 }
