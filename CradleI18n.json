@@ -173,7 +173,11 @@
     "cradle-importer-p106-schema-exists": "Existing schema detected for this occupation ($1). Review existing schema to avoid duplicates.",
     "cradle-importer-p106-no-schema": "No previous schema detected for this occupation (Ideal for new specialized schema).",
     "cradle-importer-p106-available-badge": "No previous schema",
-    "cradle-set-as-base-schema-btn": "Set $1 as Base Schema for derivation"
+    "cradle-set-as-base-schema-btn": "Set $1 as Base Schema for derivation",
+    "cradle-importer-sort-label": "Sort properties:",
+    "cradle-importer-sort-recoin": "Recoin frequency (highest first)",
+    "cradle-importer-sort-pid": "Property ID (P1 → P...)",
+    "cradle-importer-sort-alphabetical": "Alphabetical (A → Z)"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -349,6 +353,10 @@
     "cradle-importer-p106-schema-exists": "Se detectó un esquema existente para esta ocupación ($1). Revisa el esquema existente para evitar duplicados.",
     "cradle-importer-p106-no-schema": "Sin esquema previo para esta ocupación (Ideal para crear un nuevo esquema derivado).",
     "cradle-importer-p106-available-badge": "Sin esquema previo",
-    "cradle-set-as-base-schema-btn": "Establecer $1 como esquema base para derivación"
+    "cradle-set-as-base-schema-btn": "Establecer $1 como esquema base para derivación",
+    "cradle-importer-sort-label": "Ordenar propiedades:",
+    "cradle-importer-sort-recoin": "Frecuencia Recoin (mayor a menor)",
+    "cradle-importer-sort-pid": "Identificador (P1 → P...)",
+    "cradle-importer-sort-alphabetical": "Alfabético (A → Z)"
   }
 }
