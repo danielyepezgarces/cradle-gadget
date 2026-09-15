@@ -57,14 +57,17 @@ SHARED_I18N_PAGE = "User:Danielyepezgarces/Gadget-cradle/i18n.json"
 TARGET_PAGES = {
     "stable": {
         "js": "User:Danielyepezgarces/Gadget-cradle.js",
+        "css": "User:Danielyepezgarces/Gadget-cradle.css",
         "i18n": SHARED_I18N_PAGE
     },
     "beta": {
         "js": "User:Danielyepezgarces/Gadget-cradle-beta.js",
+        "css": "User:Danielyepezgarces/Gadget-cradle-beta.css",
         "i18n": SHARED_I18N_PAGE
     },
     "dev": {
         "js": "User:Danielyepezgarces/Gadget-cradle-dev.js",
+        "css": "User:Danielyepezgarces/Gadget-cradle-dev.css",
         "i18n": SHARED_I18N_PAGE
     }
 }
@@ -175,6 +178,12 @@ TARGET_FILES = {
     "dev": "CradleInWikidata-dev.js"
 }
 
+TARGET_CSS_FILES = {
+    "stable": "CradleInWikidata-stable.css",
+    "beta": "CradleInWikidata-beta.css",
+    "dev": "CradleInWikidata-dev.css"
+}
+
 def update_commonjs_loader_version(session, username, target_env, version_str):
     """Updates User:Danielyepezgarces/common.js to load exclusively target_env script."""
     user_base = username.split('@')[0]
@@ -262,6 +271,13 @@ def main():
     try:
         login_bot(session, username, password)
         update_wikidata_page(session, target_js_page, js_code, edit_summary)
+
+        target_css_page = TARGET_PAGES[args.target_env].get("css")
+        local_css_file = TARGET_CSS_FILES.get(args.target_env, "CradleInWikidata.css")
+        if target_css_page and os.path.exists(local_css_file):
+            with open(local_css_file, "r", encoding="utf-8") as f_css:
+                css_code = f_css.read()
+            update_wikidata_page(session, target_css_page, css_code, edit_summary)
 
         if args.upload_i18n and os.path.exists("CradleI18n.json"):
             with open("CradleI18n.json", "r", encoding="utf-8") as f_i18n:
