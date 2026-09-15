@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.46.0
+ * Version: 1.47.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.46.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.47.0');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.46.0';
+    const CRADLE_VERSION = '1.47.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -2283,14 +2283,65 @@
     }
 
     /**
+     * Escapes regex special characters in a string.
+     */
+    function escapeRegex(str) {
+        return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /**
+     * Strips ShEx comments (#...) while preserving # inside IRIs (<...>) and string literals.
+     */
+    function stripShExComments(text) {
+        if (!text) return '';
+        let lines = text.split('\n');
+        return lines.map(line => {
+            let inIRI = false;
+            let inQuotes = false;
+            let quoteChar = '';
+            let clean = '';
+            for (let i = 0; i < line.length; i++) {
+                let c = line[i];
+                if (!inQuotes && c === '<') {
+                    inIRI = true;
+                } else if (!inQuotes && inIRI && c === '>') {
+                    inIRI = false;
+                } else if (!inIRI && (c === '"' || c === "'")) {
+                    if (!inQuotes) {
+                        inQuotes = true;
+                        quoteChar = c;
+                    } else if (quoteChar === c) {
+                        inQuotes = false;
+                    }
+                } else if (!inIRI && !inQuotes && c === '#') {
+                    break;
+                }
+                clean += c;
+            }
+            return clean;
+        }).join('\n');
+    }
+
+    /**
      * Extracts inner content of a shape block matching <shapeName> { ... } while respecting nested braces.
      */
     function extractShapeContent(text, shapeName) {
-        let tag = '<' + shapeName + '>';
-        let startIdx = text.indexOf(tag);
-        if (startIdx === -1) return text;
-        let braceStart = text.indexOf('{', startIdx);
-        if (braceStart === -1) return text;
+        let res = extractShape(text, shapeName);
+        return res ? res.content : text;
+    }
+
+    /**
+     * Robust shape extractor that identifies shape definitions (<shapeName> [EXTRA ...] { ... })
+     * without confusing them with assignments (start = @<shapeName>) or inline shape references.
+     */
+    function extractShape(text, shapeName) {
+        if (!shapeName) return { content: text, extraPids: [] };
+        let cleanShape = String(shapeName).replace(/^[<@:]+|[>]+$/g, '').trim();
+        let pattern = new RegExp('(?:<' + escapeRegex(cleanShape) + '>|:' + escapeRegex(cleanShape) + '|\\b' + escapeRegex(cleanShape) + ')\\s*(?:EXTRA\\s+([^{]+))?\\s*\\{', 'i');
+        let match = pattern.exec(text);
+        if (!match) return { content: text, extraPids: [] };
+
+        let braceStart = text.indexOf('{', match.index);
         let depth = 0;
         let endIdx = -1;
         for (let i = braceStart; i < text.length; i++) {
@@ -2303,37 +2354,72 @@
                 }
             }
         }
-        return endIdx !== -1 ? text.substring(braceStart + 1, endIdx) : text.substring(braceStart + 1);
+        let content = endIdx !== -1 ? text.substring(braceStart + 1, endIdx) : text.substring(braceStart + 1);
+        let extraPids = [];
+        if (match[1]) {
+            let pids = match[1].match(/P\d+/gi) || [];
+            extraPids = pids.map(p => p.toUpperCase());
+        }
+        return { content: content, extraPids: extraPids };
     }
 
     /**
-     * A robust ShEx schema parser supporting nested shapes, multiline blocks, and cardinalities.
+     * A robust ShEx schema parser supporting root shapes, nested sub-shapes, multiline blocks, and cardinalities.
      */
     function parseShEx(shexText) {
-        // 1. Remove comments (#...)
-        let cleaned = shexText.replace(/(?<!\<)#.*(\n|$)/mg, "\n");
+        // 1. Remove comments (#...) while preserving IRIs
+        let cleaned = stripShExComments(shexText);
 
-        // 2. Find start shape or first shape
-        let startMatch = cleaned.match(/start\s*=\s*@<\s*(.+?)\s*>/i);
-        let startShape = startMatch ? startMatch[1] : null;
-
-        if (!startShape) {
-            let firstShapeMatch = cleaned.match(/<([^>]+)>\s*(?:EXTRA\s+[^{]+)?\s*\{/i);
-            if (firstShapeMatch) startShape = firstShapeMatch[1];
+        // 2. Discover all shape definitions in the schema
+        let shapeHeaderRegex = /(?:<([A-Za-z0-9_:-]+)>|:([A-Za-z0-9_:-]+)|\b([A-Za-z0-9_:-]+))\s*(?:EXTRA\s+([^{]+))?\s*\{/g;
+        let match;
+        let shapes = [];
+        let shapesMap = {};
+        while ((match = shapeHeaderRegex.exec(cleaned)) !== null) {
+            let name = match[1] || match[2] || match[3];
+            let extraStr = match[4] || '';
+            let braceStart = cleaned.indexOf('{', match.index);
+            let depth = 0;
+            let endIdx = -1;
+            for (let i = braceStart; i < cleaned.length; i++) {
+                if (cleaned[i] === '{') depth++;
+                else if (cleaned[i] === '}') {
+                    depth--;
+                    if (depth === 0) {
+                        endIdx = i;
+                        break;
+                    }
+                }
+            }
+            let content = endIdx !== -1 ? cleaned.substring(braceStart + 1, endIdx) : cleaned.substring(braceStart + 1);
+            let extraPids = (extraStr.match(/P\d+/gi) || []).map(p => p.toUpperCase());
+            let shapeObj = { name: name, extraPids: extraPids, content: content, startIndex: match.index };
+            shapes.push(shapeObj);
+            shapesMap[name.toLowerCase()] = shapeObj;
         }
 
-        let targetText = startShape ? extractShapeContent(cleaned, startShape) : cleaned;
+        // 3. Find start shape or root shape
+        let startMatch = cleaned.match(/start\s*=\s*@<\s*(.+?)\s*>/i) || cleaned.match(/start\s*=\s*@?([A-Za-z0-9_:-]+)/i);
+        let startShapeName = startMatch ? (startMatch[1] || startMatch[2]).replace(/^[<@:]+|[>]+$/g, '').trim() : null;
 
-        // Extract shape EXTRA properties if any
-        let shapeExtraPids = [];
-        let extraMatch = cleaned.match(/EXTRA\s+([^{]+)/i);
-        if (extraMatch) {
-            let pids = extraMatch[1].match(/P\d+/gi) || [];
-            shapeExtraPids = pids.map(p => p.toUpperCase());
-            if (shapeExtraPids.length === 0) shapeExtraPids.push('ALL');
+        let targetShape = null;
+        if (startShapeName && shapesMap[startShapeName.toLowerCase()]) {
+            targetShape = shapesMap[startShapeName.toLowerCase()];
+        } else if (shapes.length > 0) {
+            // Find root shape not referenced as sub-shape by others, or fallback to the shape with most properties
+            let referenced = new Set();
+            shapes.forEach(s => {
+                let refs = s.content.match(/@<\s*([^>]+)\s*>/g) || [];
+                refs.forEach(r => referenced.add(r.replace(/[@<>]/g, '').toLowerCase()));
+            });
+            let unreferenced = shapes.filter(s => !referenced.has(s.name.toLowerCase()));
+            targetShape = unreferenced.length > 0 ? unreferenced[0] : shapes[0];
         }
 
-        // 3. Extract statement blocks split by ';'
+        let targetText = targetShape ? targetShape.content : cleaned;
+        let shapeExtraPids = targetShape ? targetShape.extraPids : [];
+
+        // 4. Extract statement blocks split by ';'
         let props = {};
         let statementBlocks = targetText.split(';');
 
@@ -2387,6 +2473,20 @@
                 let cleanQ = q.replace(/wd:/i, '').toUpperCase();
                 if (!softselect.includes(cleanQ)) softselect.push(cleanQ);
             });
+
+            // If block references a sub-shape, extract potential target QIDs from it
+            let subShapeMatch = block.match(/@<\s*([^>]+)\s*>/i) || block.match(/@([A-Za-z0-9_:-]+)/i);
+            if (subShapeMatch) {
+                let subName = (subShapeMatch[1] || '').replace(/^[<@:]+|[>]+$/g, '').toLowerCase();
+                if (shapesMap[subName]) {
+                    let subContent = shapesMap[subName].content;
+                    let subQids = subContent.match(/(?:wd:|Q)(Q\d+)/gi) || [];
+                    subQids.forEach(q => {
+                        let cleanQ = q.replace(/wd:/i, '').toUpperCase();
+                        if (!softselect.includes(cleanQ)) softselect.push(cleanQ);
+                    });
+                }
+            }
 
             if (!props[pid] || mandatory) {
                 props[pid] = {
