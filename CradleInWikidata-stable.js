@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.51.0
+ * Version: 1.51.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.51.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.51.1');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.51.0';
+    const CRADLE_VERSION = '1.51.1';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -412,7 +412,8 @@
             'cradle-sidebar-create-schema': 'Create a new schema',
             'cradle-sidebar-edit-schema': 'Edit a schema',
             'cradle-sidebar-recent-schemas': 'Recent changes',
-            'cradle-sidebar-random-schema': 'Random schema'
+            'cradle-sidebar-random-schema': 'Random schema',
+            'cradle-special-title': 'Cradle - Wikidata Schema Editor'
         };
 
         // Load local English fallbacks first
@@ -508,7 +509,8 @@
                     'cradle-sidebar-recent-schemas': 'Cambios recientes',
                     'cradle-sidebar-random-schema': 'Esquema aleatorio',
                     'cradle-tab-create-item': 'Crear elementos',
-                    'cradle-tab-design-schema': 'Diseñar esquemas'
+                    'cradle-tab-design-schema': 'Diseñar esquemas',
+                    'cradle-special-title': 'Cradle - Wikidata Schema Editor'
                 });
             }
             proceedInit();
@@ -788,12 +790,13 @@
         activeMode = 'create';
         
         // Update browser document title
-        document.title = "Cradle - Wikidata Form Editor";
+        let specialTitle = mw.msg('cradle-special-title') || 'Cradle - Wikidata Schema Editor';
+        document.title = specialTitle;
         
         // Set main heading
         let $heading = $('#firstHeading');
         if ($heading.length) {
-            $heading.text('Cradle - Wikidata Form Editor');
+            $heading.text(specialTitle);
         }
 
         // Empty default content area
