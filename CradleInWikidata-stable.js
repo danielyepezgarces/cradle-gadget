@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.50.1
+ * Version: 1.50.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.50.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.50.2');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.50.1';
+    const CRADLE_VERSION = '1.50.2';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -5982,6 +5982,7 @@ function searchWikidataItems(term) {
             updateVisibilityBasedOnValueType();
 
             let selectedItems = []; // List of { qid, label }
+            var $valSearchGroup = null;
 
             function addChip(qid, label) {
                 let useHard = $radioHard.is(':checked');
@@ -6016,7 +6017,7 @@ function searchWikidataItems(term) {
             }
 
             // Autocomplete search input group
-            let $valSearchGroup = $('<div>').css({'position': 'relative', 'margin-top': '4px'});
+            $valSearchGroup = $('<div>').css({'position': 'relative', 'margin-top': '4px'});
             let $valSearchInput = $('<input>').addClass('cradle-input').css({'height': '36px', 'padding': '2px 8px', 'font-size': '13px'})
                 .attr('placeholder', mw.msg('cradle-search-value-placeholder'));
             $valSearchGroup.append($valSearchInput);
@@ -6646,6 +6647,7 @@ function searchWikidataItems(term) {
             updateVisibilityBasedOnValueType();
 
             let selectedItems = [];
+            var $valSearchGroup = null;
 
             function addChip(qid, label) {
                 if (selectedItems.some(i => i.qid === qid)) return;
@@ -6679,7 +6681,7 @@ function searchWikidataItems(term) {
             }
 
             // Autocomplete search input group
-            let $valSearchGroup = $('<div>').css({'position': 'relative', 'margin-top': '4px'});
+            $valSearchGroup = $('<div>').css({'position': 'relative', 'margin-top': '4px'});
             let $valSearchInput = $('<input>').addClass('cradle-input').css({'height': '36px', 'padding': '2px 8px', 'font-size': '13px'})
                 .attr('placeholder', mw.msg('cradle-search-value-placeholder'));
             $valSearchGroup.append($valSearchInput);
