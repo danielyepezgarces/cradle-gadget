@@ -201,7 +201,8 @@
     "cradle-schema-edit-loss-warning": "Switching to Visual mode will update properties from the ShEx code. Proceed?",
     "cradle-editor-unsaved-warning": "You have unsaved changes in this schema. Are you sure you want to leave?",
     "cradle-shex-syntax-valid": "Valid ShEx syntax",
-    "cradle-shex-syntax-invalid": "Invalid ShEx syntax: $1"
+    "cradle-shex-syntax-invalid": "Invalid ShEx syntax: $1",
+    "cradle-load-schema-error": "Error loading schema"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -405,6 +406,7 @@
     "cradle-schema-edit-loss-warning": "Cambiar al modo visual actualizará las propiedades a partir del código ShEx. ¿Deseas continuar?",
     "cradle-editor-unsaved-warning": "Tienes cambios no guardados en este esquema. ¿Seguro que deseas salir?",
     "cradle-shex-syntax-valid": "Sintaxis ShEx válida",
-    "cradle-shex-syntax-invalid": "Sintaxis ShEx inválida: $1"
+    "cradle-shex-syntax-invalid": "Sintaxis ShEx inválida: $1",
+    "cradle-load-schema-error": "Error al cargar o renderizar el esquema"
   }
 }
