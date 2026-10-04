@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.53.1
+ * Version: 1.54.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.53.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.54.0');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.53.1';
+    const CRADLE_VERSION = '1.54.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -6788,6 +6788,209 @@ function searchWikidataItems(term) {
     }
 
     /**
+     * Seamlessly merges visual property builder rows into an existing ShEx schema text.
+     * Preserves:
+     * - All preambles (custom comments, PREFIX declarations, IMPORT statements, and start shapes)
+     * - Standalone section comments inside the main shape
+     * - Non-property statements (e.g. rdfs:label, schema:description)
+     * - Existing custom inline comments on properties when unchanged
+     * - All postambles (sub-shapes, auxiliary shapes, closing braces, trailing comments)
+     */
+    function mergeVisualPropsIntoShex(existingCode, propRows, labelsMap, shapeTitle) {
+        if (!existingCode || !existingCode.trim()) {
+            return generateShExCode(shapeTitle, propRows, labelsMap, null, null, null);
+        }
+
+        function findMatchingBrace(str, startIdx) {
+            let depth = 0;
+            let inComment = false;
+            for (let i = startIdx; i < str.length; i++) {
+                let ch = str[i];
+                if (ch === '\n') {
+                    inComment = false;
+                    continue;
+                }
+                if (ch === '#') {
+                    inComment = true;
+                    continue;
+                }
+                if (inComment) continue;
+
+                if (ch === '{') {
+                    depth++;
+                } else if (ch === '}') {
+                    depth--;
+                    if (depth === 0) {
+                        return i;
+                    }
+                }
+            }
+            return -1;
+        }
+
+        function findShapeOpenBrace(shexText) {
+            if (!shexText) return -1;
+            let startMatch = shexText.match(/start\s*=\s*@<\s*(.+?)\s*>/i) || shexText.match(/start\s*=\s*@?([A-Za-z0-9_:-]+)/i);
+            let startShapeName = startMatch ? (startMatch[1] || startMatch[2]).replace(/^[<@:]+|[>]+$/g, '').trim() : null;
+
+            if (startShapeName) {
+                let escapedName = startShapeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                let regex = new RegExp(`(?:<${escapedName}>|:${escapedName}|\\b${escapedName}\\b)[^{]*\\{`, 'i');
+                let m = regex.exec(shexText);
+                if (m) {
+                    return shexText.indexOf('{', m.index);
+                }
+            }
+
+            let genericMatch = shexText.match(/(?:<[A-Za-z0-9_:-]+>|:[A-Za-z0-9_:-]+|\b[A-Za-z0-9_:-]+)\s*(?:EXTRA\s+[^{]+)?\s*\{/i);
+            if (genericMatch) {
+                return shexText.indexOf('{', genericMatch.index);
+            }
+
+            return shexText.indexOf('{');
+        }
+
+        let openBraceIdx = findShapeOpenBrace(existingCode);
+        if (openBraceIdx === -1) {
+            return generateShExCode(shapeTitle, propRows, labelsMap, null, null, null);
+        }
+
+        let closeBraceIdx = findMatchingBrace(existingCode, openBraceIdx);
+        if (closeBraceIdx === -1) {
+            return generateShExCode(shapeTitle, propRows, labelsMap, null, null, null);
+        }
+
+        let preamble = existingCode.substring(0, openBraceIdx + 1);
+        let shapeBody = existingCode.substring(openBraceIdx + 1, closeBraceIdx);
+        let postamble = existingCode.substring(closeBraceIdx);
+
+        let bodyLines = shapeBody.split('\n');
+        let existingComments = {};
+        let preservedStandaloneComments = [];
+        let preservedNonPropLines = [];
+        let hasLabelConstraint = false;
+
+        let inOrGroup = false;
+        for (let i = 0; i < bodyLines.length; i++) {
+            let line = bodyLines[i];
+            let trimmed = line.trim();
+
+            if (trimmed.startsWith('(')) {
+                inOrGroup = true;
+                continue;
+            }
+            if (inOrGroup) {
+                if (trimmed.endsWith(')') || trimmed.endsWith(');') || trimmed.endsWith(') ;')) {
+                    inOrGroup = false;
+                }
+                continue;
+            }
+
+            let propMatch = line.match(/(?:wdt|p):(P\d+)/i);
+            let commentMatch = line.match(/#\s*(.+)$/);
+            if (propMatch && commentMatch) {
+                existingComments[propMatch[1].toUpperCase()] = commentMatch[1].trim();
+            }
+
+            if (propMatch) {
+                continue; // Replaced by updated visual rows
+            }
+
+            if (/^\s*#\s*Grupo alternativo/i.test(line)) {
+                continue; // Regenerated if needed
+            }
+
+            if (/rdfs:label/i.test(line)) {
+                hasLabelConstraint = true;
+                preservedNonPropLines.push(line);
+                continue;
+            }
+
+            if (/schema:|skos:/i.test(line)) {
+                preservedNonPropLines.push(line);
+                continue;
+            }
+
+            if (trimmed.startsWith('#') && !trimmed.startsWith('# P') && !/^\s*#\s*wdt:/i.test(trimmed)) {
+                preservedStandaloneComments.push(line);
+            }
+        }
+
+        let propLines = [];
+        let orGroups = {};
+        let propMap = labelsMap || propertyMetadata || {};
+
+        propRows.forEach(row => {
+            let pid = row.pid;
+            let meta = propMap[pid] || {};
+            let label = (meta && meta.label) ? meta.label : (typeof meta === 'string' ? meta : pid);
+            let commentText = existingComments[pid] || label || pid;
+            let comment = commentText ? `   # ${commentText}` : '';
+
+            let valueExpr = '.';
+            let valueType = row.valueType || 'IRI';
+            if (valueType === 'xsd:string') valueExpr = 'xsd:string';
+            else if (valueType === 'rdf:langString') valueExpr = 'rdf:langString';
+            else if (valueType === 'xsd:dateTime') valueExpr = 'xsd:dateTime';
+            else if (valueType === 'xsd:decimal') valueExpr = 'xsd:decimal';
+            else if (valueType === 'geo:wktLiteral') valueExpr = 'geo:wktLiteral';
+            else if (valueType && valueType.startsWith('@<')) valueExpr = valueType;
+            else if (valueType === 'subshape' && row.subShapeName) valueExpr = `@<${row.subShapeName.toLowerCase().replace(/[^a-z0-9_]/g, '')}>`;
+            else {
+                let options = [];
+                let qidsStr = row.hardselect || row.softselect || '';
+                if (qidsStr) {
+                    let qids = (Array.isArray(qidsStr) ? qidsStr : String(qidsStr).split(',')).map(q => (q || '').trim()).filter(q => /^Q\d+$/i.test(q));
+                    if (qids.length > 0) options = qids.map(q => `wd:${q.toUpperCase()}`);
+                }
+                valueExpr = options.length > 0 ? `[ ${options.join(' ')} ]` : (valueType === 'IRI' ? 'IRI' : '.');
+            }
+
+            let cardSymbol = ';';
+            if (row.cardinality === '+') cardSymbol = '+ ;';
+            else if (row.cardinality === '*') cardSymbol = '* ;';
+            else if (row.cardinality === '?') cardSymbol = '? ;';
+            else if (row.cardinality === '1') cardSymbol = ';';
+            else if (row.mandatory) cardSymbol = row.allowMultiple ? '+ ;' : ';';
+            else cardSymbol = row.allowMultiple ? '* ;' : '? ;';
+
+            if (row.orGroup) {
+                let gName = row.orGroup.trim();
+                if (!orGroups[gName]) orGroups[gName] = [];
+                orGroups[gName].push(`  wdt:${pid} ${valueExpr}${comment}`);
+            } else {
+                propLines.push(`  wdt:${pid} ${valueExpr} ${cardSymbol}${comment}`);
+            }
+        });
+
+        Object.keys(orGroups).forEach(groupName => {
+            propLines.push(`  # Grupo alternativo (OR): ${groupName}`);
+            propLines.push(`  (`);
+            let items = orGroups[groupName];
+            items.forEach((item, idx) => {
+                let isLast = (idx === items.length - 1);
+                propLines.push(`  ${item}${isLast ? '' : ' |'}`);
+            });
+            propLines.push(`  ) ;`);
+        });
+
+        let newBody = [];
+        if (preservedStandaloneComments.length > 0) {
+            newBody.push(...preservedStandaloneComments);
+        }
+        if (propLines.length > 0) {
+            newBody.push(...propLines);
+        }
+        if (preservedNonPropLines.length > 0) {
+            newBody.push(...preservedNonPropLines);
+        } else if (!hasLabelConstraint) {
+            newBody.push('  rdfs:label rdf:langString+;');
+        }
+
+        return preamble + '\n' + newBody.join('\n') + '\n' + postamble;
+    }
+
+    /**
      * Renders the Dual-Mode EntitySchema Editor UI (Special:Cradle#edit).
      * Supports:
      * 1. Modo Visual (GUI): rich property-based builder matching Schema Designer.
@@ -7358,16 +7561,40 @@ function searchWikidataItems(term) {
         // Mode Switching
         $btnVisual.on('click', function() {
             if (currentMode === 'visual') return;
-            let proceed = confirm(mw.msg('cradle-schema-edit-loss-warning') || 'Cambiar al modo visual actualizará las propiedades a partir del código ShEx. ¿Deseas continuar?');
-            if (!proceed) return;
 
             let code = getEditorCode();
+            let v = validateShExSyntax(code);
+            if (!v.valid) {
+                let firstErr = (v.errors && v.errors.length) ? v.errors[0] : 'Syntax error';
+                mw.notify(mw.msg('cradle-shex-syntax-invalid', firstErr) || ('Error: ' + firstErr), { type: 'error' });
+                return;
+            }
+
             let newParsed = parseShEx(code);
             let newPids = Object.keys(newParsed);
 
+            let qidsToFetch = [];
+            newPids.forEach(pid => {
+                let p = newParsed[pid];
+                if (p.hardselect && Array.isArray(p.hardselect)) qidsToFetch = qidsToFetch.concat(p.hardselect);
+                if (p.softselect && Array.isArray(p.softselect)) qidsToFetch = qidsToFetch.concat(p.softselect);
+            });
+            qidsToFetch = [...new Set(qidsToFetch)].filter(id => /^Q\d+$/i.test(id) && !itemLabels[id]);
+
             $propsList.empty();
-            fetchLabelsInBatches(newPids, function(freshLabels) {
+
+            let p1 = new Promise(resolve => {
+                fetchLabelsInBatches(newPids, function(freshLabels) {
+                    resolve(freshLabels);
+                });
+            });
+            let p2 = qidsToFetch.length > 0 ? loadItemLabels(qidsToFetch) : Promise.resolve({});
+
+            Promise.all([p1, p2]).then(results => {
+                let freshLabels = results[0] || {};
+                let freshItemLabels = results[1] || {};
                 Object.assign(labelsMap, freshLabels);
+                Object.assign(itemLabels, freshItemLabels);
                 newPids.forEach(pid => {
                     renderEditorPropCard(pid, newParsed[pid], labelsMap, itemLabels);
                 });
@@ -7383,7 +7610,8 @@ function searchWikidataItems(term) {
         $btnCode.on('click', function() {
             if (currentMode === 'code') return;
             let rows = gatherEditorProps();
-            let newCode = generateShExCode(schema.label || schemaId, rows, labelsMap, null, null, null);
+            let currentCode = getEditorCode();
+            let newCode = mergeVisualPropsIntoShex(currentCode, rows, labelsMap, schema.label || schemaId);
             setEditorCode(newCode);
 
             currentMode = 'code';
@@ -7448,7 +7676,7 @@ function searchWikidataItems(term) {
                         mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
                         return;
                     }
-                    codeToSave = generateShExCode(schema.label || schemaId, rows, labelsMap, null, null, null);
+                    codeToSave = mergeVisualPropsIntoShex(getEditorCode(), rows, labelsMap, schema.label || schemaId);
                 }
 
                 let validation = validateShExSyntax(codeToSave);
