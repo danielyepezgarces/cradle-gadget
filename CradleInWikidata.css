@@ -300,11 +300,11 @@
 
         /* Header styling */
         .cradle-header {
-            padding: 16px 20px;
+            padding: 16px 20px 12px 20px;
             background-color: var(--background-color-neutral-subtle, #f8f9fa);
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
         }
         .cradle-title-area {
             display: flex;
@@ -312,7 +312,7 @@
             width: 100%;
         }
         .cradle-title {
-            margin: 0;
+            margin: 0 0 10px 0;
             font-size: 1.15rem;
             font-weight: bold;
             color: var(--color-base, #202122);
@@ -345,7 +345,7 @@
         .cradle-tabs {
             display: flex;
             border-bottom: 1px solid var(--border-color-base, #a2a9b1);
-            margin-top: 10px;
+            margin-top: 0;
             gap: 16px;
             width: 100%;
         }
