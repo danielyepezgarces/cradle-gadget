@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.50.0
+ * Version: 1.50.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.50.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.50.1');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.50.0';
+    const CRADLE_VERSION = '1.50.1';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -406,7 +406,8 @@
             'cradle-shex-syntax-valid': 'Valid ShEx syntax',
             'cradle-shex-syntax-invalid': 'Invalid ShEx syntax: $1',
             'cradle-create-custom-schema-desc': 'Search for an existing EntitySchema (e.g. E10, Human) to load its claims and create a new item.',
-            'cradle-designer-custom-desc': 'Design a new schema from scratch or by importing properties from an existing item to publish it as an EntitySchema (ShEx).'
+            'cradle-designer-custom-desc': 'Design a new schema from scratch or by importing properties from an existing item to publish it as an EntitySchema (ShEx).',
+            'cradle-load-schema-error': 'Error loading schema'
         };
 
         // Load local English fallbacks first
@@ -6014,18 +6015,6 @@ function searchWikidataItems(term) {
                 updateSearchInputVisibility();
             }
 
-            // Populate existing values on edit
-            if (isHard) {
-                let qids = hardselectQIDs || (defaultValue ? [defaultValue] : []);
-                qids.forEach(qid => {
-                    if (qid) addChip(qid, labelsMap[qid] || qid);
-                });
-            } else if (isSoft) {
-                softselectQIDs.forEach(qid => {
-                    addChip(qid, labelsMap[qid] || qid);
-                });
-            }
-
             // Autocomplete search input group
             let $valSearchGroup = $('<div>').css({'position': 'relative', 'margin-top': '4px'});
             let $valSearchInput = $('<input>').addClass('cradle-input').css({'height': '36px', 'padding': '2px 8px', 'font-size': '13px'})
@@ -6102,6 +6091,7 @@ function searchWikidataItems(term) {
             });
 
             function updateSearchInputVisibility() {
+                if (!$valSearchGroup || !$valSearchGroup.length) return;
                 let activeType = $radioHard.is(':checked') ? 'hard' : ($radioSoft.is(':checked') ? 'soft' : 'none');
                 if (activeType === 'none') {
                     $valSearchGroup.hide();
@@ -6119,6 +6109,19 @@ function searchWikidataItems(term) {
             $radioNone.on('change', updateSearchInputVisibility);
             $radioHard.on('change', updateSearchInputVisibility);
             $radioSoft.on('change', updateSearchInputVisibility);
+
+            // Populate existing values on edit (after $valSearchGroup and updateSearchInputVisibility are initialized)
+            if (isHard) {
+                let qids = hardselectQIDs || (defaultValue ? [defaultValue] : []);
+                qids.forEach(qid => {
+                    if (qid) addChip(qid, labelsMap[qid] || qid);
+                });
+            } else if (isSoft) {
+                softselectQIDs.forEach(qid => {
+                    addChip(qid, labelsMap[qid] || qid);
+                });
+            }
+
             updateSearchInputVisibility();
 
             $(document).on('click', function(e) {
@@ -6372,7 +6375,7 @@ function searchWikidataItems(term) {
         }).catch(function(err) {
             console.error('[Cradle] Error loading schema for editing:', err);
             $content.empty().append($('<div>').addClass('cradle-selector-box').css('border-color', 'var(--color-destructive, #d33)')
-                .append($('<p>').css({'color': 'var(--color-destructive, #d33)', 'font-weight': 'bold'}).text(mw.msg('cradle-schema-not-found') || 'Error loading schema'))
+                .append($('<p>').css({'color': 'var(--color-destructive, #d33)', 'font-weight': 'bold'}).text(mw.msg('cradle-load-schema-error') || 'Error loading schema'))
                 .append($('<p>').text((err && err.message) ? err.message : String(err)))
                 .append($('<button>').addClass('cradle-btn-secondary').text(mw.msg('cradle-back')).on('click', renderCreateOptionsSelector))
             );
@@ -6675,20 +6678,6 @@ function searchWikidataItems(term) {
                 updateSearchInputVisibility();
             }
 
-            // Populate initial QIDs
-            let initialQids = [];
-            if (pData.hardselect) {
-                initialQids = Array.isArray(pData.hardselect) ? pData.hardselect : String(pData.hardselect).split(',');
-            } else if (pData.softselect) {
-                initialQids = Array.isArray(pData.softselect) ? pData.softselect : String(pData.softselect).split(',');
-            }
-            initialQids.forEach(q => {
-                let clean = (q || '').trim().toUpperCase();
-                if (/^Q\d+$/i.test(clean)) {
-                    addChip(clean, mergedItemLabels[clean] || clean);
-                }
-            });
-
             // Autocomplete search input group
             let $valSearchGroup = $('<div>').css({'position': 'relative', 'margin-top': '4px'});
             let $valSearchInput = $('<input>').addClass('cradle-input').css({'height': '36px', 'padding': '2px 8px', 'font-size': '13px'})
@@ -6748,6 +6737,7 @@ function searchWikidataItems(term) {
             });
 
             function updateSearchInputVisibility() {
+                if (!$valSearchGroup || !$valSearchGroup.length) return;
                 let activeType = $radioHard.is(':checked') ? 'hard' : ($radioSoft.is(':checked') ? 'soft' : 'none');
                 if (activeType === 'none') {
                     $valSearchGroup.hide();
@@ -6765,6 +6755,21 @@ function searchWikidataItems(term) {
             $radioNone.on('change', updateSearchInputVisibility);
             $radioHard.on('change', updateSearchInputVisibility);
             $radioSoft.on('change', updateSearchInputVisibility);
+
+            // Populate initial QIDs (after $valSearchGroup and updateSearchInputVisibility are initialized)
+            let initialQids = [];
+            if (pData.hardselect) {
+                initialQids = Array.isArray(pData.hardselect) ? pData.hardselect : String(pData.hardselect).split(',');
+            } else if (pData.softselect) {
+                initialQids = Array.isArray(pData.softselect) ? pData.softselect : String(pData.softselect).split(',');
+            }
+            initialQids.forEach(q => {
+                let clean = (q || '').trim().toUpperCase();
+                if (/^Q\d+$/i.test(clean)) {
+                    addChip(clean, mergedItemLabels[clean] || clean);
+                }
+            });
+
             updateSearchInputVisibility();
 
             $(document).on('click', function(e) {
