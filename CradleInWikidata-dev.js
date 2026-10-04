@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.53.0
+ * Version: 1.53.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.53.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.53.1');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.53.0';
+    const CRADLE_VERSION = '1.53.1';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -421,13 +421,14 @@
             'cradle-feedback-type-label': 'Type:',
             'cradle-feedback-type-suggestion': 'Suggestion / Feature Request',
             'cradle-feedback-type-bug': 'Bug Report',
+            'cradle-feedback-type-congratulations': 'Congratulations',
             'cradle-feedback-type-question': 'Question / General Comment',
             'cradle-feedback-subject-label': 'Subject:',
             'cradle-feedback-subject-placeholder': 'Brief summary of your suggestion or bug...',
             'cradle-feedback-message-label': 'Detailed description:',
             'cradle-feedback-message-placeholder': 'Describe your feedback or how to reproduce the issue in detail...',
             'cradle-feedback-include-diagnostics': 'Include diagnostic details (Cradle version, browser, skin, page)',
-            'cradle-feedback-submit-btn': 'Post to Wikidata talk:Cradle-gadget',
+            'cradle-feedback-submit-btn': 'Publish',
             'cradle-feedback-open-talk-btn': 'Open talk page',
             'cradle-feedback-submitting': 'Publishing to talk page...',
             'cradle-feedback-success': 'Feedback successfully posted to Wikidata talk:Cradle-gadget!',
@@ -539,13 +540,14 @@
                     'cradle-feedback-type-label': 'Tipo:',
                     'cradle-feedback-type-suggestion': 'Sugerencia / Nueva función',
                     'cradle-feedback-type-bug': 'Reporte de error (Bug)',
+                    'cradle-feedback-type-congratulations': 'Felicitaciones',
                     'cradle-feedback-type-question': 'Pregunta / Comentario general',
                     'cradle-feedback-subject-label': 'Asunto:',
                     'cradle-feedback-subject-placeholder': 'Resumen breve de tu sugerencia o error...',
                     'cradle-feedback-message-label': 'Descripción detallada:',
                     'cradle-feedback-message-placeholder': 'Describe tu sugerencia detalladamente o los pasos para reproducir el error...',
                     'cradle-feedback-include-diagnostics': 'Incluir información técnica de diagnóstico (versión de Cradle, navegador, apariencia, página)',
-                    'cradle-feedback-submit-btn': 'Publicar en Wikidata talk:Cradle-gadget',
+                    'cradle-feedback-submit-btn': 'Publicar',
                     'cradle-feedback-open-talk-btn': 'Abrir página de discusión',
                     'cradle-feedback-submitting': 'Publicando en la página de discusión...',
                     'cradle-feedback-success': '¡Mensaje publicado con éxito en Wikidata talk:Cradle-gadget!',
@@ -2830,44 +2832,29 @@
         }).text(mw.msg('cradle-feedback-desc'));
         $body.append($desc);
 
-        // Type selection buttons
-        let $typeGroup = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap'});
-        let currentType = 'suggestion'; // 'suggestion', 'bug', 'question'
+        // Type selection dropdown
+        let $typeBox = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '4px'});
+        $typeBox.append($('<label>').css({'font-weight': 'bold', 'font-size': '13px'}).text(mw.msg('cradle-feedback-type-label') || 'Tipo:'));
+
+        let $typeSelect = $('<select>').addClass('cdx-select cradle-input').css({
+            'width': '100%',
+            'box-sizing': 'border-box',
+            'height': '36px',
+            'cursor': 'pointer'
+        });
 
         let types = [
-            { id: 'suggestion', label: mw.msg('cradle-feedback-type-suggestion'), icon: ICONS.plus },
-            { id: 'bug', label: mw.msg('cradle-feedback-type-bug'), icon: ICONS.alert },
-            { id: 'question', label: mw.msg('cradle-feedback-type-question'), icon: ICONS.info }
+            { id: 'suggestion', label: mw.msg('cradle-feedback-type-suggestion') || 'Sugerencia / Nueva función' },
+            { id: 'bug', label: mw.msg('cradle-feedback-type-bug') || 'Reporte de error (Bug)' },
+            { id: 'congratulations', label: mw.msg('cradle-feedback-type-congratulations') || 'Felicitaciones' },
+            { id: 'question', label: mw.msg('cradle-feedback-type-question') || 'Pregunta / Comentario general' }
         ];
 
-        let $typeButtons = [];
         types.forEach(t => {
-            let $tBtn = $('<button>').attr('type', 'button')
-                .addClass('cdx-button')
-                .css({
-                    'display': 'inline-flex',
-                    'align-items': 'center',
-                    'gap': '6px',
-                    'font-size': '13px',
-                    'padding': '6px 12px'
-                })
-                .html(t.icon + ' <span>' + t.label + '</span>')
-                .on('click', function() {
-                    currentType = t.id;
-                    $typeButtons.forEach($b => {
-                        $b.removeClass('cdx-button--action-progressive cdx-button--weight-primary').addClass('cdx-button--weight-quiet');
-                    });
-                    $tBtn.removeClass('cdx-button--weight-quiet').addClass('cdx-button--action-progressive cdx-button--weight-primary');
-                });
-            if (t.id === currentType) {
-                $tBtn.addClass('cdx-button--action-progressive cdx-button--weight-primary');
-            } else {
-                $tBtn.addClass('cdx-button--weight-quiet');
-            }
-            $typeButtons.push($tBtn);
-            $typeGroup.append($tBtn);
+            $typeSelect.append($('<option>').val(t.id).text(t.label));
         });
-        $body.append($typeGroup);
+        $typeBox.append($typeSelect);
+        $body.append($typeBox);
 
         // Subject input
         let $subjectBox = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '4px'});
@@ -2947,7 +2934,8 @@
             $errorBox.hide();
             $submitBtn.prop('disabled', true).text(mw.msg('cradle-feedback-submitting'));
 
-            let typeObj = types.find(t => t.id === currentType) || types[0];
+            let selectedTypeId = $typeSelect.val();
+            let typeObj = types.find(t => t.id === selectedTypeId) || types[0];
             let sectionTitle = '[' + typeObj.label + '] ' + subject;
 
             let fullText = message;
