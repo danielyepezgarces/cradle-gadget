@@ -11,7 +11,7 @@ Inspired by the original [Cradle tool](https://cradle.toolforge.org/) by Magnus 
 To use Cradle on Wikidata, add the following line to your personal [common.js](https://www.wikidata.org/wiki/Special:MyPage/common.js) page:
 
 ```javascript
-mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.49.0');
+mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.50.0');
 ```
 
 *(You can increment the `version` parameter at the end of the URL to bypass browser cache whenever a new release is published).*
@@ -24,12 +24,13 @@ mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadg
 2. **Automatic Schema Discovery**: Automatically detects linked EntitySchemas (via Property P12861) on the item itself, its classes (`P31` instance of, `P279` subclass of), and occupation hierarchies (`P106` for human items).
 3. **Full ShEx EntitySchema Support**: Direct search, loading, and real-time validation against native Wikidata EntitySchemas (`namespace 640`).
 4. **Visual Schema Designer & ShEx Generator**: Interactive visual builder to create new ShEx EntitySchemas without manual coding. Supports custom DataTypes, Cardinalities (`1`, `?`, `+`, `*`), OR Groups, Geo-literals, Sub-shapes / Derivations (e.g. extending E10 for Q5), and auto-generated `IMPORT` statements.
-5. **1-Click Export & Publishing**: Export valid ShEx with rich syntax highlighting or publish directly to `Special:NewEntitySchema`.
-6. **Qualifiers, Ranks & References**: Comprehensive statement editing including snaks, ranks (preferred, normal, deprecated), qualifiers, and references.
-7. **Citoid Integration**: Automatic reference metadata extraction via Wikimedia Citoid REST API from URLs, DOIs, ISBNs, and PMIDs.
-8. **Live Quality Constraints (WBQC)**: Evaluates input values against Wikidata Property Constraints in real-time, displaying warning badges and suggestions.
-9. **Full 23 Wikibase Datatypes**: Support for items, properties, strings, monolingual text, dates/times, quantities, URLs, Commons media, coordinates, external identifiers, and more.
-10. **Wikimedia Codex & 100% i18n**: Adheres to Wikimedia Codex UI guidelines, using official Codex SVG icons (no raw emojis) and full internationalization (`CradleI18n.json`).
+5. **Existing EntitySchema Editor (`Special:Cradle#edit`)**: Dual-mode editor to update existing EntitySchemas with both Visual (GUI) cards and Code Mode (CodeEditor / ShExC with full comment `# ...` support).
+6. **1-Click Export & Publishing**: Export valid ShEx with rich syntax highlighting or publish directly to Wikidata.
+7. **Qualifiers, Ranks & References**: Comprehensive statement editing including snaks, ranks (preferred, normal, deprecated), qualifiers, and references.
+8. **Citoid Integration**: Automatic reference metadata extraction via Wikimedia Citoid REST API from URLs, DOIs, ISBNs, and PMIDs.
+9. **Live Quality Constraints (WBQC)**: Evaluates input values against Wikidata Property Constraints in real-time, displaying warning badges and suggestions.
+10. **Full 23 Wikibase Datatypes**: Support for items, properties, strings, monolingual text, dates/times, quantities, URLs, Commons media, coordinates, external identifiers, and more.
+11. **Wikimedia Codex & 100% i18n**: Adheres to Wikimedia Codex UI guidelines, using official Codex SVG icons (no raw emojis) and full internationalization (`CradleI18n.json`).
 
 ---
 

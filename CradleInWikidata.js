@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.49.0
+ * Version: 1.50.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.49.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.50.0');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.49.0';
+    const CRADLE_VERSION = '1.50.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -208,7 +208,9 @@
         alert: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M11.53 2.3A1.85 1.85 0 0 0 10 1.25 1.85 1.85 0 0 0 8.47 2.3L1.31 14.73A1.82 1.82 0 0 0 1.3 16.5a1.76 1.76 0 0 0 1.54.85h14.32a1.76 1.76 0 0 0 1.54-.85 1.82 1.82 0 0 0 0-1.77ZM11 15H9v-2h2Zm0-4H9V6h2z"/></svg>`,
         info: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 0a10 10 0 1 0 10 10A10 10 0 0 0 10 0m1 15H9v-6h2Zm0-8H9V5h2z"/></svg>`,
         download: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M17 12v5H3v-5H1v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"/><path d="M10 15l5-6h-3V1H8v8H5z"/></svg>`,
-        external: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`
+        external: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`,
+        edit: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M16.77 8l1.94-2a1 1 0 0 0 0-1.41l-3.34-3.3a1 1 0 0 0-1.41 0L12 3.23zM1 14.25V19h4.75l9.96-9.96-4.75-4.75z"/></svg>`,
+        code: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m5 13-4-3 4-3 1.4 1.4-2.1 1.6 2.1 1.6zm10 0-1.4-1.4 2.1-1.6-2.1-1.6L15 7l4 3zm-6.8 3.5-2.4-.6 6-12 2.4.6z"/></svg>`
     };
 
     /**
@@ -384,7 +386,27 @@
             'cradle-publish-shex-failed': 'Failed to publish EntitySchema: $1',
             'cradle-open-created-schema': 'View EntitySchema ($1)',
             'cradle-schema-form-not-found': 'Special:NewEntitySchema form was not found. Check your account permissions.',
-            'cradle-schema-load-form-failed': 'Could not load Special:NewEntitySchema.'
+            'cradle-schema-load-form-failed': 'Could not load Special:NewEntitySchema.',
+            'cradle-tab-edit-schema': 'Edit Schemas',
+            'cradle-tab-edit-schema-badge': 'Experimental',
+            'cradle-edit-schema-desc': 'Search for an existing EntitySchema (e.g. E10, Human) to edit its statements or ShEx code.',
+            'cradle-load-and-edit-schema': 'Load Schema for Editing',
+            'cradle-mode-visual': 'Visual Mode (GUI)',
+            'cradle-mode-code': 'Code Mode (ShEx)',
+            'cradle-saving-schema': 'Saving changes to EntitySchema...',
+            'cradle-save-schema-success': 'EntitySchema $1 updated successfully on Wikidata!',
+            'cradle-save-schema-failed': 'Failed to save schema: $1',
+            'cradle-default-edit-summary': 'Update EntitySchema via Cradle',
+            'cradle-edit-summary-placeholder': 'Edit summary (e.g. Added statements)...',
+            'cradle-edit-summary-label': 'Summary:',
+            'cradle-validate-shex-btn': 'Validate syntax',
+            'cradle-editing-schema-title': 'Editing EntitySchema: $1',
+            'cradle-schema-edit-loss-warning': 'Switching to Visual mode will update properties from the ShEx code. Proceed?',
+            'cradle-editor-unsaved-warning': 'You have unsaved changes in this schema. Are you sure you want to leave?',
+            'cradle-shex-syntax-valid': 'Valid ShEx syntax',
+            'cradle-shex-syntax-invalid': 'Invalid ShEx syntax: $1',
+            'cradle-create-custom-schema-desc': 'Search for an existing EntitySchema (e.g. E10, Human) to load its claims and create a new item.',
+            'cradle-designer-custom-desc': 'Design a new schema from scratch or by importing properties from an existing item to publish it as an EntitySchema (ShEx).'
         };
 
         // Load local English fallbacks first
@@ -1068,50 +1090,56 @@
     }
 
     /**
-     * Renders selection panel with 2 tabs: 'Crear elementos' and 'Diseñar esquemas'.
+     * Renders selection panel with 3 tabs: 'Crear elementos', 'Diseñar esquemas', and 'Editar esquemas (Experimental)'.
      */
     function renderCreateOptionsSelector() {
         let $content = $('#cradle-content-area').empty();
         updateDrawerFooter(false);
 
-        // Render 2 Tabs Header
+        // Render Tabs Header
         let $tabsHeader = $('<div>').addClass('cradle-select-tabs');
 
         let tabs = [
             { id: 'create', label: mw.msg('cradle-tab-create-item') || 'Crear elementos' },
-            { id: 'design', label: mw.msg('cradle-tab-design-schema') || 'Diseñar esquemas' }
+            { id: 'design', label: mw.msg('cradle-tab-design-schema') || 'Diseñar esquemas' },
+            { id: 'edit', label: (mw.msg('cradle-tab-edit-schema') || 'Editar esquemas'), badge: mw.msg('cradle-tab-edit-schema-badge') || 'Experimental' }
         ];
 
         let hash = window.location.hash.toLowerCase();
         let search = window.location.search.toLowerCase();
         let activeTab = null;
 
-        if (hash === '#design' || hash === '#designschema' || hash === '#design-schema' || search.includes('tab=design')) {
+        if (hash.startsWith('#edit') || search.includes('tab=edit')) {
+            activeTab = 'edit';
+        } else if (hash.startsWith('#design') || search.includes('tab=design')) {
             activeTab = 'design';
-        } else if (hash === '#create' || hash === '#createitem' || hash === '#create-item' || search.includes('tab=create')) {
+        } else if (hash.startsWith('#create') || search.includes('tab=create')) {
             activeTab = 'create';
         } else {
             activeTab = mw.storage.get('cradle-active-tab');
         }
 
-        if (activeTab !== 'create' && activeTab !== 'design') {
+        if (activeTab !== 'create' && activeTab !== 'design' && activeTab !== 'edit') {
             activeTab = 'create';
         }
 
         tabs.forEach(tab => {
             let $tab = $('<button>')
                 .addClass('cradle-select-tab')
-                .text(tab.label)
-                .on('click', function() {
-                    mw.storage.set('cradle-active-tab', tab.id);
-                    let newHash = tab.id === 'design' ? '#design' : '#create';
-                    if (history.replaceState) {
-                        history.replaceState(null, null, window.location.pathname + window.location.search + newHash);
-                    } else {
-                        window.location.hash = newHash;
-                    }
-                    renderCreateOptionsSelector();
-                });
+                .text(tab.label);
+            if (tab.badge) {
+                $tab.append($('<span>').addClass('cradle-tab-badge').text(tab.badge));
+            }
+            $tab.on('click', function() {
+                mw.storage.set('cradle-active-tab', tab.id);
+                let newHash = '#' + tab.id;
+                if (history.replaceState) {
+                    history.replaceState(null, null, window.location.pathname + window.location.search + newHash);
+                } else {
+                    window.location.hash = newHash;
+                }
+                renderCreateOptionsSelector();
+            });
             if (activeTab === tab.id) {
                 $tab.addClass('active');
             }
@@ -1125,7 +1153,7 @@
             $loadBox.append($('<h4>').css({'margin': '0 0 6px 0', 'font-size': '14px', 'color': '#202122'})
                 .text(mw.msg('cradle-method-schema')));
             $loadBox.append($('<p>').css({'margin': '0 0 12px 0', 'font-size': '12px', 'color': '#54595d'})
-                .text('Busca un EntitySchema existente (ej. E10, Humano) para cargar sus declaraciones y crear un nuevo elemento.'));
+                .text(mw.msg('cradle-create-custom-schema-desc') || 'Busca un EntitySchema existente (ej. E10, Humano) para cargar sus declaraciones y crear un nuevo elemento.'));
 
             let $schemaInput = $('<input>')
                 .addClass('cradle-input')
@@ -1161,7 +1189,7 @@
             $designBox.append($('<h4>').css({'margin': '0 0 6px 0', 'font-size': '14px', 'color': '#202122'})
                 .text(mw.msg('cradle-schema-designer')));
             $designBox.append($('<p>').css({'margin': '0 0 14px 0', 'font-size': '12px', 'color': '#54595d'})
-                .text('Diseña un nuevo esquema desde cero o importando propiedades de un elemento existente para publicarlo en Wikidata como un EntitySchema (ShEx).'));
+                .text(mw.msg('cradle-designer-custom-desc') || 'Diseña un nuevo esquema desde cero o importando propiedades de un elemento existente para publicarlo en Wikidata como un EntitySchema (ShEx).'));
 
             let $createDesignerBtn = $('<button>')
                 .addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
@@ -1183,6 +1211,55 @@
             $designBox.append($createDesignerBtn);
 
             $content.append($designBox);
+        } else if (activeTab === 'edit') {
+            // Tab 3: Edit Existing EntitySchema (Experimental)
+            let $editBox = $('<div>').addClass('cradle-selector-box');
+            $editBox.append($('<h4>').css({'margin': '0 0 6px 0', 'font-size': '14px', 'color': '#202122'})
+                .text((mw.msg('cradle-tab-edit-schema') || 'Editar esquemas') + ' (' + (mw.msg('cradle-tab-edit-schema-badge') || 'Experimental') + ')'));
+            $editBox.append($('<p>').css({'margin': '0 0 12px 0', 'font-size': '12px', 'color': '#54595d'})
+                .text(mw.msg('cradle-edit-schema-desc') || 'Busca un EntitySchema existente (ej. E10, Humano) para editar sus declaraciones o código ShEx.'));
+
+            // Check if schema was specified in query or hash (e.g. ?schema=E10 or #edit?id=E10 or #edit/E10)
+            let prefillId = '';
+            let qMatch = window.location.search.match(/[?&](?:schema|id)=(E\d+)/i) ||
+                           window.location.hash.match(/[#&?/](E\d+)/i);
+            if (qMatch) {
+                prefillId = qMatch[1].toUpperCase();
+            }
+
+            let $schemaInput = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-schema-placeholder'))
+                .val(prefillId);
+
+            let $schemaBtn = $('<button>')
+                .addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+                .text(mw.msg('cradle-load-and-edit-schema') || 'Cargar esquema para editar')
+                .on('click', function() {
+                    let schemaId = $schemaInput.val().trim().toUpperCase();
+                    if (schemaId) {
+                        if (!schemaId.startsWith('E')) {
+                            schemaId = 'E' + schemaId.replace(/\D/g, '');
+                        }
+                        loadSchemaForEditing(schemaId);
+                    }
+                });
+
+            let $group = $('<div>').css({'display': 'flex', 'gap': '8px'});
+            $schemaInput.css({'flex': '1'});
+            $group.append($schemaInput).append($schemaBtn);
+            $editBox.append($group);
+
+            attachEntitySchemaAutocompleter($group, $schemaInput, function(schemaId) {
+                loadSchemaForEditing(schemaId);
+            });
+
+            $content.append($editBox);
+
+            if (prefillId) {
+                loadSchemaForEditing(prefillId);
+            }
         }
     }
 
@@ -1607,55 +1684,85 @@
             let mandatory = false;
             let min = 0;
             let max = 1;
+            let cardinality = '1';
 
             if (block.includes('+')) {
                 min = 1;
                 mandatory = true;
                 max = Infinity;
+                cardinality = '+';
             } else if (block.includes('*')) {
                 min = 0;
                 max = Infinity;
                 mandatory = false;
+                cardinality = '*';
             } else if (block.includes('?')) {
                 min = 0;
                 max = 1;
                 mandatory = false;
+                cardinality = '?';
             } else {
                 let cardMatch = block.match(/\{\s*(\d+)\s*(?:,\s*(\d+)?)?\s*\}/);
                 if (cardMatch) {
                     min = parseInt(cardMatch[1]);
                     max = cardMatch[2] ? parseInt(cardMatch[2]) : min;
                     mandatory = min > 0;
+                    cardinality = min > 1 ? '+' : (max === 1 ? '1' : '+');
                 } else {
                     min = 1;
                     max = 1;
                     mandatory = true;
+                    cardinality = '1';
                 }
             }
 
             if (shapeExtraPids.includes(pid) || shapeExtraPids.includes('ALL')) {
                 max = Infinity;
+                if (cardinality === '1') cardinality = '+';
+                else if (cardinality === '?') cardinality = '*';
             }
 
-            // Softselect QIDs
+            // Extract Value Type, Sub-Shape name, and Value sets (hardselect / softselect)
+            let valueType = 'IRI';
+            let subShapeName = '';
+            let hardselect = [];
             let softselect = [];
-            let qids = block.match(/(?:wd:|Q)(Q\d+)/gi) || [];
-            qids.forEach(q => {
-                let cleanQ = q.replace(/wd:/i, '').toUpperCase();
-                if (!softselect.includes(cleanQ)) softselect.push(cleanQ);
-            });
 
-            // If block references a sub-shape, extract potential target QIDs from it
-            let subShapeMatch = block.match(/@<\s*([^>]+)\s*>/i) || block.match(/@([A-Za-z0-9_:-]+)/i);
-            if (subShapeMatch) {
-                let subName = (subShapeMatch[1] || '').replace(/^[<@:]+|[>]+$/g, '').toLowerCase();
-                if (shapesMap[subName]) {
-                    let subContent = shapesMap[subName].content;
-                    let subQids = subContent.match(/(?:wd:|Q)(Q\d+)/gi) || [];
-                    subQids.forEach(q => {
+            if (/xsd:string/i.test(block)) valueType = 'xsd:string';
+            else if (/rdf:langString/i.test(block)) valueType = 'rdf:langString';
+            else if (/xsd:dateTime/i.test(block)) valueType = 'xsd:dateTime';
+            else if (/xsd:decimal/i.test(block)) valueType = 'xsd:decimal';
+            else if (/geo:wktLiteral/i.test(block)) valueType = 'geo:wktLiteral';
+            else {
+                let subShapeMatch = block.match(/@<\s*([^>]+)\s*>/i) || block.match(/@([A-Za-z0-9_:-]+)/i);
+                if (subShapeMatch) {
+                    valueType = 'subshape';
+                    subShapeName = (subShapeMatch[1] || '').replace(/^[<@:]+|[>]+$/g, '');
+                    if (shapesMap[subShapeName.toLowerCase()]) {
+                        let subContent = shapesMap[subShapeName.toLowerCase()].content;
+                        let subQids = subContent.match(/(?:wd:|Q)(Q\d+)/gi) || [];
+                        subQids.forEach(q => {
+                            let cleanQ = q.replace(/wd:/i, '').toUpperCase();
+                            if (!softselect.includes(cleanQ)) softselect.push(cleanQ);
+                        });
+                    }
+                } else {
+                    let bracketMatch = block.match(/\[([^\]]+)\]/);
+                    if (bracketMatch) {
+                        let bQids = bracketMatch[1].match(/(?:wd:|Q)(Q\d+)/gi) || [];
+                        bQids.forEach(q => {
+                            let cleanQ = q.replace(/wd:/i, '').toUpperCase();
+                            if (!hardselect.includes(cleanQ)) hardselect.push(cleanQ);
+                        });
+                    }
+                    let otherQids = block.match(/(?:wd:|Q)(Q\d+)/gi) || [];
+                    otherQids.forEach(q => {
                         let cleanQ = q.replace(/wd:/i, '').toUpperCase();
-                        if (!softselect.includes(cleanQ)) softselect.push(cleanQ);
+                        if (!hardselect.includes(cleanQ) && !softselect.includes(cleanQ)) {
+                            softselect.push(cleanQ);
+                        }
                     });
+                    valueType = 'IRI';
                 }
             }
 
@@ -1665,7 +1772,11 @@
                     min: min,
                     max: max,
                     mandatory: mandatory,
-                    softselect: softselect
+                    cardinality: cardinality,
+                    valueType: valueType,
+                    subShapeName: subShapeName,
+                    hardselect: hardselect,
+                    softselect: softselect.length > 0 ? softselect : hardselect
                 };
             }
         });
@@ -4544,6 +4655,91 @@ function searchWikidataItems(term) {
     }
 
     /**
+     * Updates an existing EntitySchema on Wikidata by submitting the action=edit form.
+     */
+    function saveEntitySchemaToWikidata(schemaId, shexText, summary) {
+        let cleanId = (schemaId || '').trim().toUpperCase();
+        if (!cleanId.startsWith('E')) {
+            cleanId = 'E' + cleanId.replace(/\D/g, '');
+        }
+        let pageTitle = 'EntitySchema:' + cleanId;
+        let editUrl = mw.util.getUrl(pageTitle, { action: 'edit' });
+        let finalSummary = (summary && summary.trim()) ? summary.trim() : (mw.msg('cradle-default-edit-summary') || 'Update EntitySchema via Cradle');
+
+        return mw.loader.using(['mediawiki.api', 'mediawiki.util']).then(function() {
+            return new mw.Api().getToken('csrf');
+        }).then(function(csrfToken) {
+            return fetch(editUrl, {
+                credentials: 'same-origin'
+            }).then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Failed to load edit form for ' + pageTitle);
+                }
+                return response.text();
+            }).then(function(html) {
+                let doc = new DOMParser().parseFromString(html, 'text/html');
+                let form = doc.querySelector('form.mw-htmlform') || doc.querySelector('form[action*="action=edit"]');
+                if (!form) {
+                    throw new Error('Edit form not found for ' + pageTitle);
+                }
+                let actionUrl = new URL(form.getAttribute('action') || editUrl, window.location.origin);
+                let formData = new URLSearchParams();
+
+                // Extract all hidden inputs (including wpbase-rev, title, etc.)
+                let hiddenInputs = form.querySelectorAll('input[type="hidden"]');
+                for (let i = 0; i < hiddenInputs.length; i++) {
+                    let name = hiddenInputs[i].getAttribute('name');
+                    if (name) {
+                        formData.set(name, hiddenInputs[i].value || '');
+                    }
+                }
+
+                // Ensure CSRF token is properly set
+                formData.set('wpEditToken', csrfToken);
+
+                // Set ShEx content and clean edit summary (NO CodeEditor)
+                formData.set('wpschema-text', String(shexText || ''));
+                formData.set('wpedit-summary', finalSummary);
+                formData.set('wpSave', 'Publish changes');
+
+                return fetch(actionUrl.href, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData.toString()
+                });
+            }).then(function(postResponse) {
+                return postResponse.text().then(function(postHtml) {
+                    return {
+                        url: postResponse.url,
+                        html: postHtml
+                    };
+                });
+            }).then(function(result) {
+                let responseDoc = new DOMParser().parseFromString(result.html, 'text/html');
+                let errorNodes = responseDoc.querySelectorAll(
+                    '.permissions-errors, .error, .warning, .cdx-message--error, .oo-ui-messageWidget-error, .mw-htmlform-ooui .oo-ui-fieldLayout-messages'
+                );
+                let errorTexts = [];
+                for (let i = 0; i < errorNodes.length; i++) {
+                    let txt = (errorNodes[i].textContent || '').trim();
+                    if (txt && !txt.includes('Creative Commons') && !txt.includes('Terms of Use') && !txt.includes('By clicking')) {
+                        errorTexts.push(txt);
+                    }
+                }
+
+                if (errorTexts.length > 0) {
+                    throw new Error(errorTexts.join(' | '));
+                }
+
+                return cleanId;
+            });
+        });
+    }
+
+    /**
      * Links an EntitySchema to its target class/item via property P12861 (EntitySchema for this class).
      */
     function linkEntitySchemaToItem(targetQID, schemaId) {
@@ -6136,7 +6332,736 @@ function searchWikidataItems(term) {
 
         $footer.append($leftGroup).append($rightGroup);
     }
-    
+
+    /**
+     * Loads an existing EntitySchema for editing (Special:Cradle#edit).
+     */
+    function loadSchemaForEditing(schemaId) {
+        let cleanId = (schemaId || '').trim().toUpperCase();
+        if (!cleanId.startsWith('E')) {
+            cleanId = 'E' + cleanId.replace(/\D/g, '');
+        }
+
+        let $content = $('#cradle-content-area').empty();
+        updateDrawerFooter(false);
+        $content.append($('<div>').css({'text-align': 'center', 'margin-top': '40px'})
+            .append($('<div>').addClass('cradle-spinner').css({'border-top-color': 'var(--border-color-progressive, #36c)', 'width': '30px', 'height': '30px'}))
+            .append($('<p>').text(mw.msg('cradle-loading-schema', cleanId)))
+        );
+
+        fetchSchema(cleanId).then(function(schema) {
+            let parsedProps = parseShEx(schema.schemaText);
+            let pids = Object.keys(parsedProps);
+
+            let qidsToFetch = [];
+            pids.forEach(pid => {
+                let p = parsedProps[pid];
+                if (p.hardselect && Array.isArray(p.hardselect)) qidsToFetch = qidsToFetch.concat(p.hardselect);
+                if (p.softselect && Array.isArray(p.softselect)) qidsToFetch = qidsToFetch.concat(p.softselect);
+            });
+            qidsToFetch = [...new Set(qidsToFetch)].filter(id => /^Q\d+$/i.test(id));
+
+            return Promise.all([
+                loadPropertiesMetadata(pids),
+                loadItemLabels(qidsToFetch)
+            ]).then(function(results) {
+                let metaMap = results[0] || {};
+                let qidLabelsMap = results[1] || {};
+                renderSchemaEditor(cleanId, schema, parsedProps, metaMap, qidLabelsMap);
+            });
+        }).catch(function(err) {
+            console.error('[Cradle] Error loading schema for editing:', err);
+            $content.empty().append($('<div>').addClass('cradle-selector-box').css('border-color', 'var(--color-destructive, #d33)')
+                .append($('<p>').css({'color': 'var(--color-destructive, #d33)', 'font-weight': 'bold'}).text(mw.msg('cradle-schema-not-found') || 'Error loading schema'))
+                .append($('<p>').text((err && err.message) ? err.message : String(err)))
+                .append($('<button>').addClass('cradle-btn-secondary').text(mw.msg('cradle-back')).on('click', renderCreateOptionsSelector))
+            );
+        });
+    }
+
+    /**
+     * Renders the Dual-Mode EntitySchema Editor UI (Special:Cradle#edit).
+     * Supports:
+     * 1. Modo Visual (GUI): rich property-based builder matching Schema Designer.
+     * 2. Modo Código (CodeEditor): MediaWiki native Ace editor with ShEx & # comment support and textarea fallback.
+     */
+    function renderSchemaEditor(schemaId, schema, parsedProps, metaMap, qidLabelsMap) {
+        let $content = $('#cradle-content-area').empty();
+        updateDrawerFooter(false);
+
+        let currentShex = schema.schemaText || '';
+        let currentMode = 'visual'; // 'visual' or 'code'
+        let labelsMap = Object.assign({}, metaMap || {});
+        let itemLabels = Object.assign({}, qidLabelsMap || {});
+        let aceEditorInstance = null;
+
+        // Container
+        let $editorWrap = $('<div>').addClass('cradle-selector-box').css({'display': 'flex', 'flex-direction': 'column', 'gap': '14px'});
+
+        // Header
+        let $header = $('<div>').addClass('cradle-schema-editor-header');
+
+        let $backBtn = $('<button>').addClass('cradle-btn-secondary')
+            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'height': '32px'})
+            .html(ICONS.back + ' <span>' + mw.msg('cradle-back') + '</span>')
+            .on('click', function() {
+                renderCreateOptionsSelector();
+            });
+
+        let $titleInfo = $('<div>').css({'display': 'inline-flex', 'align-items': 'center', 'gap': '8px', 'flex-wrap': 'wrap'})
+            .append($('<strong>').css({'font-size': '15px'}).text(mw.msg('cradle-editing-schema-title', schemaId)))
+            .append($('<span>').css({'color': '#54595d'}).text('(' + (schema.label || schemaId) + ')'))
+            .append($('<a>').attr({href: mw.util.getUrl('EntitySchema:' + schemaId), target: '_blank'}).css({'color': '#36c', 'display': 'inline-flex', 'align-items': 'center', 'gap': '3px'}).html(ICONS.external + ' <span style="font-size:12px;">EntitySchema:' + schemaId + '</span>'));
+
+        let $modeSwitcher = $('<div>').addClass('cradle-mode-switcher');
+        let $btnVisual = $('<button>').addClass('cradle-mode-btn active').html(ICONS.edit + ' <span>' + (mw.msg('cradle-mode-visual') || 'Modo visual (GUI)') + '</span>');
+        let $btnCode = $('<button>').addClass('cradle-mode-btn').html(ICONS.code + ' <span>' + (mw.msg('cradle-mode-code') || 'Modo código (ShEx)') + '</span>');
+        $modeSwitcher.append($btnVisual).append($btnCode);
+
+        let $leftHeader = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '12px', 'flex-wrap': 'wrap'})
+            .append($backBtn).append($titleInfo);
+
+        $header.append($leftHeader).append($modeSwitcher);
+        $editorWrap.append($header);
+
+        // Visual Mode Container
+        let $visualContainer = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px'});
+        let $propsList = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '8px'});
+        $visualContainer.append($('<h4>').css({'margin': '0'}).text(mw.msg('cradle-properties-list')));
+        $visualContainer.append($propsList);
+
+        // Helper to batch fetch labels
+        function fetchLabelsInBatches(ids, callback) {
+            let labels = {};
+            let datatypes = {};
+            ids = ids.filter(Boolean);
+            if (ids.length === 0) {
+                callback(labels, datatypes);
+                return;
+            }
+            let api = new mw.Api();
+            let chunks = [];
+            for (let i = 0; i < ids.length; i += 50) {
+                chunks.push(ids.slice(i, i + 50));
+            }
+            let pending = chunks.length;
+            let userLang = mw.config.get('wgUserLanguage') || 'en';
+            let langsToFetch = userLang === 'en' ? 'en' : `${userLang}|en`;
+
+            chunks.forEach(chunk => {
+                let idsStr = Array.isArray(chunk) ? chunk.join('|') : chunk;
+                api.get({
+                    action: 'wbgetentities',
+                    ids: idsStr,
+                    props: 'labels|datatype',
+                    languages: langsToFetch,
+                    format: 'json'
+                }).done(function(res) {
+                    if (res && res.entities) {
+                        chunk.forEach(id => {
+                            if (res.entities[id]) {
+                                let lObj = res.entities[id].labels || {};
+                                let lbl = (lObj[userLang] && lObj[userLang].value) || (lObj['en'] && lObj['en'].value);
+                                labels[id] = lbl || id;
+                                if (res.entities[id].datatype) {
+                                    datatypes[id] = res.entities[id].datatype;
+                                    if (id.startsWith('P')) {
+                                        propertyMetadata[id] = propertyMetadata[id] || {};
+                                        propertyMetadata[id].label = labels[id];
+                                        propertyMetadata[id].datatype = res.entities[id].datatype;
+                                    }
+                                }
+                            } else {
+                                labels[id] = id;
+                            }
+                        });
+                    }
+                    pending--;
+                    if (pending === 0) callback(labels, datatypes);
+                }).fail(function() {
+                    chunk.forEach(id => { labels[id] = id; });
+                    pending--;
+                    if (pending === 0) callback(labels, datatypes);
+                });
+            });
+        }
+
+        // Render individual property row in Visual Mode
+        function renderEditorPropCard(pid, pData, mergedLabels, mergedItemLabels) {
+            mergedLabels = mergedLabels || {};
+            mergedItemLabels = mergedItemLabels || {};
+            let meta = mergedLabels[pid] ? mergedLabels[pid] : (propertyMetadata[pid] || {});
+            let propLabelText = (meta && meta.label) ? meta.label : (typeof meta === 'string' ? meta : pid);
+            let displayTitle = pid + (propLabelText && propLabelText !== pid ? ` (${propLabelText})` : '');
+            let uniqueId = Math.random().toString(36).substring(2, 9);
+
+            let $row = $('<div>').addClass('cradle-prop-row-builder').css({
+                'display': 'flex',
+                'flex-direction': 'column',
+                'gap': '8px',
+                'padding': '10px',
+                'background': '#f8f9fa',
+                'border-radius': '4px',
+                'border': '1px solid #a2a9b1',
+                'position': 'relative'
+            });
+
+            // Header line
+            let $headerRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center'});
+            $headerRow.append($('<strong>').css({'font-size': '14px'}).html(displayTitle));
+            let $remove = $('<button>').addClass('cradle-btn-secondary').css({'padding': '2px 6px', 'color': '#d33', 'font-weight': 'bold'}).html(ICONS.close).on('click', function() {
+                $row.remove();
+            });
+            $headerRow.append($remove);
+            $row.append($headerRow);
+
+            // Cardinality, Value Type, and OR Group
+            let $optionsRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center', 'flex-wrap': 'wrap'});
+
+            let $cardinalitySelect = $('<select>').addClass('cradle-select').css({
+                'font-size': '12px',
+                'height': '28px',
+                'padding': '2px 6px',
+                'width': 'auto'
+            });
+            $cardinalitySelect.append($('<option>').val('1').text(mw.msg('cradle-cardinality-1')));
+            $cardinalitySelect.append($('<option>').val('?').text(mw.msg('cradle-cardinality-opt-single')));
+            $cardinalitySelect.append($('<option>').val('+').text(mw.msg('cradle-cardinality-req-multi')));
+            $cardinalitySelect.append($('<option>').val('*').text(mw.msg('cradle-cardinality-opt-multi')));
+
+            let initialCard = pData.cardinality || (pData.mandatory ? '1' : '?');
+            $cardinalitySelect.val(initialCard);
+
+            let $cardinalityLabel = $('<label>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'font-size': '12px',
+                'font-weight': 'bold',
+                'color': '#202122'
+            }).text(mw.msg('cradle-cardinality-label')).append($cardinalitySelect);
+
+            // Value Type select
+            let $valueTypeSelect = $('<select>').addClass('cradle-select').css({
+                'font-size': '12px',
+                'height': '28px',
+                'padding': '2px 6px',
+                'width': 'auto'
+            });
+            $valueTypeSelect.append($('<option>').val('IRI').text(mw.msg('cradle-valtype-qid')));
+            $valueTypeSelect.append($('<option>').val('xsd:string').text(mw.msg('cradle-valtype-string')));
+            $valueTypeSelect.append($('<option>').val('rdf:langString').text(mw.msg('cradle-valtype-langstring')));
+            $valueTypeSelect.append($('<option>').val('xsd:dateTime').text(mw.msg('cradle-valtype-datetime')));
+            $valueTypeSelect.append($('<option>').val('xsd:decimal').text(mw.msg('cradle-valtype-decimal')));
+            $valueTypeSelect.append($('<option>').val('geo:wktLiteral').text(mw.msg('cradle-valtype-geo')));
+            $valueTypeSelect.append($('<option>').val('subshape').text(mw.msg('cradle-valtype-subshape')));
+
+            let initialVType = pData.valueType || 'IRI';
+            $valueTypeSelect.val(initialVType);
+
+            let $valueTypeLabel = $('<label>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'font-size': '12px',
+                'font-weight': 'bold',
+                'color': '#202122'
+            }).text(mw.msg('cradle-valtype-label')).append($valueTypeSelect);
+
+            // Alternative OR Group
+            let $orGroupInput = $('<input>').addClass('cradle-input').attr('placeholder', 'e.g. OSM ID').css({
+                'font-size': '12px',
+                'height': '28px',
+                'width': '120px',
+                'padding': '2px 6px'
+            }).val(pData.orGroup || '');
+            let $orGroupLabel = $('<label>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '4px',
+                'font-size': '12px',
+                'color': '#54595d'
+            }).text(mw.msg('cradle-orgroup-label')).append($orGroupInput);
+
+            $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
+            $row.append($optionsRow);
+
+            // SubShape input
+            let $subShapeGroup = $('<div>').css({'display': 'none', 'gap': '8px', 'align-items': 'center', 'margin-top': '4px'});
+            let $subShapeInput = $('<input>').addClass('cradle-input').attr('placeholder', 'Nombre del sub-esquema (Ej: EstadoConservacion)').css({
+                'font-size': '12px',
+                'height': '28px',
+                'flex': '1'
+            }).val(pData.subShapeName || '');
+            $subShapeGroup.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-name-label'))).append($subShapeInput);
+            $row.append($subShapeGroup);
+
+            // Presets: None / Hardselect / Softselect
+            let hasHard = pData.hardselect && ((Array.isArray(pData.hardselect) && pData.hardselect.length > 0) || (typeof pData.hardselect === 'string' && pData.hardselect.trim().length > 0));
+            let hasSoft = pData.softselect && ((Array.isArray(pData.softselect) && pData.softselect.length > 0) || (typeof pData.softselect === 'string' && pData.softselect.trim().length > 0));
+            let activePreset = 'none';
+            if (hasHard) activePreset = 'hard';
+            else if (hasSoft) activePreset = 'soft';
+
+            let $radioGroup = $('<div>').css({'display': 'flex', 'gap': '12px', 'margin-top': '4px'});
+            let $radioNone = $('<input>').attr({type: 'radio', name: `select-type-${uniqueId}`, id: `none-${uniqueId}`, checked: (activePreset === 'none')});
+            let $labelNone = $('<label>').attr('for', `none-${uniqueId}`).css({'font-size': '12px', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
+                .append($radioNone).append(mw.msg('cradle-preset-none'));
+
+            let $radioHard = $('<input>').attr({type: 'radio', name: `select-type-${uniqueId}`, id: `hard-${uniqueId}`, checked: (activePreset === 'hard')});
+            let $labelHard = $('<label>').attr('for', `hard-${uniqueId}`).css({'font-size': '12px', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
+                .append($radioHard).append(mw.msg('cradle-hardselect-label'));
+
+            let $radioSoft = $('<input>').attr({type: 'radio', name: `select-type-${uniqueId}`, id: `soft-${uniqueId}`, checked: (activePreset === 'soft')});
+            let $labelSoft = $('<label>').attr('for', `soft-${uniqueId}`).css({'font-size': '12px', 'display': 'flex', 'align-items': 'center', 'gap': '4px'})
+                .append($radioSoft).append(mw.msg('cradle-softselect-label'));
+
+            $radioGroup.append($labelNone).append($labelHard).append($labelSoft);
+            $row.append($radioGroup);
+
+            let $valuePresetContainer = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '6px'});
+            let $chipsDiv = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px', 'margin-top': '4px'});
+            $valuePresetContainer.append($chipsDiv);
+
+            function updateVisibilityBasedOnValueType() {
+                let vt = $valueTypeSelect.val();
+                if (vt === 'IRI') {
+                    $radioGroup.show();
+                    $valuePresetContainer.show();
+                    $subShapeGroup.css('display', 'none');
+                } else if (vt === 'subshape') {
+                    $radioGroup.hide();
+                    $valuePresetContainer.hide();
+                    $subShapeGroup.css('display', 'flex');
+                } else {
+                    $radioGroup.hide();
+                    $valuePresetContainer.hide();
+                    $subShapeGroup.css('display', 'none');
+                }
+            }
+            $valueTypeSelect.on('change', updateVisibilityBasedOnValueType);
+            updateVisibilityBasedOnValueType();
+
+            let selectedItems = [];
+
+            function addChip(qid, label) {
+                if (selectedItems.some(i => i.qid === qid)) return;
+                selectedItems.push({ qid: qid, label: label });
+
+                let $chip = $('<span>').css({
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '6px',
+                    'background': '#eaecf0',
+                    'border': '1px solid #c8ccd1',
+                    'border-radius': '3px',
+                    'padding': '3px 8px',
+                    'font-size': '12px'
+                }).text(`${label} (${qid})`);
+
+                let $removeChip = $('<span>').css({
+                    'cursor': 'pointer',
+                    'color': '#72777d',
+                    'font-weight': 'bold',
+                    'margin-left': '4px'
+                }).html(ICONS.close).on('click', function() {
+                    selectedItems = selectedItems.filter(item => item.qid !== qid);
+                    $chip.remove();
+                    updateSearchInputVisibility();
+                });
+
+                $chip.append($removeChip);
+                $chipsDiv.append($chip);
+                updateSearchInputVisibility();
+            }
+
+            // Populate initial QIDs
+            let initialQids = [];
+            if (pData.hardselect) {
+                initialQids = Array.isArray(pData.hardselect) ? pData.hardselect : String(pData.hardselect).split(',');
+            } else if (pData.softselect) {
+                initialQids = Array.isArray(pData.softselect) ? pData.softselect : String(pData.softselect).split(',');
+            }
+            initialQids.forEach(q => {
+                let clean = (q || '').trim().toUpperCase();
+                if (/^Q\d+$/i.test(clean)) {
+                    addChip(clean, mergedItemLabels[clean] || clean);
+                }
+            });
+
+            // Autocomplete search input group
+            let $valSearchGroup = $('<div>').css({'position': 'relative', 'margin-top': '4px'});
+            let $valSearchInput = $('<input>').addClass('cradle-input').css({'height': '36px', 'padding': '2px 8px', 'font-size': '13px'})
+                .attr('placeholder', mw.msg('cradle-search-value-placeholder'));
+            $valSearchGroup.append($valSearchInput);
+
+            let $valAutocompleteMenu = $('<ul>').css({
+                'position': 'absolute', 'top': '100%', 'left': '0', 'right': '0',
+                'background': '#fff', 'border': '1px solid #a2a9b1', 'border-radius': '0 0 4px 4px',
+                'box-shadow': '0 2px 4px rgba(0,0,0,0.15)', 'max-height': '150px',
+                'overflow-y': 'auto', 'z-index': '1010', 'list-style': 'none',
+                'margin': '0', 'padding': '0', 'display': 'none'
+            });
+            $valSearchGroup.append($valAutocompleteMenu);
+            $valuePresetContainer.append($valSearchGroup);
+            $row.append($valuePresetContainer);
+
+            let valDebounce;
+            $valSearchInput.on('input', function() {
+                clearTimeout(valDebounce);
+                let val = $valSearchInput.val().trim();
+                if (val.length < 2) {
+                    $valAutocompleteMenu.hide().empty();
+                    return;
+                }
+                valDebounce = setTimeout(function() {
+                    let api = new mw.Api();
+                    api.get({
+                        action: 'wbsearchentities',
+                        search: val,
+                        language: mw.config.get('wgUserLanguage') || 'en',
+                        type: 'item',
+                        format: 'json'
+                    }).done(function(res) {
+                        $valAutocompleteMenu.empty();
+                        let items = res.search || [];
+                        if (items.length === 0) {
+                            $valAutocompleteMenu.hide();
+                            return;
+                        }
+                        items.forEach(item => {
+                            let desc = item.description ? ` - ${item.description}` : '';
+                            let $li = $('<li>').css({'padding': '6px 10px', 'cursor': 'pointer', 'border-bottom': '1px solid #eaecf0', 'font-size': '12px'})
+                                .html(`<strong>${item.id}</strong>: ${item.label}${desc}`)
+                                .on('click', function() {
+                                    addChip(item.id, item.label);
+                                    $valSearchInput.val('');
+                                    $valAutocompleteMenu.hide().empty();
+                                })
+                                .on('mouseenter', function() { $(this).css('background', '#f8f9fa'); })
+                                .on('mouseleave', function() { $(this).css('background', '#fff'); });
+                            $valAutocompleteMenu.append($li);
+                        });
+                        $valAutocompleteMenu.show();
+                    });
+                }, 300);
+            });
+
+            function updateSearchInputVisibility() {
+                let activeType = $radioHard.is(':checked') ? 'hard' : ($radioSoft.is(':checked') ? 'soft' : 'none');
+                if (activeType === 'none') {
+                    $valSearchGroup.hide();
+                    $chipsDiv.hide();
+                } else {
+                    $chipsDiv.show();
+                    if (activeType === 'hard' && selectedItems.length >= 1) {
+                        $valSearchGroup.hide();
+                    } else {
+                        $valSearchGroup.show();
+                    }
+                }
+            }
+
+            $radioNone.on('change', updateSearchInputVisibility);
+            $radioHard.on('change', updateSearchInputVisibility);
+            $radioSoft.on('change', updateSearchInputVisibility);
+            updateSearchInputVisibility();
+
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest($valSearchGroup).length) {
+                    $valAutocompleteMenu.hide();
+                }
+            });
+
+            $row.data('pid', pid);
+            $row.data('get_data', function() {
+                let qidString = selectedItems.map(i => i.qid).join(',');
+                let useHard = $radioHard.is(':checked');
+                let useSoft = $radioSoft.is(':checked');
+                let cardVal = $cardinalitySelect.val();
+                let vType = $valueTypeSelect.val();
+                let sName = $subShapeInput.val().trim();
+                let oGroup = $orGroupInput.val().trim();
+                return {
+                    pid: pid,
+                    cardinality: cardVal,
+                    mandatory: (cardVal === '1' || cardVal === '+'),
+                    allowMultiple: (cardVal === '+' || cardVal === '*'),
+                    valueType: vType,
+                    subShapeName: sName,
+                    orGroup: oGroup,
+                    defaultValue: '',
+                    hardselect: (vType === 'IRI' && useHard && qidString) ? qidString : '',
+                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ''
+                };
+            });
+
+            $propsList.append($row);
+        }
+
+        // Render all initial parsed props in Visual Mode
+        Object.keys(parsedProps).forEach(pid => {
+            renderEditorPropCard(pid, parsedProps[pid], labelsMap, itemLabels);
+        });
+
+        // Add property search group
+        let $addPropGroup = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '4px', 'margin-top': '8px', 'position': 'relative'});
+        let $addPropInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-prop-search-placeholder'));
+        $addPropGroup.append($addPropInput);
+
+        let $autocompleteMenu = $('<ul>').css({
+            'position': 'absolute', 'top': '100%', 'left': '0', 'right': '0',
+            'background': '#fff', 'border': '1px solid #a2a9b1', 'border-radius': '0 0 4px 4px',
+            'box-shadow': '0 2px 4px rgba(0,0,0,0.15)', 'max-height': '200px',
+            'overflow-y': 'auto', 'z-index': '1000', 'list-style': 'none',
+            'margin': '0', 'padding': '0', 'display': 'none'
+        });
+        $addPropGroup.append($autocompleteMenu);
+        $visualContainer.append($addPropGroup);
+        $editorWrap.append($visualContainer);
+
+        let propSearchDebounce;
+        $addPropInput.on('input', function() {
+            clearTimeout(propSearchDebounce);
+            let val = $addPropInput.val().trim();
+            if (val.length < 2) {
+                $autocompleteMenu.hide().empty();
+                return;
+            }
+            propSearchDebounce = setTimeout(function() {
+                let api = new mw.Api();
+                api.get({
+                    action: 'wbsearchentities',
+                    search: val,
+                    language: mw.config.get('wgUserLanguage') || 'en',
+                    type: 'property',
+                    format: 'json'
+                }).done(function(res) {
+                    $autocompleteMenu.empty();
+                    let items = res.search || [];
+                    if (items.length === 0) {
+                        $autocompleteMenu.hide();
+                        return;
+                    }
+                    items.forEach(item => {
+                        let desc = item.description ? ` - ${item.description}` : '';
+                        let $li = $('<li>').css({'padding': '8px 12px', 'cursor': 'pointer', 'border-bottom': '1px solid #eaecf0', 'font-size': '13px'})
+                            .html(`<strong>${item.id}</strong>: ${item.label}${desc}`)
+                            .on('click', function() {
+                                labelsMap[item.id] = item.label;
+                                renderEditorPropCard(item.id, { cardinality: '?' }, labelsMap, itemLabels);
+                                $addPropInput.val('');
+                                $autocompleteMenu.hide().empty();
+                            })
+                            .on('mouseenter', function() { $(this).css('background', '#f8f9fa'); })
+                            .on('mouseleave', function() { $(this).css('background', '#fff'); });
+                        $autocompleteMenu.append($li);
+                    });
+                    $autocompleteMenu.show();
+                });
+            }, 300);
+        });
+
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest($addPropGroup).length) {
+                $autocompleteMenu.hide();
+            }
+        });
+
+        function gatherEditorProps() {
+            let propRows = [];
+            $propsList.children().each(function() {
+                let fn = $(this).data('get_data');
+                if (fn) {
+                    propRows.push(fn());
+                }
+            });
+            return propRows;
+        }
+
+        // Code Mode Container
+        let $codeContainer = $('<div>').css({'display': 'none', 'flex-direction': 'column', 'gap': '8px'});
+
+        let $codeToolbar = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'flex-wrap': 'wrap', 'gap': '8px'});
+        let $valStatusSpan = $('<span>').css({'font-size': '12px', 'font-weight': 'bold'});
+        let $validateBtn = $('<button>').addClass('cdx-button cdx-button--weight-quiet')
+            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '4px', 'font-size': '12px'})
+            .html(ICONS.check + ' <span>' + (mw.msg('cradle-validate-shex-btn') || 'Validar sintaxis') + '</span>')
+            .on('click', function() {
+                let code = getEditorCode();
+                let v = validateShExSyntax(code);
+                if (v.valid) {
+                    $valStatusSpan.css({'color': '#00af89'}).text(mw.msg('cradle-shex-syntax-valid') || 'Sintaxis ShEx válida');
+                } else {
+                    $valStatusSpan.css({'color': '#d33'}).text((mw.msg('cradle-shex-syntax-invalid', v.errors[0]) || ('Error: ' + v.errors[0])));
+                }
+            });
+
+        let $commentHint = $('<span>').css({'font-size': '11px', 'color': '#72777d'}).text('W3C ShExC (# comentarios soportados)');
+        $codeToolbar.append($('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '8px'}).append($validateBtn).append($valStatusSpan)).append($commentHint);
+        $codeContainer.append($codeToolbar);
+
+        let $codeArea = $('<textarea>').addClass('cradle-shex-code-area').val(currentShex);
+        let $aceDiv = $('<div>').addClass('cradle-ace-editor').hide();
+        $codeContainer.append($codeArea).append($aceDiv);
+        $editorWrap.append($codeContainer);
+
+        function initAceEditor() {
+            if (aceEditorInstance) return Promise.resolve(aceEditorInstance);
+            return mw.loader.using('ext.codeEditor.ace').then(function() {
+                if (window.ace && $aceDiv.length) {
+                    $codeArea.hide();
+                    $aceDiv.show();
+                    aceEditorInstance = window.ace.edit($aceDiv[0]);
+                    try {
+                        aceEditorInstance.session.setMode('ace/mode/turtle');
+                    } catch (e) {}
+                    aceEditorInstance.setValue($codeArea.val(), -1);
+                    aceEditorInstance.setOptions({
+                        fontSize: '13px',
+                        showPrintMargin: false,
+                        wrap: true
+                    });
+                }
+                return aceEditorInstance;
+            }).catch(function() {
+                return null;
+            });
+        }
+
+        function getEditorCode() {
+            if (aceEditorInstance) {
+                return aceEditorInstance.getValue();
+            }
+            return $codeArea.val();
+        }
+
+        function setEditorCode(val) {
+            $codeArea.val(val);
+            if (aceEditorInstance) {
+                aceEditorInstance.setValue(val, -1);
+            }
+        }
+
+        // Mode Switching
+        $btnVisual.on('click', function() {
+            if (currentMode === 'visual') return;
+            let proceed = confirm(mw.msg('cradle-schema-edit-loss-warning') || 'Cambiar al modo visual actualizará las propiedades a partir del código ShEx. ¿Deseas continuar?');
+            if (!proceed) return;
+
+            let code = getEditorCode();
+            let newParsed = parseShEx(code);
+            let newPids = Object.keys(newParsed);
+
+            $propsList.empty();
+            fetchLabelsInBatches(newPids, function(freshLabels) {
+                Object.assign(labelsMap, freshLabels);
+                newPids.forEach(pid => {
+                    renderEditorPropCard(pid, newParsed[pid], labelsMap, itemLabels);
+                });
+            });
+
+            currentMode = 'visual';
+            $btnVisual.addClass('active');
+            $btnCode.removeClass('active');
+            $codeContainer.hide();
+            $visualContainer.show();
+        });
+
+        $btnCode.on('click', function() {
+            if (currentMode === 'code') return;
+            let rows = gatherEditorProps();
+            let newCode = generateShExCode(schema.label || schemaId, rows, labelsMap, null, null, null);
+            setEditorCode(newCode);
+
+            currentMode = 'code';
+            $btnCode.addClass('active');
+            $btnVisual.removeClass('active');
+            $visualContainer.hide();
+            $codeContainer.show();
+
+            initAceEditor().then(function(ed) {
+                if (ed) ed.resize();
+            });
+        });
+
+        $content.append($editorWrap);
+
+        // Footer setup
+        let $footer = $('#cradle-footer-area').empty().css({
+            'display': 'flex',
+            'flex-direction': 'column',
+            'gap': '12px',
+            'padding': '14px 16px',
+            'background': '#f8f9fa',
+            'border-top': '1px solid #c8ccd1',
+            'margin-top': '16px',
+            'border-radius': '0 0 4px 4px'
+        });
+
+        // Summary row
+        let $summaryRow = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '10px'});
+        $summaryRow.append($('<label>').css({'font-weight': 'bold', 'font-size': '13px', 'white-space': 'nowrap'}).text(mw.msg('cradle-edit-summary-label') || 'Resumen:'));
+        let $summaryInput = $('<input>').addClass('cradle-input')
+            .attr('placeholder', mw.msg('cradle-edit-summary-placeholder') || 'Resumen de edición (ej. Declaraciones añadidas)...')
+            .css({'flex': '1', 'height': '32px'});
+        $summaryRow.append($summaryInput);
+        $footer.append($summaryRow);
+
+        // Buttons row
+        let $buttonsRow = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'gap': '8px', 'flex-wrap': 'wrap'});
+
+        let $cancelBtn = $('<button>').addClass('cradle-btn-secondary')
+            .html(ICONS.back + ' <span>' + mw.msg('cradle-back') + '</span>')
+            .on('click', function() {
+                renderCreateOptionsSelector();
+            });
+
+        let $saveBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'min-height': '34px', 'font-weight': 'bold'})
+            .html(ICONS.check + ' <span>' + mw.msg('cradle-save-changes') + '</span>')
+            .on('click', function() {
+                let codeToSave = '';
+                if (currentMode === 'code') {
+                    codeToSave = getEditorCode();
+                } else {
+                    let rows = gatherEditorProps();
+                    if (rows.length === 0) {
+                        mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
+                        return;
+                    }
+                    codeToSave = generateShExCode(schema.label || schemaId, rows, labelsMap, null, null, null);
+                }
+
+                let validation = validateShExSyntax(codeToSave);
+                if (!validation.valid) {
+                    let proceed = confirm(mw.msg('cradle-shex-invalid') + '\n' + validation.errors.join('\n') + '\n\nDo you want to proceed anyway?');
+                    if (!proceed) return;
+                }
+
+                $saveBtn.prop('disabled', true);
+                let customSummary = $summaryInput.val().trim();
+                let savingNotice = mw.notify(mw.msg('cradle-saving-schema') || 'Guardando cambios en el EntitySchema...', { autoHide: false });
+
+                saveEntitySchemaToWikidata(schemaId, codeToSave, customSummary).then(function(savedId) {
+                    if (savingNotice && savingNotice.close) savingNotice.close();
+                    mw.notify(mw.msg('cradle-save-schema-success', savedId) || `¡EntitySchema ${savedId} actualizado con éxito!`, { type: 'success' });
+                    $saveBtn.prop('disabled', false);
+                }).catch(function(saveErr) {
+                    if (savingNotice && savingNotice.close) savingNotice.close();
+                    $saveBtn.prop('disabled', false);
+                    let errStr = (saveErr && saveErr.message) ? saveErr.message : String(saveErr);
+                    mw.notify((mw.msg('cradle-save-schema-failed', errStr) || ('Error al guardar: ' + errStr)), { type: 'error' });
+                });
+            });
+
+        let $leftGroup = $('<div>').css({'display': 'flex', 'align-items': 'center'}).append($cancelBtn);
+        let $rightGroup = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center'}).append($saveBtn);
+
+        $buttonsRow.append($leftGroup).append($rightGroup);
+        $footer.append($buttonsRow);
+    }
+
     $(document).ready(function() {
         mw.loader.using(['mediawiki.api', 'mediawiki.util', 'mediawiki.storage', 'mediawiki.jqueryMsg']).then(init);
     });
