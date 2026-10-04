@@ -866,3 +866,87 @@
             background-color: var(--background-color-neutral-subtle, #f8f9fa);
             border: 1px solid var(--border-color-base, #a2a9b1);
         }
+
+        /* Schema Editor & Mode Switcher styles */
+        .cradle-schema-editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color-base, #a2a9b1);
+        }
+        .cradle-mode-switcher {
+            display: inline-flex;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border-color-base, #a2a9b1);
+        }
+        .cradle-mode-btn {
+            border: none;
+            background: var(--background-color-neutral-subtle, #f8f9fa);
+            color: var(--color-base, #202122);
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: normal;
+            transition: all 0.15s ease;
+        }
+        .cradle-mode-btn:not(:last-child) {
+            border-right: 1px solid var(--border-color-base, #a2a9b1);
+        }
+        .cradle-mode-btn:hover {
+            background-color: var(--background-color-interactive, #eaecf0);
+        }
+        .cradle-mode-btn.active {
+            background-color: var(--background-color-progressive, #36c);
+            color: #ffffff;
+            font-weight: bold;
+        }
+        .cradle-ace-editor {
+            width: 100%;
+            height: 480px;
+            border: 1px solid var(--border-color-base, #a2a9b1);
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: monospace;
+            box-sizing: border-box;
+        }
+        .cradle-shex-code-area {
+            width: 100%;
+            height: 480px;
+            border: 1px solid var(--border-color-base, #a2a9b1);
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            box-sizing: border-box;
+            background-color: var(--background-color-base, #ffffff);
+            color: var(--color-base, #202122);
+            resize: vertical;
+        }
+        .cradle-tab-badge {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 1px 4px;
+            border-radius: 2px;
+            margin-left: 6px;
+            font-weight: bold;
+            background-color: var(--background-color-neutral-subtle, #eaecf0);
+            color: var(--color-subtle, #54595d);
+            border: 1px solid var(--border-color-subtle, #c8ccd1);
+            vertical-align: middle;
+        }
+        .cradle-select-tab.active .cradle-tab-badge {
+            background-color: #eaf3ff;
+            color: var(--color-progressive, #36c);
+            border-color: #a2c8f8;
+        }
+
