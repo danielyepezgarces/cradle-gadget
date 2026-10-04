@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.52.0
+ * Version: 1.53.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.52.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.53.0');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.52.0';
+    const CRADLE_VERSION = '1.53.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -210,7 +210,8 @@
         download: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M17 12v5H3v-5H1v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"/><path d="M10 15l5-6h-3V1H8v8H5z"/></svg>`,
         external: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`,
         edit: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M16.77 8l1.94-2a1 1 0 0 0 0-1.41l-3.34-3.3a1 1 0 0 0-1.41 0L12 3.23zM1 14.25V19h4.75l9.96-9.96-4.75-4.75z"/></svg>`,
-        code: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m5 13-4-3 4-3 1.4 1.4-2.1 1.6 2.1 1.6zm10 0-1.4-1.4 2.1-1.6-2.1-1.6L15 7l4 3zm-6.8 3.5-2.4-.6 6-12 2.4.6z"/></svg>`
+        code: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m5 13-4-3 4-3 1.4 1.4-2.1 1.6 2.1 1.6zm10 0-1.4-1.4 2.1-1.6-2.1-1.6L15 7l4 3zm-6.8 3.5-2.4-.6 6-12 2.4.6z"/></svg>`,
+        feedback: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M18 10c0-4.42-3.58-8-8-8s-8 3.58-8 8c0 2.03.76 3.87 2 5.28V19l3.53-1.77C8.41 17.72 9.19 18 10 18c4.42 0 8-3.58 8-8zm-8 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm1-4H9V6h2v4z"/></svg>`
     };
 
     /**
@@ -413,7 +414,28 @@
             'cradle-sidebar-edit-schema': 'Edit a schema',
             'cradle-sidebar-recent-schemas': 'Recent changes',
             'cradle-sidebar-random-schema': 'Random schema',
-            'cradle-special-title': 'Cradle - Wikidata Schema Editor'
+            'cradle-special-title': 'Cradle - Wikidata Schema Editor',
+            'cradle-feedback-btn': 'Feedback & Bug Reports',
+            'cradle-feedback-title': 'Suggestions and Bug Reports',
+            'cradle-feedback-desc': 'Have a suggestion, improvement, or found a bug in Cradle? Your report will be published as a new discussion topic on Wikidata talk:Cradle-gadget.',
+            'cradle-feedback-type-label': 'Type:',
+            'cradle-feedback-type-suggestion': 'Suggestion / Feature Request',
+            'cradle-feedback-type-bug': 'Bug Report',
+            'cradle-feedback-type-question': 'Question / General Comment',
+            'cradle-feedback-subject-label': 'Subject:',
+            'cradle-feedback-subject-placeholder': 'Brief summary of your suggestion or bug...',
+            'cradle-feedback-message-label': 'Detailed description:',
+            'cradle-feedback-message-placeholder': 'Describe your feedback or how to reproduce the issue in detail...',
+            'cradle-feedback-include-diagnostics': 'Include diagnostic details (Cradle version, browser, skin, page)',
+            'cradle-feedback-submit-btn': 'Post to Wikidata talk:Cradle-gadget',
+            'cradle-feedback-open-talk-btn': 'Open talk page',
+            'cradle-feedback-submitting': 'Publishing to talk page...',
+            'cradle-feedback-success': 'Feedback successfully posted to Wikidata talk:Cradle-gadget!',
+            'cradle-feedback-error': 'Failed to post feedback: $1',
+            'cradle-feedback-subject-required': 'Please enter a subject.',
+            'cradle-feedback-message-required': 'Please enter a description or message.',
+            'cradle-feedback-summary': 'New feedback via Cradle gadget',
+            'cradle-sidebar-feedback': 'Feedback & Bug Reports'
         };
 
         // Load local English fallbacks first
@@ -510,7 +532,28 @@
                     'cradle-sidebar-random-schema': 'Esquema aleatorio',
                     'cradle-tab-create-item': 'Crear elementos',
                     'cradle-tab-design-schema': 'Diseñar esquemas',
-                    'cradle-special-title': 'Cradle - Wikidata Schema Editor'
+                    'cradle-special-title': 'Cradle - Wikidata Schema Editor',
+                    'cradle-feedback-btn': 'Sugerencias y reporte de errores',
+                    'cradle-feedback-title': 'Sugerencias y reporte de errores',
+                    'cradle-feedback-desc': '¿Tienes una sugerencia, mejora o encontraste un error en Cradle? Tu mensaje se publicará como un nuevo tema de discusión en Wikidata talk:Cradle-gadget.',
+                    'cradle-feedback-type-label': 'Tipo:',
+                    'cradle-feedback-type-suggestion': 'Sugerencia / Nueva función',
+                    'cradle-feedback-type-bug': 'Reporte de error (Bug)',
+                    'cradle-feedback-type-question': 'Pregunta / Comentario general',
+                    'cradle-feedback-subject-label': 'Asunto:',
+                    'cradle-feedback-subject-placeholder': 'Resumen breve de tu sugerencia o error...',
+                    'cradle-feedback-message-label': 'Descripción detallada:',
+                    'cradle-feedback-message-placeholder': 'Describe tu sugerencia detalladamente o los pasos para reproducir el error...',
+                    'cradle-feedback-include-diagnostics': 'Incluir información técnica de diagnóstico (versión de Cradle, navegador, apariencia, página)',
+                    'cradle-feedback-submit-btn': 'Publicar en Wikidata talk:Cradle-gadget',
+                    'cradle-feedback-open-talk-btn': 'Abrir página de discusión',
+                    'cradle-feedback-submitting': 'Publicando en la página de discusión...',
+                    'cradle-feedback-success': '¡Mensaje publicado con éxito en Wikidata talk:Cradle-gadget!',
+                    'cradle-feedback-error': 'Error al publicar en la página de discusión: $1',
+                    'cradle-feedback-subject-required': 'Por favor, introduce un asunto.',
+                    'cradle-feedback-message-required': 'Por favor, introduce una descripción o mensaje.',
+                    'cradle-feedback-summary': 'Nuevo mensaje vía Cradle gadget',
+                    'cradle-sidebar-feedback': 'Sugerencias y errores'
                 });
             }
             proceedInit();
@@ -565,11 +608,13 @@
         let editText = mw.msg('cradle-sidebar-edit-schema') || 'Editar un esquema';
         let recentText = mw.msg('cradle-sidebar-recent-schemas') || 'Cambios recientes';
         let randomText = mw.msg('cradle-sidebar-random-schema') || 'Esquema aleatorio';
+        let feedbackText = mw.msg('cradle-sidebar-feedback') || 'Sugerencias y errores';
 
         let createUrl = mw.util.getUrl('Special:Cradle') + '#design';
         let editUrl = mw.util.getUrl('Special:Cradle') + '#edit';
         let recentUrl = mw.util.getUrl('Special:RecentChanges', { namespace: 640 });
         let randomUrl = mw.util.getUrl('Special:Random/EntitySchema');
+        let feedbackUrl = mw.util.getUrl('Wikidata_talk:Cradle-gadget');
 
         let currentSkin = mw.config.get('skin') || '';
         let isMinerva = currentSkin === 'minerva' || $('body').hasClass('skin-minerva') || $('#mw-mf-page-left').length > 0;
@@ -620,8 +665,14 @@
                 let $mEdit = createMobileItem('n-cradle-editschema-m', editUrl, editText, 'minerva-icon--edit', 'edit');
                 let $mRecent = createMobileItem('n-cradle-recentchanges-schemas-m', recentUrl, recentText, 'minerva-icon--recentChanges', false);
                 let $mRandom = createMobileItem('n-cradle-randomschema-m', randomUrl, randomText, 'minerva-icon--die', false);
+                let $mFeedback = createMobileItem('n-cradle-feedback-m', feedbackUrl, feedbackText, 'minerva-icon--speechBubbles', false);
+                $mFeedback.find('a').on('click', function(e) {
+                    e.preventDefault();
+                    $('#main-menu-input').prop('checked', false);
+                    openFeedbackModal();
+                });
 
-                $cradleUl.append($mCradle).append($mCreate).append($mEdit).append($mRecent).append($mRandom);
+                $cradleUl.append($mCradle).append($mCreate).append($mEdit).append($mRecent).append($mRandom).append($mFeedback);
 
                 if ($('#p-interaction').length) {
                     $cradleUl.insertAfter('#p-interaction');
@@ -679,6 +730,13 @@
                     }
                     mw.util.addPortletLink('p-cradle-schemas', recentUrl, recentText, 'n-cradle-recentchanges-schemas');
                     mw.util.addPortletLink('p-cradle-schemas', randomUrl, randomText, 'n-cradle-randomschema');
+                    let feedbackLink = mw.util.addPortletLink('p-cradle-schemas', feedbackUrl, feedbackText, 'n-cradle-feedback');
+                    if (feedbackLink) {
+                        $(feedbackLink).find('a').addBack('a').on('click', function(e) {
+                            e.preventDefault();
+                            openFeedbackModal();
+                        });
+                    }
                 }
             } catch (err) {
                 logDebug("[Cradle] mw.util.addPortlet error, fallback to manual DOM:", err);
@@ -767,7 +825,13 @@
             let $liRandom = $('<li>').attr('id', 'n-cradle-randomschema').addClass('mw-list-item')
                 .append($('<a>').attr('href', randomUrl).append($('<span>').text(randomText)));
 
-            $ul.append($liCreate).append($liEdit).append($liRecent).append($liRandom);
+            let $liFeedback = $('<li>').attr('id', 'n-cradle-feedback').addClass('mw-list-item')
+                .append($('<a>').attr('href', feedbackUrl).append($('<span>').text(feedbackText)).on('click', function(e) {
+                    e.preventDefault();
+                    openFeedbackModal();
+                }));
+
+            $ul.append($liCreate).append($liEdit).append($liRecent).append($liRandom).append($liFeedback);
             $body.append($ul);
             $portlet.append($heading).append($body);
 
@@ -2693,6 +2757,253 @@
     }
 
     /**
+     * Opens the feedback and bug report modal dialog to post directly to Wikidata_talk:Cradle-gadget.
+     */
+    function openFeedbackModal() {
+        if ($('#cradle-feedback-modal-overlay').length) return;
+
+        let $overlay = $('<div>').attr('id', 'cradle-feedback-modal-overlay').css({
+            'position': 'fixed',
+            'top': 0,
+            'left': 0,
+            'width': '100%',
+            'height': '100%',
+            'background': 'rgba(0, 0, 0, 0.5)',
+            'z-index': 10002,
+            'display': 'flex',
+            'align-items': 'center',
+            'justify-content': 'center',
+            'padding': '16px',
+            'box-sizing': 'border-box'
+        });
+
+        let $modal = $('<div>').attr('id', 'cradle-feedback-modal').css({
+            'background': 'var(--background-color-base, #ffffff)',
+            'color': 'var(--color-base, #202122)',
+            'border-radius': '4px',
+            'box-shadow': '0 4px 16px rgba(0, 0, 0, 0.25)',
+            'width': '100%',
+            'max-width': '580px',
+            'max-height': '90vh',
+            'display': 'flex',
+            'flex-direction': 'column',
+            'border': '1px solid var(--border-color-base, #c8ccd1)',
+            'box-sizing': 'border-box'
+        });
+
+        // Header
+        let $header = $('<div>').css({
+            'display': 'flex',
+            'justify-content': 'space-between',
+            'align-items': 'center',
+            'padding': '14px 18px',
+            'border-bottom': '1px solid var(--border-color-base, #c8ccd1)'
+        });
+        let $title = $('<h3>').css({
+            'margin': 0,
+            'font-size': '16px',
+            'font-weight': 'bold',
+            'display': 'inline-flex',
+            'align-items': 'center',
+            'gap': '8px'
+        }).html(ICONS.feedback + ' <span>' + mw.msg('cradle-feedback-title') + '</span>');
+
+        let $closeBtn = $('<button>').addClass('cradle-close-btn').html(ICONS.close).on('click', function() {
+            $overlay.remove();
+        });
+        $header.append($title).append($closeBtn);
+
+        // Body
+        let $body = $('<div>').css({
+            'padding': '18px',
+            'overflow-y': 'auto',
+            'display': 'flex',
+            'flex-direction': 'column',
+            'gap': '14px'
+        });
+
+        let $desc = $('<p>').css({
+            'margin': 0,
+            'font-size': '13px',
+            'color': 'var(--color-subtle, #54595d)',
+            'line-height': '1.4'
+        }).text(mw.msg('cradle-feedback-desc'));
+        $body.append($desc);
+
+        // Type selection buttons
+        let $typeGroup = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap'});
+        let currentType = 'suggestion'; // 'suggestion', 'bug', 'question'
+
+        let types = [
+            { id: 'suggestion', label: mw.msg('cradle-feedback-type-suggestion'), icon: ICONS.plus },
+            { id: 'bug', label: mw.msg('cradle-feedback-type-bug'), icon: ICONS.alert },
+            { id: 'question', label: mw.msg('cradle-feedback-type-question'), icon: ICONS.info }
+        ];
+
+        let $typeButtons = [];
+        types.forEach(t => {
+            let $tBtn = $('<button>').attr('type', 'button')
+                .addClass('cdx-button')
+                .css({
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '6px',
+                    'font-size': '13px',
+                    'padding': '6px 12px'
+                })
+                .html(t.icon + ' <span>' + t.label + '</span>')
+                .on('click', function() {
+                    currentType = t.id;
+                    $typeButtons.forEach($b => {
+                        $b.removeClass('cdx-button--action-progressive cdx-button--weight-primary').addClass('cdx-button--weight-quiet');
+                    });
+                    $tBtn.removeClass('cdx-button--weight-quiet').addClass('cdx-button--action-progressive cdx-button--weight-primary');
+                });
+            if (t.id === currentType) {
+                $tBtn.addClass('cdx-button--action-progressive cdx-button--weight-primary');
+            } else {
+                $tBtn.addClass('cdx-button--weight-quiet');
+            }
+            $typeButtons.push($tBtn);
+            $typeGroup.append($tBtn);
+        });
+        $body.append($typeGroup);
+
+        // Subject input
+        let $subjectBox = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '4px'});
+        $subjectBox.append($('<label>').css({'font-weight': 'bold', 'font-size': '13px'}).text(mw.msg('cradle-feedback-subject-label')));
+        let $subjectInput = $('<input>').addClass('cradle-input').attr({
+            'type': 'text',
+            'placeholder': mw.msg('cradle-feedback-subject-placeholder')
+        }).css({'width': '100%', 'box-sizing': 'border-box'});
+        $subjectBox.append($subjectInput);
+        $body.append($subjectBox);
+
+        // Message textarea
+        let $msgBox = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '4px'});
+        $msgBox.append($('<label>').css({'font-weight': 'bold', 'font-size': '13px'}).text(mw.msg('cradle-feedback-message-label')));
+        let $msgInput = $('<textarea>').addClass('cradle-input').attr({
+            'rows': '5',
+            'placeholder': mw.msg('cradle-feedback-message-placeholder')
+        }).css({'width': '100%', 'box-sizing': 'border-box', 'resize': 'vertical'});
+        $msgBox.append($msgInput);
+        $body.append($msgBox);
+
+        // Checkbox: diagnostic info
+        let $diagLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '8px', 'font-size': '12px', 'cursor': 'pointer'});
+        let $diagCheck = $('<input>').attr({'type': 'checkbox', 'checked': 'checked'});
+        $diagLabel.append($diagCheck).append($('<span>').text(mw.msg('cradle-feedback-include-diagnostics')));
+        $body.append($diagLabel);
+
+        // Error banner area
+        let $errorBox = $('<div>').css({'color': 'var(--color-destructive, #d33)', 'font-size': '13px', 'display': 'none'});
+        $body.append($errorBox);
+
+        // Footer
+        let $modalFooter = $('<div>').css({
+            'display': 'flex',
+            'justify-content': 'space-between',
+            'align-items': 'center',
+            'padding': '14px 18px',
+            'border-top': '1px solid var(--border-color-base, #c8ccd1)',
+            'background': 'var(--background-color-interactive-subtle, #f8f9fa)',
+            'border-radius': '0 0 4px 4px',
+            'gap': '8px',
+            'flex-wrap': 'wrap'
+        });
+
+        let $openTalkBtn = $('<a>').attr({
+            'href': mw.util.getUrl('Wikidata_talk:Cradle-gadget') + '?action=edit&section=new',
+            'target': '_blank'
+        }).addClass('cdx-button cdx-button--weight-quiet')
+          .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '4px', 'font-size': '12px', 'text-decoration': 'none'})
+          .html(ICONS.external + ' <span>' + mw.msg('cradle-feedback-open-talk-btn') + '</span>');
+
+        let $actionsRight = $('<div>').css({'display': 'flex', 'gap': '8px'});
+        let $cancelBtn = $('<button>').attr('type', 'button').addClass('cradle-btn-secondary').text(mw.msg('cradle-cancel')).on('click', function() {
+            $overlay.remove();
+        });
+
+        let $submitBtn = $('<button>').attr('type', 'button')
+            .addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'font-weight': 'bold'})
+            .html(ICONS.feedback + ' <span>' + mw.msg('cradle-feedback-submit-btn') + '</span>');
+
+        $submitBtn.on('click', function() {
+            let subject = $subjectInput.val().trim();
+            let message = $msgInput.val().trim();
+
+            if (!subject) {
+                $errorBox.text(mw.msg('cradle-feedback-subject-required')).show();
+                $subjectInput.focus();
+                return;
+            }
+            if (!message) {
+                $errorBox.text(mw.msg('cradle-feedback-message-required')).show();
+                $msgInput.focus();
+                return;
+            }
+
+            $errorBox.hide();
+            $submitBtn.prop('disabled', true).text(mw.msg('cradle-feedback-submitting'));
+
+            let typeObj = types.find(t => t.id === currentType) || types[0];
+            let sectionTitle = '[' + typeObj.label + '] ' + subject;
+
+            let fullText = message;
+            if ($diagCheck.is(':checked')) {
+                let currentSkin = mw.config.get('skin') || 'unknown';
+                let curPage = mw.config.get('wgPageName') || 'unknown';
+                let curLang = mw.config.get('wgUserLanguage') || 'unknown';
+                fullText += '\n\n; Diagnostic Info:\n' +
+                    '* \'\'\'Cradle version:\'\'\' v' + CRADLE_VERSION + '\n' +
+                    '* \'\'\'Page:\'\'\' [[' + curPage + ']]\n' +
+                    '* \'\'\'Skin:\'\'\' ' + currentSkin + '\n' +
+                    '* \'\'\'User Language:\'\'\' ' + curLang + '\n' +
+                    '* \'\'\'Active Mode / Tab:\'\'\' ' + (activeMode || 'create') + ' / ' + (mw.storage.get('cradle-active-tab') || 'create') + '\n' +
+                    '* \'\'\'User Agent:\'\'\' <nowiki>' + navigator.userAgent + '</nowiki>';
+            }
+            fullText += '\n\n~~~~';
+
+            let api = new mw.Api();
+            api.postWithToken('csrf', {
+                action: 'edit',
+                title: 'Wikidata talk:Cradle-gadget',
+                section: 'new',
+                sectiontitle: sectionTitle,
+                text: fullText,
+                summary: '/* ' + sectionTitle + ' */ ' + mw.msg('cradle-feedback-summary')
+            }).then(function(res) {
+                $overlay.remove();
+                let talkUrl = mw.util.getUrl('Wikidata talk:Cradle-gadget');
+                mw.notify(
+                    $('<span>').html(mw.msg('cradle-feedback-success') + ' <a href="' + talkUrl + '" target="_blank">' + mw.msg('cradle-feedback-open-talk-btn') + '</a>'),
+                    { type: 'success', autoHide: true }
+                );
+            }).catch(function(errCode, errObj) {
+                $submitBtn.prop('disabled', false).html(ICONS.feedback + ' <span>' + mw.msg('cradle-feedback-submit-btn') + '</span>');
+                let errText = (errObj && errObj.error && errObj.error.info) ? errObj.error.info : errCode;
+                $errorBox.text(mw.msg('cradle-feedback-error', errText)).show();
+            });
+        });
+
+        $actionsRight.append($cancelBtn).append($submitBtn);
+        $modalFooter.append($openTalkBtn).append($actionsRight);
+
+        $modal.append($header).append($body).append($modalFooter);
+        $overlay.append($modal);
+
+        $overlay.on('click', function(e) {
+            if (e.target === $overlay[0]) {
+                $overlay.remove();
+            }
+        });
+
+        $('body').append($overlay);
+        $subjectInput.focus();
+    }
+
+    /**
      * Updates the drawer footer area (credits and buttons).
      */
     function updateDrawerFooter(showButtons) {
@@ -2744,7 +3055,24 @@
                 })
                 .html(mw.msg('cradle-credits', danielLink, ismaelLink, cradleLink, magnusLink) + ` <span style="font-weight:bold; color:#72777d; margin-left:4px;">v${CRADLE_VERSION}</span>`);
  
-            $footer.append($credits);
+            let $feedbackBtn = $('<button>').attr('type', 'button')
+                .addClass('cdx-button cdx-button--weight-quiet')
+                .css({
+                    'margin': '4px auto 0 auto',
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '5px',
+                    'font-size': '12px',
+                    'color': 'var(--color-progressive, #36c)'
+                })
+                .html(ICONS.feedback + ' <span>' + mw.msg('cradle-feedback-btn') + '</span>')
+                .on('click', openFeedbackModal);
+
+            let $footerCenter = $('<div>').css({'text-align': 'center', 'width': '100%'})
+                .append($credits)
+                .append($('<div>').css({'margin-top': '4px'}).append($feedbackBtn));
+
+            $footer.append($footerCenter);
         }
     }
 
@@ -6368,6 +6696,12 @@ function searchWikidataItems(term) {
             renderCreateOptionsSelector();
         });
 
+        let $feedbackBtn = $('<button>').attr('type', 'button')
+            .addClass('cdx-button cdx-button--weight-quiet')
+            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '5px', 'font-size': '12px', 'color': 'var(--color-progressive, #36c)'})
+            .html(ICONS.feedback + ' <span>' + mw.msg('cradle-feedback-btn') + '</span>')
+            .on('click', openFeedbackModal);
+
         let $saveBtn = $('<button>').addClass('cradle-btn-primary').text(mw.msg('cradle-create-entityschema-btn')).on('click', function() {
             let name = $titleInput.val().trim() || 'CustomSchema';
             let desc = $('#cradle-schema-desc-input').length ? $('#cradle-schema-desc-input').val().trim() : '';
@@ -6412,7 +6746,7 @@ function searchWikidataItems(term) {
             'margin-left': '8px'
         }).text(`v${CRADLE_VERSION}`);
 
-        let $leftGroup = $('<div>').css({'display': 'flex', 'align-items': 'center'}).append($cancelBtn).append($versionBadge);
+        let $leftGroup = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '8px'}).append($cancelBtn).append($feedbackBtn).append($versionBadge);
         let $rightGroup = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center'}).append($exportShexBtn).append($saveBtn);
 
         $footer.append($leftGroup).append($rightGroup);
@@ -7107,6 +7441,12 @@ function searchWikidataItems(term) {
                 renderCreateOptionsSelector();
             });
 
+        let $feedbackBtn = $('<button>').attr('type', 'button')
+            .addClass('cdx-button cdx-button--weight-quiet')
+            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '5px', 'font-size': '12px', 'color': 'var(--color-progressive, #36c)'})
+            .html(ICONS.feedback + ' <span>' + mw.msg('cradle-feedback-btn') + '</span>')
+            .on('click', openFeedbackModal);
+
         let $saveBtn = $('<button>').addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
             .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '6px', 'min-height': '34px', 'font-weight': 'bold'})
             .html(ICONS.check + ' <span>' + mw.msg('cradle-save-changes') + '</span>')
@@ -7145,7 +7485,7 @@ function searchWikidataItems(term) {
                 });
             });
 
-        let $leftGroup = $('<div>').css({'display': 'flex', 'align-items': 'center'}).append($cancelBtn);
+        let $leftGroup = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '8px'}).append($cancelBtn).append($feedbackBtn);
         let $rightGroup = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center'}).append($saveBtn);
 
         $buttonsRow.append($leftGroup).append($rightGroup);
