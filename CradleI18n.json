@@ -203,7 +203,8 @@
     "cradle-editor-unsaved-warning": "You have unsaved changes in this schema. Are you sure you want to leave?",
     "cradle-shex-syntax-valid": "Valid ShEx syntax",
     "cradle-shex-syntax-invalid": "Invalid ShEx syntax: $1",
-    "cradle-load-schema-error": "Error loading schema"
+    "cradle-load-schema-error": "Error loading schema",
+    "cradle-special-title": "Cradle - Wikidata Schema Editor"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -409,6 +410,7 @@
     "cradle-editor-unsaved-warning": "Tienes cambios no guardados en este esquema. ¿Seguro que deseas salir?",
     "cradle-shex-syntax-valid": "Sintaxis ShEx válida",
     "cradle-shex-syntax-invalid": "Sintaxis ShEx inválida: $1",
-    "cradle-load-schema-error": "Error al cargar o renderizar el esquema"
+    "cradle-load-schema-error": "Error al cargar o renderizar el esquema",
+    "cradle-special-title": "Cradle - Wikidata Schema Editor"
   }
 }
