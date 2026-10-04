@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.51.1
+ * Version: 1.52.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.51.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.52.0');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.51.1';
+    const CRADLE_VERSION = '1.52.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -807,6 +807,7 @@
         // Add structural HTML container
         let $container = $('<div>').addClass('cradle-fullpage-container');
         
+        let $navTabs = $('<div>').attr('id', 'cradle-nav-tabs');
         let $content = $('<div>').attr('id', 'cradle-content-area');
         let $footer = $('<div>').addClass('cradle-footer').attr('id', 'cradle-footer-area').css({
             'margin-top': '20px',
@@ -814,8 +815,13 @@
             'border': '1px solid var(--border-color-base, #a2a9b1)'
         });
 
-        $container.append($content).append($footer);
+        $container.append($navTabs).append($content).append($footer);
         $contentArea.append($container);
+
+        // Listen to URL hash changes on Special:Cradle to switch tabs seamlessly
+        $(window).on('hashchange', function() {
+            renderCreateOptionsSelector();
+        });
 
         // Remove early hiding styles so the newly rendered content and heading are displayed cleanly
         let $earlyStyle = $('#cradle-early-hide-style');
@@ -1000,10 +1006,11 @@
 
         $header.append($titleArea).append($closeBtn);
         
+        let $navTabs = $('<div>').attr('id', 'cradle-nav-tabs');
         let $content = $('<div>').addClass('cradle-content').attr('id', 'cradle-content-area');
         let $footer = $('<div>').addClass('cradle-footer').attr('id', 'cradle-footer-area');
 
-        $drawer.append($header).append($content).append($footer);
+        $drawer.append($header).append($navTabs).append($content).append($footer);
         
         $overlay.on('click', closeEditor);
         $drawer.on('click', function(e) { e.stopPropagation(); });
@@ -1126,14 +1133,27 @@
     }
 
     /**
-     * Renders selection panel with 3 tabs: 'Crear elementos', 'Diseñar esquemas', and 'Editar esquemas (Experimental)'.
+     * Updates or renders the persistent top-level navigation tabs (#create, #design, #edit).
+     * These tabs remain present across form rendering, schema designer, and schema editor views.
      */
-    function renderCreateOptionsSelector() {
-        let $content = $('#cradle-content-area').empty();
-        updateDrawerFooter(false);
+    function updateNavigationTabs(activeTab) {
+        // Only show tabs if on Special:Cradle or if activeMode is create
+        if (!isSpecialCradle && activeMode === 'edit') {
+            $('#cradle-nav-tabs').empty().hide();
+            return;
+        }
 
-        // Render Tabs Header
-        let $tabsHeader = $('<div>').addClass('cradle-select-tabs');
+        let $nav = $('#cradle-nav-tabs');
+        if (!$nav.length) {
+            let $content = $('#cradle-content-area');
+            if ($content.length) {
+                $nav = $('<div>').attr('id', 'cradle-nav-tabs');
+                $content.before($nav);
+            } else {
+                return;
+            }
+        }
+        $nav.show().empty();
 
         let tabs = [
             { id: 'create', label: mw.msg('cradle-tab-create-item') || 'Crear elementos' },
@@ -1141,6 +1161,47 @@
             { id: 'edit', label: (mw.msg('cradle-tab-edit-schema') || 'Editar esquemas'), badge: mw.msg('cradle-tab-edit-schema-badge') || 'Experimental' }
         ];
 
+        let $tabsHeader = $('<div>').addClass('cradle-select-tabs');
+
+        tabs.forEach(tab => {
+            let $tab = $('<button>')
+                .attr('type', 'button')
+                .addClass('cradle-select-tab')
+                .text(tab.label);
+            if (tab.badge) {
+                $tab.append($('<span>').addClass('cradle-tab-badge').text(tab.badge));
+            }
+            if (activeTab === tab.id) {
+                $tab.addClass('active');
+            }
+            $tab.on('click', function() {
+                mw.storage.set('cradle-active-tab', tab.id);
+                let newHash = '#' + tab.id;
+                if (history.pushState) {
+                    history.pushState(null, null, window.location.pathname + window.location.search + newHash);
+                } else {
+                    window.location.hash = newHash;
+                }
+                // Reset active form/schema selection state so clicking a tab always returns to that tab's selector
+                schemaProperties = {};
+                propertyMetadata = {};
+                softselectLabels = {};
+                formState = {};
+                activeSchema = null;
+                activeTemplate = null;
+                userWantsToChangeSchema = false;
+                renderCreateOptionsSelector();
+            });
+            $tabsHeader.append($tab);
+        });
+
+        $nav.append($tabsHeader);
+    }
+
+    /**
+     * Renders selection panel with 3 tabs: 'Crear elementos', 'Diseñar esquemas', and 'Editar esquemas (Experimental)'.
+     */
+    function renderCreateOptionsSelector() {
         let hash = window.location.hash.toLowerCase();
         let search = window.location.search.toLowerCase();
         let activeTab = null;
@@ -1159,29 +1220,10 @@
             activeTab = 'create';
         }
 
-        tabs.forEach(tab => {
-            let $tab = $('<button>')
-                .addClass('cradle-select-tab')
-                .text(tab.label);
-            if (tab.badge) {
-                $tab.append($('<span>').addClass('cradle-tab-badge').text(tab.badge));
-            }
-            $tab.on('click', function() {
-                mw.storage.set('cradle-active-tab', tab.id);
-                let newHash = '#' + tab.id;
-                if (history.replaceState) {
-                    history.replaceState(null, null, window.location.pathname + window.location.search + newHash);
-                } else {
-                    window.location.hash = newHash;
-                }
-                renderCreateOptionsSelector();
-            });
-            if (activeTab === tab.id) {
-                $tab.addClass('active');
-            }
-            $tabsHeader.append($tab);
-        });
-        $content.append($tabsHeader);
+        updateNavigationTabs(activeTab);
+
+        let $content = $('#cradle-content-area').empty();
+        updateDrawerFooter(false);
 
         if (activeTab === 'create') {
             // Tab 1: Load Existing EntitySchema (ShEx) to create an item
@@ -1293,7 +1335,7 @@
 
             $content.append($editBox);
 
-            if (prefillId) {
+            if (prefillId && !userWantsToChangeSchema) {
                 loadSchemaForEditing(prefillId);
             }
         }
@@ -1403,6 +1445,7 @@
      * Loads a predefined form preset from Wikidata:Cradle and displays it.
      */
     function loadAndDisplayTemplate(key) {
+        updateNavigationTabs('create');
         let $content = $('#cradle-content-area').empty();
         $content.append($('<div>').css({'text-align': 'center', 'margin-top': '40px'})
             .append($('<div>').addClass('cradle-spinner').css({'border-top-color': 'var(--border-color-progressive, #36c)'}))
@@ -1476,6 +1519,7 @@
      * Loads the EntitySchema page content, parses it, fetches metadata and renders the form.
      */
     function loadAndDisplaySchema(schemaId) {
+        updateNavigationTabs('create');
         activeSchema = { id: schemaId, label: schemaId };
         
         let $content = $('#cradle-content-area').empty();
@@ -2719,6 +2763,7 @@
     }
 
     function renderForm() {
+        updateNavigationTabs('create');
         let $content = $('#cradle-content-area').empty();
         let propIds = sortPropertyIDs(Object.keys(schemaProperties));
 
@@ -5529,6 +5574,7 @@ function searchWikidataItems(term) {
      * Render the Cradle Schema Designer UI.
      */
     function renderSchemaDesigner(editSchemaName, editSchemaData) {
+        updateNavigationTabs('design');
         let $content = $('#cradle-content-area').empty();
         updateDrawerFooter(false);
 
@@ -6376,6 +6422,7 @@ function searchWikidataItems(term) {
      * Loads an existing EntitySchema for editing (Special:Cradle#edit).
      */
     function loadSchemaForEditing(schemaId) {
+        updateNavigationTabs('edit');
         let cleanId = (schemaId || '').trim().toUpperCase();
         if (!cleanId.startsWith('E')) {
             cleanId = 'E' + cleanId.replace(/\D/g, '');
@@ -6425,6 +6472,7 @@ function searchWikidataItems(term) {
      * 2. Modo Código (CodeEditor): MediaWiki native Ace editor with ShEx & # comment support and textarea fallback.
      */
     function renderSchemaEditor(schemaId, schema, parsedProps, metaMap, qidLabelsMap) {
+        updateNavigationTabs('edit');
         let $content = $('#cradle-content-area').empty();
         updateDrawerFooter(false);
 
