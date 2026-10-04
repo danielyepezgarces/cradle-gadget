@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.50.2
+ * Version: 1.51.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.50.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.51.0');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.50.2';
+    const CRADLE_VERSION = '1.51.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -252,8 +252,8 @@
             'cradle-loading-templates': 'Loading templates from Wikidata:Cradle...',
             'cradle-enter-schema-title': 'Enter or select an EntitySchema to edit this item:',
             'cradle-change-schema': 'Change Schema',
-            'cradle-edit-summary': 'Updated statements with [[User:Danielyepezgarces/Cradle-gadget|Cradle-gadget]] ([[EntitySchema:$1]])',
-            'cradle-create-summary': 'New item created with [[User:Danielyepezgarces/Cradle-gadget|Cradle-gadget]] (Template: $1)',
+            'cradle-edit-summary': 'Updated statements with [[Wikidata:Cradle-gadget|Cradle-gadget]] ([[EntitySchema:$1]])',
+            'cradle-create-summary': 'New item created with [[Wikidata:Cradle-gadget|Cradle-gadget]] (Template: $1)',
             'cradle-search-placeholder': 'Search item...',
             'cradle-credits': 'Created by $1 & $2. Based on $3 by $4.',
             'cradle-hardselect-placeholder': 'hardselect QIDs (comma-separated, e.g. Q5,Q6)',
@@ -407,7 +407,12 @@
             'cradle-shex-syntax-invalid': 'Invalid ShEx syntax: $1',
             'cradle-create-custom-schema-desc': 'Search for an existing EntitySchema (e.g. E10, Human) to load its claims and create a new item.',
             'cradle-designer-custom-desc': 'Design a new schema from scratch or by importing properties from an existing item to publish it as an EntitySchema (ShEx).',
-            'cradle-load-schema-error': 'Error loading schema'
+            'cradle-load-schema-error': 'Error loading schema',
+            'cradle-sidebar-header': 'Schemas',
+            'cradle-sidebar-create-schema': 'Create a new schema',
+            'cradle-sidebar-edit-schema': 'Edit a schema',
+            'cradle-sidebar-recent-schemas': 'Recent changes',
+            'cradle-sidebar-random-schema': 'Random schema'
         };
 
         // Load local English fallbacks first
@@ -460,8 +465,8 @@
                     'cradle-loading-templates': 'Cargando plantillas desde Wikidata:Cradle...',
                     'cradle-enter-schema-title': 'Introduce o selecciona un EntitySchema para editar este elemento:',
                     'cradle-change-schema': 'Cambiar esquema',
-                    'cradle-edit-summary': 'Declaraciones actualizadas con [[User:Danielyepezgarces/Cradle-gadget|Cradle-gadget]] ([[EntitySchema:$1]])',
-                    'cradle-create-summary': 'Nuevo elemento creado con [[User:Danielyepezgarces/Cradle-gadget|Cradle-gadget]] (Plantilla: $1)',
+                    'cradle-edit-summary': 'Declaraciones actualizadas con [[Wikidata:Cradle-gadget|Cradle-gadget]] ([[EntitySchema:$1]])',
+                    'cradle-create-summary': 'Nuevo elemento creado con [[Wikidata:Cradle-gadget|Cradle-gadget]] (Plantilla: $1)',
                     'cradle-search-placeholder': 'Buscar elemento...',
                     'cradle-credits': 'Creado por $1 e $2. Basado en $3 por Magnus Manske.',
                     'cradle-btn-edit-with-cradle': 'Editar con Cradle',
@@ -499,6 +504,7 @@
                     'cradle-schema-load-form-failed': 'No se pudo cargar Special:NewEntitySchema.',
                     'cradle-sidebar-header': 'Esquemas',
                     'cradle-sidebar-create-schema': 'Crear un esquema nuevo',
+                    'cradle-sidebar-edit-schema': 'Editar un esquema',
                     'cradle-sidebar-recent-schemas': 'Cambios recientes',
                     'cradle-sidebar-random-schema': 'Esquema aleatorio',
                     'cradle-tab-create-item': 'Crear elementos',
@@ -554,10 +560,12 @@
 
         let sectionHeader = mw.msg('cradle-sidebar-header') || 'Esquemas';
         let createText = mw.msg('cradle-sidebar-create-schema') || 'Crear un esquema nuevo';
+        let editText = mw.msg('cradle-sidebar-edit-schema') || 'Editar un esquema';
         let recentText = mw.msg('cradle-sidebar-recent-schemas') || 'Cambios recientes';
         let randomText = mw.msg('cradle-sidebar-random-schema') || 'Esquema aleatorio';
 
         let createUrl = mw.util.getUrl('Special:Cradle') + '#design';
+        let editUrl = mw.util.getUrl('Special:Cradle') + '#edit';
         let recentUrl = mw.util.getUrl('Special:RecentChanges', { namespace: 640 });
         let randomUrl = mw.util.getUrl('Special:Random/EntitySchema');
 
@@ -575,7 +583,7 @@
                     .attr('id', 'p-cradle-schemas')
                     .addClass('toggle-list__list');
 
-                let createMobileItem = function(id, href, text, iconClass, isDesignAction) {
+                let createMobileItem = function(id, href, text, iconClass, targetTab) {
                     let $li = $('<li>').addClass('toggle-list-item').attr('id', id);
                     let $a = $('<a>').addClass('toggle-list-item__anchor')
                         .attr({
@@ -586,12 +594,12 @@
                     let $icon = $('<span>').addClass('minerva-icon ' + iconClass);
                     let $label = $('<span>').addClass('toggle-list-item__label').text(text);
 
-                    if (isDesignAction) {
+                    if (targetTab) {
                         $a.on('click', function(e) {
-                            mw.storage.set('cradle-active-tab', 'design');
+                            mw.storage.set('cradle-active-tab', targetTab);
                             if (isSpecialCradle || isItemPage) {
                                 e.preventDefault();
-                                window.location.hash = 'design';
+                                window.location.hash = targetTab;
                                 // Smoothly close Minerva drawer
                                 $('#main-menu-input').prop('checked', false);
                                 openCradleDrawer();
@@ -606,11 +614,12 @@
                 };
 
                 let $mCradle = createMobileItem('n-cradle-home-m', mw.util.getUrl('Special:Cradle'), 'Cradle', 'minerva-icon--specialPages', false);
-                let $mCreate = createMobileItem('n-cradle-newschema-m', createUrl, createText, 'minerva-icon--articleRedirect', true);
+                let $mCreate = createMobileItem('n-cradle-newschema-m', createUrl, createText, 'minerva-icon--articleRedirect', 'design');
+                let $mEdit = createMobileItem('n-cradle-editschema-m', editUrl, editText, 'minerva-icon--edit', 'edit');
                 let $mRecent = createMobileItem('n-cradle-recentchanges-schemas-m', recentUrl, recentText, 'minerva-icon--recentChanges', false);
                 let $mRandom = createMobileItem('n-cradle-randomschema-m', randomUrl, randomText, 'minerva-icon--die', false);
 
-                $cradleUl.append($mCradle).append($mCreate).append($mRecent).append($mRandom);
+                $cradleUl.append($mCradle).append($mCreate).append($mEdit).append($mRecent).append($mRandom);
 
                 if ($('#p-interaction').length) {
                     $cradleUl.insertAfter('#p-interaction');
@@ -649,6 +658,18 @@
                             if (isSpecialCradle || isItemPage) {
                                 e.preventDefault();
                                 window.location.hash = 'design';
+                                openCradleDrawer();
+                                renderCreateOptionsSelector();
+                            }
+                        });
+                    }
+                    let editLink = mw.util.addPortletLink('p-cradle-schemas', editUrl, editText, 'n-cradle-editschema');
+                    if (editLink) {
+                        $(editLink).find('a').addBack('a').on('click', function(e) {
+                            mw.storage.set('cradle-active-tab', 'edit');
+                            if (isSpecialCradle || isItemPage) {
+                                e.preventDefault();
+                                window.location.hash = 'edit';
                                 openCradleDrawer();
                                 renderCreateOptionsSelector();
                             }
@@ -727,13 +748,24 @@
                     }
                 }));
 
+            let $liEdit = $('<li>').attr('id', 'n-cradle-editschema').addClass('mw-list-item')
+                .append($('<a>').attr('href', editUrl).append($('<span>').text(editText)).on('click', function(e) {
+                    mw.storage.set('cradle-active-tab', 'edit');
+                    if (isSpecialCradle || isItemPage) {
+                        e.preventDefault();
+                        window.location.hash = 'edit';
+                        openCradleDrawer();
+                        renderCreateOptionsSelector();
+                    }
+                }));
+
             let $liRecent = $('<li>').attr('id', 'n-cradle-recentchanges-schemas').addClass('mw-list-item')
                 .append($('<a>').attr('href', recentUrl).append($('<span>').text(recentText)));
 
             let $liRandom = $('<li>').attr('id', 'n-cradle-randomschema').addClass('mw-list-item')
                 .append($('<a>').attr('href', randomUrl).append($('<span>').text(randomText)));
 
-            $ul.append($liCreate).append($liRecent).append($liRandom);
+            $ul.append($liCreate).append($liEdit).append($liRecent).append($liRandom);
             $body.append($ul);
             $portlet.append($heading).append($body);
 
@@ -4342,7 +4374,7 @@ function searchWikidataItems(term) {
             lines.push(`IMPORT <http://www.wikidata.org/wiki/Special:EntitySchemaText/${schemaNum}>`);
         }
         lines.push(`# Schema: ${title || cleanTitle}`);
-        lines.push(`# Generated with Cradle Schema Designer on Wikidata (https://www.wikidata.org/wiki/User:Danielyepezgarces/Cradle-gadget)`);
+        lines.push(`# Generated with Cradle Schema Designer on Wikidata (https://www.wikidata.org/wiki/Wikidata:Cradle-gadget)`);
         lines.push(``);
         lines.push(`PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>`);
         lines.push(`PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>`);
