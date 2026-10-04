@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.54.0
+ * Version: 1.54.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.54.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.54.1');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.54.0';
+    const CRADLE_VERSION = '1.54.1';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -569,13 +569,23 @@
         fetchSortedProperties();
         
         // Add Toolbox portlet link in the sidebar on all pages
-        mw.util.addPortletLink(
+        let cradleTbLink = mw.util.addPortletLink(
             'p-tb',
-            mw.util.getUrl('Special:Cradle'),
+            mw.util.getUrl('Special:Cradle') + '#create',
             'Cradle',
             't-cradle',
             'Create items using Cradle templates or schemas'
         );
+        if (cradleTbLink) {
+            $(cradleTbLink).find('a').addBack('a').on('click', function(e) {
+                mw.storage.set('cradle-active-tab', 'create');
+                if (isSpecialCradle) {
+                    e.preventDefault();
+                    window.location.hash = 'create';
+                    renderCreateOptionsSelector();
+                }
+            });
+        }
 
         // Add dedicated 'Esquemas' section to Wikidata sidebar
         setupSidebarSchemasSection();
@@ -646,12 +656,11 @@
                     if (targetTab) {
                         $a.on('click', function(e) {
                             mw.storage.set('cradle-active-tab', targetTab);
-                            if (isSpecialCradle || isItemPage) {
+                            if (isSpecialCradle) {
                                 e.preventDefault();
                                 window.location.hash = targetTab;
                                 // Smoothly close Minerva drawer
                                 $('#main-menu-input').prop('checked', false);
-                                openCradleDrawer();
                                 renderCreateOptionsSelector();
                             }
                         });
@@ -662,7 +671,7 @@
                     return $li;
                 };
 
-                let $mCradle = createMobileItem('n-cradle-home-m', mw.util.getUrl('Special:Cradle'), 'Cradle', 'minerva-icon--specialPages', false);
+                let $mCradle = createMobileItem('n-cradle-home-m', mw.util.getUrl('Special:Cradle') + '#create', 'Cradle', 'minerva-icon--specialPages', 'create');
                 let $mCreate = createMobileItem('n-cradle-newschema-m', createUrl, createText, 'minerva-icon--articleRedirect', 'design');
                 let $mEdit = createMobileItem('n-cradle-editschema-m', editUrl, editText, 'minerva-icon--edit', 'edit');
                 let $mRecent = createMobileItem('n-cradle-recentchanges-schemas-m', recentUrl, recentText, 'minerva-icon--recentChanges', false);
@@ -710,10 +719,9 @@
                     if (createLink) {
                         $(createLink).find('a').addBack('a').on('click', function(e) {
                             mw.storage.set('cradle-active-tab', 'design');
-                            if (isSpecialCradle || isItemPage) {
+                            if (isSpecialCradle) {
                                 e.preventDefault();
                                 window.location.hash = 'design';
-                                openCradleDrawer();
                                 renderCreateOptionsSelector();
                             }
                         });
@@ -722,10 +730,9 @@
                     if (editLink) {
                         $(editLink).find('a').addBack('a').on('click', function(e) {
                             mw.storage.set('cradle-active-tab', 'edit');
-                            if (isSpecialCradle || isItemPage) {
+                            if (isSpecialCradle) {
                                 e.preventDefault();
                                 window.location.hash = 'edit';
-                                openCradleDrawer();
                                 renderCreateOptionsSelector();
                             }
                         });
@@ -802,10 +809,9 @@
             let $liCreate = $('<li>').attr('id', 'n-cradle-newschema').addClass('mw-list-item')
                 .append($('<a>').attr('href', createUrl).append($('<span>').text(createText)).on('click', function(e) {
                     mw.storage.set('cradle-active-tab', 'design');
-                    if (isSpecialCradle || isItemPage) {
+                    if (isSpecialCradle) {
                         e.preventDefault();
                         window.location.hash = 'design';
-                        openCradleDrawer();
                         renderCreateOptionsSelector();
                     }
                 }));
@@ -813,10 +819,9 @@
             let $liEdit = $('<li>').attr('id', 'n-cradle-editschema').addClass('mw-list-item')
                 .append($('<a>').attr('href', editUrl).append($('<span>').text(editText)).on('click', function(e) {
                     mw.storage.set('cradle-active-tab', 'edit');
-                    if (isSpecialCradle || isItemPage) {
+                    if (isSpecialCradle) {
                         e.preventDefault();
                         window.location.hash = 'edit';
-                        openCradleDrawer();
                         renderCreateOptionsSelector();
                     }
                 }));
@@ -1087,8 +1092,8 @@
         $drawer.find('.cradle-tab').on('click', function() {
             let mode = $(this).attr('data-mode');
             if (mode === 'create') {
-                // Redirect directly to Special:Cradle instead of rendering inside drawer
-                location.href = mw.util.getUrl('Special:Cradle');
+                // Redirect directly to Special:Cradle#create instead of rendering inside drawer
+                location.href = mw.util.getUrl('Special:Cradle') + '#create';
                 return;
             }
             activeMode = mode;
@@ -1284,6 +1289,15 @@
 
         if (activeTab !== 'create' && activeTab !== 'design' && activeTab !== 'edit') {
             activeTab = 'create';
+        }
+
+        if (isSpecialCradle && (!window.location.hash || window.location.hash === '#')) {
+            let targetHash = '#' + activeTab;
+            if (history.replaceState) {
+                history.replaceState(null, null, window.location.pathname + window.location.search + targetHash);
+            } else {
+                window.location.hash = targetHash;
+            }
         }
 
         updateNavigationTabs(activeTab);
