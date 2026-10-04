@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.48.0
+ * Version: 1.49.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.48.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.49.0');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.48.0';
+    const CRADLE_VERSION = '1.49.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -45,7 +45,7 @@
         return;
     }
 
-    mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.css&action=raw&ctype=text/css', 'text/css');
+    mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.css&action=raw&ctype=text/css&version=' + CRADLE_VERSION, 'text/css');
 
     const P12861 = 'P12861'; // EntitySchema for this class
     const P31 = 'P31';       // Instance of
@@ -645,7 +645,7 @@
 
             let $sidebar = isMonobook
                 ? $('#column-one').first()
-                : $('#mw-panel, #mw-site-navigation, #p-navigation, .vector-main-menu-content, #mw-navigation').first();
+                : $('#vector-main-menu, .vector-main-menu, #mw-panel, #mw-site-navigation, #p-navigation, .vector-main-menu-content, #mw-navigation').first();
 
             if (!$sidebar.length) return;
 
