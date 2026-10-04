@@ -1,7 +1,7 @@
 /**
  * CradleInWikidata.css
  * Stylesheet aligned with Wikimedia design guidelines & Vector light/dark mode
- * Version: 1.48.0
+ * Version: 1.49.0
  */
 
 /* Heading edit button styled to sit nicely at the right of #firstHeading */
@@ -71,13 +71,19 @@
             color: #1e3f8a !important;
         }
 
-        /* Vector 2022 Sidebar Header Styling */
+        /* Vector 2022 Sidebar Header & Content Styling */
+        .skin-vector-2022 #p-cradle-schemas,
+        .vector-main-menu #p-cradle-schemas {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
         .skin-vector-2022 #p-cradle-schemas .vector-menu-heading,
         .skin-vector-2022 #p-cradle-schemas h3,
         .skin-vector-2022 #p-cradle-schemas label,
         .vector-main-menu #p-cradle-schemas .vector-menu-heading,
         .vector-main-menu #p-cradle-schemas h3,
         .vector-main-menu #p-cradle-schemas label {
+            font-size: var(--font-size-small, 0.875rem) !important;
             font-weight: normal !important;
             color: var(--color-subtle, #54595d) !important;
             padding: 6px 0 !important;
@@ -95,19 +101,55 @@
         }
         .skin-vector-2022 #p-cradle-schemas .vector-menu-heading span,
         .vector-main-menu #p-cradle-schemas .vector-menu-heading span {
+            font-size: var(--font-size-small, 0.875rem) !important;
             font-weight: normal !important;
+        }
+        .skin-vector-2022 #p-cradle-schemas .vector-menu-content,
+        .vector-main-menu #p-cradle-schemas .vector-menu-content {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .skin-vector-2022 #p-cradle-schemas ul,
+        .vector-main-menu #p-cradle-schemas ul {
+            list-style: none !important;
+            list-style-image: none !important;
+            list-style-type: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .skin-vector-2022 #p-cradle-schemas li,
+        .vector-main-menu #p-cradle-schemas li {
+            list-style: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .skin-vector-2022 #p-cradle-schemas li a,
+        .vector-main-menu #p-cradle-schemas li a {
+            display: flex !important;
+            align-items: center !important;
+            padding: 6px 0 !important;
+            color: var(--color-progressive, #36c) !important;
+            font-size: var(--font-size-small, 0.875rem) !important;
+            line-height: 1.4 !important;
+            text-decoration: none !important;
+        }
+        .skin-vector-2022 #p-cradle-schemas li a:hover,
+        .vector-main-menu #p-cradle-schemas li a:hover {
+            color: var(--color-progressive--hover, #3056a9) !important;
+            text-decoration: underline !important;
+        }
+        .skin-vector-2022 #p-cradle-schemas li a:visited,
+        .vector-main-menu #p-cradle-schemas li a:visited {
+            color: var(--color-progressive, #36c) !important;
         }
 
         /* Vector 2010 Legacy Sidebar Styling for Esquemas portlet */
-        .skin-vector-legacy #p-cradle-schemas,
-        #mw-panel #p-cradle-schemas {
+        .skin-vector-legacy #p-cradle-schemas {
             padding-bottom: 1.5em;
             direction: ltr;
         }
         .skin-vector-legacy #p-cradle-schemas h3,
-        #mw-panel #p-cradle-schemas h3,
-        .skin-vector-legacy #p-cradle-schemas .vector-menu-heading,
-        #mw-panel #p-cradle-schemas .vector-menu-heading {
+        .skin-vector-legacy #p-cradle-schemas .vector-menu-heading {
             font-size: 0.75em;
             color: #444;
             font-weight: normal;
@@ -118,38 +160,31 @@
             background: none;
         }
         .skin-vector-legacy #p-cradle-schemas .body,
-        #mw-panel #p-cradle-schemas .body,
-        .skin-vector-legacy #p-cradle-schemas .vector-menu-content,
-        #mw-panel #p-cradle-schemas .vector-menu-content {
+        .skin-vector-legacy #p-cradle-schemas .vector-menu-content {
             margin: 0 0 0 0.5em;
             padding-top: 0;
         }
-        .skin-vector-legacy #p-cradle-schemas ul,
-        #mw-panel #p-cradle-schemas ul {
+        .skin-vector-legacy #p-cradle-schemas ul {
             list-style: none !important;
             list-style-image: none !important;
             list-style-type: none !important;
             padding: 0 !important;
             margin: 0 !important;
         }
-        .skin-vector-legacy #p-cradle-schemas li,
-        #mw-panel #p-cradle-schemas li {
+        .skin-vector-legacy #p-cradle-schemas li {
             line-height: 1.125em;
             padding: 0.25em 0;
             font-size: 0.75em;
             word-wrap: break-word;
         }
-        .skin-vector-legacy #p-cradle-schemas li a,
-        #mw-panel #p-cradle-schemas li a {
+        .skin-vector-legacy #p-cradle-schemas li a {
             color: #0645ad;
             text-decoration: none;
         }
-        .skin-vector-legacy #p-cradle-schemas li a:hover,
-        #mw-panel #p-cradle-schemas li a:hover {
+        .skin-vector-legacy #p-cradle-schemas li a:hover {
             text-decoration: underline;
         }
-        .skin-vector-legacy #p-cradle-schemas li a:visited,
-        #mw-panel #p-cradle-schemas li a:visited {
+        .skin-vector-legacy #p-cradle-schemas li a:visited {
             color: #0b0080;
         }
 
