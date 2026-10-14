@@ -1,0 +1,45 @@
+name: Translatewiki i18n Unification
+
+on:
+  push:
+    paths:
+      - 'translatewiki/**'
+    branches:
+      - master
+      - main
+      - stable
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unify-i18n:
+    name: Unify Translatewiki JSONs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Translatewiki Merge Script
+        run: |
+          python3 sync_translatewiki.py --merge
+
+      - name: Commit and Push Unified Catalog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet CradleI18n.json CradleWikibase/modules/CradleI18n.json; then
+            git add CradleI18n.json CradleWikibase/modules/CradleI18n.json
+            git commit -m "i18n: Unify translations from Translatewiki [skip ci]"
+            git push
+          else
+            echo "No translation changes detected."
+          fi

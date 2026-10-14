@@ -459,10 +459,18 @@
         
         $.getJSON(i18nUrl).then(function(data) {
             if (data) {
+                function loadCleanMessages(langMap) {
+                    if (!langMap || typeof langMap !== 'object') return;
+                    let clean = {};
+                    for (let k in langMap) {
+                        if (k !== '@metadata') clean[k] = langMap[k];
+                    }
+                    mw.messages.set(clean);
+                }
                 // Load English translations first
-                if (data['en']) mw.messages.set(data['en']);
+                if (data['en']) loadCleanMessages(data['en']);
                 // Load current user language translations if available
-                if (data[userLang]) mw.messages.set(data[userLang]);
+                if (data[userLang]) loadCleanMessages(data[userLang]);
             }
             proceedInit();
         }).catch(function(err) {
