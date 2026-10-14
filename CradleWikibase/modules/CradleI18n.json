@@ -226,7 +226,12 @@
     "cradle-feedback-subject-required": "Please enter a subject.",
     "cradle-feedback-message-required": "Please enter a description or message.",
     "cradle-feedback-summary": "New feedback via Cradle gadget",
-    "cradle-sidebar-feedback": "Feedback & Bug Reports"
+    "cradle-sidebar-feedback": "Feedback & Bug Reports",
+    "cradle-view-on-map": "View on map",
+    "cradle-val-err-coords": "Invalid coordinates (-90 to 90 lat, -180 to 180 lon)",
+    "cradle-monolingual-text-placeholder": "Text in language...",
+    "cradle-coord-lat-placeholder": "e.g. 8.76 or 8°45'36\"N",
+    "cradle-coord-lon-placeholder": "e.g. -75.88 or 75°53'8\"W"
   },
   "es": {
     "cradle-editor": "Editor Cradle",
@@ -455,6 +460,11 @@
     "cradle-feedback-subject-required": "Por favor, introduce un asunto.",
     "cradle-feedback-message-required": "Por favor, introduce una descripción o mensaje.",
     "cradle-feedback-summary": "Nuevo mensaje vía Cradle gadget",
-    "cradle-sidebar-feedback": "Sugerencias y errores"
+    "cradle-sidebar-feedback": "Sugerencias y errores",
+    "cradle-view-on-map": "Ver en mapa",
+    "cradle-val-err-coords": "Coordenadas geográficas inválidas (-90 a 90 lat, -180 a 180 lon)",
+    "cradle-monolingual-text-placeholder": "Texto en idioma...",
+    "cradle-coord-lat-placeholder": "ej. 8.76 u 8°45'36\"N",
+    "cradle-coord-lon-placeholder": "ej. -75.88 o 75°53'8\"W"
   }
 }
