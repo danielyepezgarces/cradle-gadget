@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.55.0
+ * Version: 1.55.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.55.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.55.1');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.55.0';
+    const CRADLE_VERSION = '1.55.1';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -51,6 +51,10 @@
     const P31 = 'P31';       // Instance of
     const P279 = 'P279';     // Subclass of
     const P106 = 'P106';     // Occupation
+
+    // Built-in fallback registry for standard Wikibase property datatypes
+    const KNOWN_COORDINATE_PROPERTIES = ['P625', 'P133', 'P159', 'P276', 'P6766'];
+    const KNOWN_MONOLINGUAL_PROPERTIES = ['P1705', 'P1448', 'P1476', 'P1559', 'P1813', 'P1814', 'P2093', 'P2704', 'P5061', 'P6333', 'P898'];
 
     let pageName = mw.config.get('wgPageName');
     let isSpecialCradle = (pageName === 'Special:Cradle' || pageName === 'Special:BlankPage/Cradle');
@@ -442,7 +446,9 @@
             'cradle-val-err-coords': 'Invalid coordinates (-90 to 90 lat, -180 to 180 lon)',
             'cradle-monolingual-text-placeholder': 'Text in language...',
             'cradle-coord-lat-placeholder': 'e.g. 8.76 or 8°45\'36"N',
-            'cradle-coord-lon-placeholder': 'e.g. -75.88 or 75°53\'8"W'
+            'cradle-coord-lon-placeholder': 'e.g. -75.88 or 75°53\'8"W',
+            'cradle-coord-placeholder': 'e.g. 8°45\'36"N, 75°53\'8"W or 8.76, -75.88',
+            'cradle-coord-precision': 'Precision: $1'
         };
 
         // Load local English fallbacks first
@@ -566,7 +572,9 @@
                     'cradle-val-err-coords': 'Coordenadas geográficas inválidas (-90 a 90 lat, -180 a 180 lon)',
                     'cradle-monolingual-text-placeholder': 'Texto en idioma...',
                     'cradle-coord-lat-placeholder': 'ej. 8.76 u 8°45\'36"N',
-                    'cradle-coord-lon-placeholder': 'ej. -75.88 o 75°53\'8"W'
+                    'cradle-coord-lon-placeholder': 'ej. -75.88 o 75°53\'8"W',
+                    'cradle-coord-placeholder': 'ej. 8°45\'36"N, 75°53\'8"W u 8.76, -75.88',
+                    'cradle-coord-precision': 'Precisión: $1'
                 });
             }
             proceedInit();
@@ -1905,12 +1913,14 @@
             let subShapeName = '';
             let hardselect = [];
             let softselect = [];
+            let langTags = (block.match(/@([a-z]{2,3}(?:-[a-z0-9]+)?)/gi) || []).map(t => t.substring(1).toLowerCase());
+            let hasLangTags = langTags.length > 0 || /@~/i.test(block);
 
             if (/xsd:string/i.test(block)) valueType = 'xsd:string';
-            else if (/rdf:langString/i.test(block)) valueType = 'rdf:langString';
+            else if (/rdf:langString/i.test(block) || hasLangTags || KNOWN_MONOLINGUAL_PROPERTIES.includes(pid)) valueType = 'rdf:langString';
             else if (/xsd:dateTime/i.test(block)) valueType = 'xsd:dateTime';
-            else if (/xsd:decimal/i.test(block)) valueType = 'xsd:decimal';
-            else if (/geo:wktLiteral/i.test(block)) valueType = 'geo:wktLiteral';
+            else if (/xsd:decimal/i.test(block) || /xsd:integer/i.test(block)) valueType = 'xsd:decimal';
+            else if (/geo:wktLiteral/i.test(block) || KNOWN_COORDINATE_PROPERTIES.includes(pid)) valueType = 'geo:wktLiteral';
             else {
                 let subShapeMatch = block.match(/@<\s*([^>]+)\s*>/i) || block.match(/@([A-Za-z0-9_:-]+)/i);
                 if (subShapeMatch) {
@@ -1952,6 +1962,8 @@
                     mandatory: mandatory,
                     cardinality: cardinality,
                     valueType: valueType,
+                    hasLangTags: hasLangTags,
+                    langTags: langTags,
                     subShapeName: subShapeName,
                     hardselect: hardselect,
                     softselect: softselect.length > 0 ? softselect : hardselect
@@ -2232,17 +2244,31 @@
     }
 
     /**
-     * Determines effective datatype from property metadata or schema definition fallback.
+     * Determines effective datatype from property metadata, schema definition, row sample value, or built-in fallback.
      */
-    function inferDatatype(propDef, meta) {
+    function inferDatatype(propDef, meta, pid, sampleValue) {
         if (meta && meta.datatype) return meta.datatype;
+        if (sampleValue && typeof sampleValue === 'object') {
+            if ('latitude' in sampleValue || 'longitude' in sampleValue) return 'globe-coordinate';
+            if ('language' in sampleValue || 'text' in sampleValue) return 'monolingualtext';
+            if ('time' in sampleValue) return 'time';
+            if ('amount' in sampleValue) return 'quantity';
+        }
+        if (pid) {
+            let uPid = pid.toUpperCase();
+            if (KNOWN_COORDINATE_PROPERTIES.includes(uPid)) return 'globe-coordinate';
+            if (KNOWN_MONOLINGUAL_PROPERTIES.includes(uPid)) return 'monolingualtext';
+        }
         if (propDef) {
             let vt = propDef.valueType;
-            if (vt === 'rdf:langString') return 'monolingualtext';
+            if (vt === 'rdf:langString' || propDef.hasLangTags) return 'monolingualtext';
             if (vt === 'geo:wktLiteral') return 'globe-coordinate';
             if (vt === 'xsd:dateTime') return 'time';
-            if (vt === 'xsd:decimal') return 'quantity';
-            if (vt === 'IRI' || vt === 'subshape') return 'wikibase-item';
+            if (vt === 'xsd:decimal' || vt === 'xsd:integer') return 'quantity';
+            if (vt === 'xsd:string') return 'string';
+            if (vt === 'subshape') return 'wikibase-item';
+            if (propDef.hardselect && propDef.hardselect.length > 0) return 'wikibase-item';
+            if (propDef.softselect && propDef.softselect.length > 0) return 'wikibase-item';
         }
         return 'string';
     }
@@ -2282,41 +2308,129 @@
     }
 
     /**
-     * Parses a coordinate string (decimal or sexagesimal DMS) into a numeric value.
+     * Formats precision value into human-readable label (e.g. ±1″, ±1′, ±1°, ±0.0001°).
      */
-    function parseSingleCoordinate(str, isLat) {
-        if (!str || typeof str !== 'string') return NaN;
+    function formatPrecisionLabel(prec) {
+        if (!prec || isNaN(prec)) return '±1″';
+        if (prec <= 1 / 36000) return '±0.1″';
+        if (prec <= 1 / 3600) return '±1″';
+        if (prec <= 1 / 60) return '±1′';
+        if (prec >= 1) return `±${Math.round(prec)}°`;
+        let str = String(prec);
+        if (str.includes('e-')) {
+            str = prec.toFixed(6).replace(/0+$/, '');
+        }
+        return `±${str}°`;
+    }
+
+    /**
+     * Parses a single DMS or decimal component (e.g. 8°45'36"N or 8.76° or -75.88).
+     */
+    function parseSingleDMS(s) {
+        if (!s) return null;
+        s = s.trim();
+        let dirMatch = s.match(/[NSEW]/i);
+        let dir = dirMatch ? dirMatch[0].toUpperCase() : null;
+        let clean = s.replace(/[NSEW]/gi, '').trim();
+
+        // Plain decimal number (with or without degree symbol)
+        let decOnly = clean.replace(/°/g, '').trim();
+        if (/^[+-]?\d+(?:\.\d+)?$/.test(decOnly)) {
+            let val = parseFloat(decOnly);
+            if (dir === 'S' || dir === 'W') val = -Math.abs(val);
+            else if (dir === 'N' || dir === 'E') val = Math.abs(val);
+            let decMatch = decOnly.match(/\.(\d+)/);
+            let decCount = decMatch ? decMatch[1].length : 0;
+            let precision = decCount > 0 ? Math.pow(10, -decCount) : 1;
+            return { value: val, precision: precision, dir: dir };
+        }
+
+        // DMS format: 8° 45' 36" or 8d 45m 36s or 8 45 36
+        let parts = clean.match(/([+-]?\d+(?:\.\d+)?)[°d\s]+(?:(\d+(?:\.\d+)?)['′m\s]+)?(?:(\d+(?:\.\d+)?)["″s\s]*)?/);
+        if (!parts) return null;
+
+        let deg = parseFloat(parts[1]) || 0;
+        let min = parseFloat(parts[2]) || 0;
+        let sec = parseFloat(parts[3]) || 0;
+
+        let precision = 1;
+        if (parts[3] !== undefined) {
+            precision = parts[3].includes('.') ? 1 / 36000 : 1 / 3600;
+        } else if (parts[2] !== undefined) {
+            precision = 1 / 60;
+        }
+
+        let sign = deg < 0 ? -1 : 1;
+        let val = (Math.abs(deg) + min / 60 + sec / 3600) * sign;
+        if (dir === 'S' || dir === 'W') val = -Math.abs(val);
+        else if (dir === 'N' || dir === 'E') val = Math.abs(val);
+
+        return { value: val, precision: precision, dir: dir };
+    }
+
+    /**
+     * Parses a complete coordinate input string in any Wikibase-accepted format (single input field).
+     */
+    function parseCoordinateInput(str) {
+        if (!str || typeof str !== 'string') return null;
         let s = str.trim();
-        if (!s) return NaN;
+        if (!s) return null;
 
-        // Check if plain decimal number
-        if (/^[+-]?\d+(?:\.\d+)?$/.test(s)) {
-            let n = parseFloat(s);
-            return isNaN(n) ? NaN : n;
-        }
+        let lat = null, lon = null, precision = 0.0001;
 
-        // Check sexagesimal / DMS: e.g. 8°45'36"N, 75°53'8.0"W, 8 45 36 N
-        let dmsMatch = s.match(/^([+-]?\d+(?:\.\d+)?)[°\s]+(?:(\d+(?:\.\d+)?)['′\s]+)?(?:(\d+(?:\.\d+)?)["″\s]*)?\s*([NSEW])?$/i);
-        if (dmsMatch) {
-            let deg = parseFloat(dmsMatch[1]) || 0;
-            let min = parseFloat(dmsMatch[2]) || 0;
-            let sec = parseFloat(dmsMatch[3]) || 0;
-            let dir = (dmsMatch[4] || '').toUpperCase();
-
-            let sign = (deg < 0) ? -1 : 1;
-            let absDeg = Math.abs(deg);
-            let val = absDeg + (min / 60) + (sec / 3600);
-            val = val * sign;
-
-            if (dir === 'S' || dir === 'W') {
-                val = -Math.abs(val);
-            } else if (dir === 'N' || dir === 'E') {
-                val = Math.abs(val);
+        // Strategy 1: Check if comma/semicolon/slash separated
+        let sepMatch = s.match(/[,;\/]/);
+        if (sepMatch) {
+            let parts = s.split(/[,;\/]+/).map(p => p.trim()).filter(Boolean);
+            if (parts.length >= 2) {
+                let p1 = parseSingleDMS(parts[0]);
+                let p2 = parseSingleDMS(parts[1]);
+                if (p1 && p2) {
+                    if ((p1.dir === 'E' || p1.dir === 'W') && (p2.dir === 'N' || p2.dir === 'S')) {
+                        lat = p2.value;
+                        lon = p1.value;
+                    } else {
+                        lat = p1.value;
+                        lon = p2.value;
+                    }
+                    precision = Math.min(p1.precision, p2.precision);
+                }
             }
-            return val;
+        } else {
+            // Strategy 2: Two directional components separated by space: "8°45'36"N 75°53'8"W"
+            let dirParts = s.match(/([+-]?\d+[^NSEW]*[NSEW])/gi);
+            if (dirParts && dirParts.length === 2) {
+                let p1 = parseSingleDMS(dirParts[0]);
+                let p2 = parseSingleDMS(dirParts[1]);
+                if (p1 && p2) {
+                    if ((p1.dir === 'E' || p1.dir === 'W') && (p2.dir === 'N' || p2.dir === 'S')) {
+                        lat = p2.value;
+                        lon = p1.value;
+                    } else {
+                        lat = p1.value;
+                        lon = p2.value;
+                    }
+                    precision = Math.min(p1.precision, p2.precision);
+                }
+            } else {
+                // Strategy 3: Two numbers separated by space: "8.76 -75.88"
+                let numParts = s.split(/\s+/);
+                if (numParts.length === 2) {
+                    let p1 = parseSingleDMS(numParts[0]);
+                    let p2 = parseSingleDMS(numParts[1]);
+                    if (p1 && p2) {
+                        lat = p1.value;
+                        lon = p2.value;
+                        precision = Math.min(p1.precision, p2.precision);
+                    }
+                }
+            }
         }
 
-        return NaN;
+        if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) return null;
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+
+        return { latitude: lat, longitude: lon, precision: precision };
     }
 
     /**
@@ -2328,7 +2442,13 @@
         Object.keys(schemaProperties).forEach(pid => {
             let propDef = schemaProperties[pid];
             let meta = propertyMetadata[pid] || {};
-            let effectiveDatatype = inferDatatype(propDef, meta);
+
+            let sampleClaim = (isItemPage && entityData && entityData.claims && entityData.claims[pid] && entityData.claims[pid][0]);
+            let sampleVal = sampleClaim && sampleClaim.mainsnak && sampleClaim.mainsnak.datavalue && sampleClaim.mainsnak.datavalue.value;
+            let claimDatatype = sampleClaim && sampleClaim.mainsnak && (sampleClaim.mainsnak.datatype || (sampleClaim.mainsnak.datavalue && sampleClaim.mainsnak.datavalue.type));
+            if (claimDatatype === 'globecoordinate') claimDatatype = 'globe-coordinate';
+
+            let effectiveDatatype = claimDatatype || inferDatatype(propDef, meta, pid, sampleVal);
             formState[pid] = [];
             
             // Map existing claims on the entity (if on an item page)
@@ -2344,13 +2464,16 @@
                             value = snaktype;
                         }
 
+                        let rowDt = snak.datatype || (snak.datavalue && snak.datavalue.type) || effectiveDatatype;
+                        if (rowDt === 'globecoordinate') rowDt = 'globe-coordinate';
+
                         if (snaktype === 'value' || snaktype === 'somevalue' || snaktype === 'novalue') {
                             formState[pid].push({
                                 id: Math.random().toString(36).substring(2, 9),
                                 guid: claim.id,
                                 value: value,
                                 snaktype: snaktype,
-                                datatype: snak.datatype || effectiveDatatype,
+                                datatype: rowDt,
                                 rank: claim.rank || 'normal',
                                 references: claim.references || [],
                                 qualifiers: claim.qualifiers || {},
@@ -2615,7 +2738,11 @@
         Object.keys(schemaProperties).forEach(pid => {
             let propDef = schemaProperties[pid];
             let meta = propertyMetadata[pid] || {};
-            let datatype = inferDatatype(propDef, meta);
+            let sampleClaim = (isItemPage && entityData && entityData.claims && entityData.claims[pid] && entityData.claims[pid][0]);
+            let sampleVal = sampleClaim && sampleClaim.mainsnak && sampleClaim.mainsnak.datavalue && sampleClaim.mainsnak.datavalue.value;
+            let claimDatatype = sampleClaim && sampleClaim.mainsnak && (sampleClaim.mainsnak.datatype || (sampleClaim.mainsnak.datavalue && sampleClaim.mainsnak.datavalue.type));
+            if (claimDatatype === 'globecoordinate') claimDatatype = 'globe-coordinate';
+            let datatype = claimDatatype || inferDatatype(propDef, meta, pid, sampleVal);
             
             let min = propDef.min !== undefined ? propDef.min : 0;
             let max = propDef.max !== undefined ? propDef.max : '*';
@@ -2657,9 +2784,18 @@
                     if (typeof val === 'string' && isNaN(Number(val.trim()))) {
                         errors.push(mw.msg('cradle-val-err-num', val));
                     }
-                } else if (dt === 'globe-coordinate' || dt === 'globecoordinate') {
-                    let lat = (typeof val === 'object' && val) ? parseFloat(val.latitude) : NaN;
-                    let lon = (typeof val === 'object' && val) ? parseFloat(val.longitude) : NaN;
+                } else if (dt === 'globe-coordinate' || dt === 'globecoordinate' || (typeof val === 'object' && val && ('latitude' in val || 'longitude' in val))) {
+                    let lat = NaN, lon = NaN;
+                    if (typeof val === 'object' && val) {
+                        lat = parseFloat(val.latitude);
+                        lon = parseFloat(val.longitude);
+                    } else if (typeof val === 'string') {
+                        let parsed = parseCoordinateInput(val);
+                        if (parsed) {
+                            lat = parsed.latitude;
+                            lon = parsed.longitude;
+                        }
+                    }
                     if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
                         errors.push(mw.msg('cradle-val-err-coords'));
                     }
@@ -3536,7 +3672,178 @@
      */
     function createInputForDatatype(pid, row) {
         let propDef = schemaProperties[pid];
-        
+        let meta = propertyMetadata[pid] || {};
+        let uPid = (pid || '').toUpperCase();
+
+        // 0a. Globe-coordinate datatype auto-detection & single-field input
+        let isCoordinate = row.datatype === 'globe-coordinate' || row.datatype === 'globecoordinate' ||
+            KNOWN_COORDINATE_PROPERTIES.includes(uPid) ||
+            (meta && (meta.datatype === 'globe-coordinate' || meta.datatype === 'globecoordinate')) ||
+            (propDef && propDef.valueType === 'geo:wktLiteral') ||
+            (row.value && typeof row.value === 'object' && ('latitude' in row.value || 'longitude' in row.value));
+
+        if (isCoordinate) {
+            row.datatype = 'globe-coordinate';
+            let $group = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '6px', 'width': '100%'});
+
+            let coordVal = (row.value && typeof row.value === 'object') ? row.value : {
+                latitude: '',
+                longitude: '',
+                altitude: null,
+                precision: 0.0001,
+                globe: 'http://www.wikidata.org/entity/Q2'
+            };
+            if (typeof row.value === 'string' && row.value.trim()) {
+                let parsed = parseCoordinateInput(row.value);
+                if (parsed) {
+                    coordVal.latitude = parsed.latitude;
+                    coordVal.longitude = parsed.longitude;
+                    coordVal.precision = parsed.precision;
+                }
+            }
+            row.value = coordVal;
+
+            let initialText = '';
+            if (coordVal.latitude !== '' && coordVal.latitude !== null && coordVal.longitude !== '' && coordVal.longitude !== null && !isNaN(coordVal.latitude) && !isNaN(coordVal.longitude)) {
+                initialText = formatCoordinates(coordVal.latitude, coordVal.longitude);
+            }
+
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr({type: 'text', placeholder: mw.msg('cradle-coord-placeholder')})
+                .val(initialText);
+
+            $group.append($input);
+
+            let $previewRow = $('<div>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'justify-content': 'space-between',
+                'font-size': '0.75rem',
+                'color': '#54595d',
+                'padding': '0 2px'
+            });
+
+            let $dmsBadge = $('<span>').addClass('cradle-coord-dms-badge');
+            let $mapLink = $('<a>')
+                .attr({target: '_blank', rel: 'noopener noreferrer'})
+                .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '4px', 'color': '#36c', 'text-decoration': 'none'})
+                .html(ICONS.mapPin + ' <span>' + mw.msg('cradle-view-on-map') + '</span>')
+                .hide();
+
+            $previewRow.append($dmsBadge).append($mapLink);
+            $group.append($previewRow);
+
+            function updateCoordUI(formatOnSuccess) {
+                let text = $input.val().trim();
+                if (!text) {
+                    coordVal.latitude = '';
+                    coordVal.longitude = '';
+                    $dmsBadge.empty().hide();
+                    $mapLink.hide();
+                    row.value = coordVal;
+                    liveUpdateValidation();
+                    return;
+                }
+
+                let parsed = parseCoordinateInput(text);
+                if (parsed) {
+                    coordVal.latitude = parsed.latitude;
+                    coordVal.longitude = parsed.longitude;
+                    coordVal.precision = parsed.precision || coordVal.precision || 0.0001;
+
+                    let dmsText = formatCoordinates(parsed.latitude, parsed.longitude);
+                    let precLabel = formatPrecisionLabel(coordVal.precision);
+                    $dmsBadge.text(`${dmsText} (${precLabel})`).show();
+
+                    let mapUrl = 'https://geohack.toolforge.org/geohack.php?params=' + parsed.latitude + '_N_' + parsed.longitude + '_E_globe:earth';
+                    $mapLink.attr('href', mapUrl).show();
+
+                    if (formatOnSuccess) {
+                        $input.val(dmsText);
+                    }
+                } else {
+                    $dmsBadge.empty().hide();
+                    $mapLink.hide();
+                    coordVal.latitude = text;
+                    coordVal.longitude = '';
+                }
+                row.value = coordVal;
+                liveUpdateValidation();
+            }
+
+            $input.on('input', function() {
+                updateCoordUI(false);
+            });
+
+            $input.on('blur', function() {
+                updateCoordUI(true);
+            });
+
+            if (initialText) {
+                let precLabel = formatPrecisionLabel(coordVal.precision);
+                $dmsBadge.text(`${initialText} (${precLabel})`).show();
+                let mapUrl = 'https://geohack.toolforge.org/geohack.php?params=' + coordVal.latitude + '_N_' + coordVal.longitude + '_E_globe:earth';
+                $mapLink.attr('href', mapUrl).show();
+            }
+
+            return $group;
+        }
+
+        // 0b. Monolingual text datatype auto-detection & fallback
+        let isMonolingual = row.datatype === 'monolingualtext' ||
+            KNOWN_MONOLINGUAL_PROPERTIES.includes(uPid) ||
+            (meta && meta.datatype === 'monolingualtext') ||
+            (propDef && (propDef.valueType === 'rdf:langString' || propDef.hasLangTags)) ||
+            (row.value && typeof row.value === 'object' && ('language' in row.value || 'text' in row.value));
+
+        if (isMonolingual) {
+            row.datatype = 'monolingualtext';
+            let $group = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex': '1'});
+            let valObj = (row.value && typeof row.value === 'object') ? row.value : {
+                text: typeof row.value === 'string' ? row.value : '',
+                language: mw.config.get('wgUserLanguage') || 'en'
+            };
+            if (!valObj.language) valObj.language = mw.config.get('wgUserLanguage') || 'en';
+            if (valObj.text === undefined || valObj.text === null) valObj.text = '';
+            row.value = valObj;
+
+            let $langInput = $('<input>')
+                .addClass('cradle-input')
+                .addClass('cradle-lang-input')
+                .attr('type', 'text')
+                .attr('placeholder', 'Lang')
+                .val(valObj.language);
+
+            let $textInput = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-monolingual-text-placeholder'))
+                .css({'flex': '1'})
+                .val(valObj.text);
+
+            $group.append($langInput).append($textInput);
+
+            setupLanguageAutocomplete($langInput, function(selectedCode) {
+                valObj.language = selectedCode;
+                row.value = valObj;
+                liveUpdateValidation();
+            });
+
+            $langInput.on('input', function() {
+                valObj.language = $langInput.val().trim();
+                row.value = valObj;
+                liveUpdateValidation();
+            });
+            $textInput.on('input', function() {
+                valObj.text = $textInput.val();
+                row.value = valObj;
+                liveUpdateValidation();
+            });
+
+            return $group;
+        }
+
         // 1. wikibase-item & wikibase-property datatype
         if (row.datatype === 'wikibase-item' || row.datatype === 'wikibase-property') {
             if (propDef && propDef.hardselect && propDef.hardselect.length > 0) {
@@ -3742,158 +4049,7 @@
             return $wrapper;
         }
 
-        // 2. monolingualtext datatype
-        if (row.datatype === 'monolingualtext') {
-            let $group = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex': '1'});
-            let valObj = (row.value && typeof row.value === 'object') ? row.value : {
-                text: typeof row.value === 'string' ? row.value : '',
-                language: mw.config.get('wgUserLanguage') || 'en'
-            };
-            if (!valObj.language) valObj.language = mw.config.get('wgUserLanguage') || 'en';
-            if (valObj.text === undefined || valObj.text === null) valObj.text = '';
-            row.value = valObj;
-            
-            let $langInput = $('<input>')
-                .addClass('cradle-input')
-                .addClass('cradle-lang-input')
-                .attr('type', 'text')
-                .attr('placeholder', 'Lang')
-                .val(valObj.language);
-                
-            let $textInput = $('<input>')
-                .addClass('cradle-input')
-                .attr('type', 'text')
-                .attr('placeholder', mw.msg('cradle-monolingual-text-placeholder'))
-                .css({'flex': '1'})
-                .val(valObj.text);
-
-            $group.append($langInput).append($textInput);
-
-            setupLanguageAutocomplete($langInput, function(selectedCode) {
-                valObj.language = selectedCode;
-                row.value = valObj;
-                liveUpdateValidation();
-            });
-
-            $langInput.on('input', function() {
-                valObj.language = $langInput.val().trim();
-                row.value = valObj;
-                liveUpdateValidation();
-            });
-            $textInput.on('input', function() {
-                valObj.text = $textInput.val();
-                row.value = valObj;
-                liveUpdateValidation();
-            });
-
-            return $group;
-        }
-
-        // 2a. globe-coordinate datatype
-        if (row.datatype === 'globe-coordinate' || row.datatype === 'globecoordinate') {
-            let $group = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '6px', 'width': '100%'});
-            
-            let coordVal = (row.value && typeof row.value === 'object') ? row.value : {
-                latitude: '',
-                longitude: '',
-                altitude: null,
-                precision: 0.0001,
-                globe: 'http://www.wikidata.org/entity/Q2'
-            };
-            if (typeof row.value === 'string' && row.value.trim()) {
-                let parts = row.value.split(/[,;\/]+/);
-                if (parts.length >= 2) {
-                    coordVal.latitude = parseSingleCoordinate(parts[0], true);
-                    coordVal.longitude = parseSingleCoordinate(parts[1], false);
-                }
-            }
-            row.value = coordVal;
-
-            let $inputsRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center', 'width': '100%'});
-
-            let $latInput = $('<input>')
-                .addClass('cradle-input')
-                .attr({type: 'text', placeholder: mw.msg('cradle-coord-lat-placeholder')})
-                .css({'flex': '1'})
-                .val(coordVal.latitude !== '' && coordVal.latitude !== undefined && coordVal.latitude !== null ? coordVal.latitude : '');
-
-            let $lonInput = $('<input>')
-                .addClass('cradle-input')
-                .attr({type: 'text', placeholder: mw.msg('cradle-coord-lon-placeholder')})
-                .css({'flex': '1'})
-                .val(coordVal.longitude !== '' && coordVal.longitude !== undefined && coordVal.longitude !== null ? coordVal.longitude : '');
-
-            $inputsRow.append($latInput).append($lonInput);
-            $group.append($inputsRow);
-
-            // Live DMS preview & View on Map link
-            let $previewRow = $('<div>').css({
-                'display': 'flex',
-                'align-items': 'center',
-                'justify-content': 'space-between',
-                'font-size': '0.75rem',
-                'color': '#54595d',
-                'padding': '0 2px'
-            });
-
-            let $dmsBadge = $('<span>').addClass('cradle-coord-dms-badge');
-            let $mapLink = $('<a>')
-                .attr({target: '_blank', rel: 'noopener noreferrer'})
-                .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '4px', 'color': '#36c', 'text-decoration': 'none'})
-                .html(ICONS.mapPin + ' <span>' + mw.msg('cradle-view-on-map') + '</span>')
-                .hide();
-
-            $previewRow.append($dmsBadge).append($mapLink);
-            $group.append($previewRow);
-
-            function updateCoordUI() {
-                let latRaw = String($latInput.val()).trim();
-                let lonRaw = String($lonInput.val()).trim();
-                let latNum = parseSingleCoordinate(latRaw, true);
-                let lonNum = parseSingleCoordinate(lonRaw, false);
-
-                if (!isNaN(latNum) && !isNaN(lonNum) && latNum >= -90 && latNum <= 90 && lonNum >= -180 && lonNum <= 180) {
-                    coordVal.latitude = latNum;
-                    coordVal.longitude = lonNum;
-                    let dmsText = formatCoordinates(latNum, lonNum);
-                    $dmsBadge.text(dmsText).show();
-
-                    let mapUrl = 'https://geohack.toolforge.org/geohack.php?params=' + latNum + '_N_' + lonNum + '_E_globe:earth';
-                    $mapLink.attr('href', mapUrl).show();
-                } else {
-                    coordVal.latitude = latRaw;
-                    coordVal.longitude = lonRaw;
-                    $dmsBadge.empty().hide();
-                    $mapLink.hide();
-                }
-                row.value = coordVal;
-                liveUpdateValidation();
-            }
-
-            // Handle pasting combined coords into lat input (e.g. "8.76, -75.88" or "8°45'36"N, 75°53'8"W")
-            $latInput.on('paste', function(e) {
-                let clipboardData = (e.originalEvent || e).clipboardData;
-                if (!clipboardData) return;
-                let pasted = clipboardData.getData('text');
-                if (pasted && (pasted.includes(',') || pasted.includes(';'))) {
-                    let parts = pasted.split(/[,;]+/);
-                    if (parts.length >= 2) {
-                        e.preventDefault();
-                        $latInput.val(parts[0].trim());
-                        $lonInput.val(parts[1].trim());
-                        updateCoordUI();
-                    }
-                }
-            });
-
-            $latInput.on('input change', updateCoordUI);
-            $lonInput.on('input change', updateCoordUI);
-
-            updateCoordUI();
-            return $group;
-        }
-
-        // 2b. commonsMedia datatype (e.g. P18 image, P154 logo, P94 coat of arms)
+        // 2. commonsMedia datatype (e.g. P18 image, P154 logo, P94 coat of arms)
         if (row.datatype === 'commonsMedia') {
             let $wrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'flex': '1'});
             let $input = $('<input>')
@@ -4030,7 +4186,11 @@
         // 5. Fallback text input (string, external-id, url, etc.)
         let displayVal = row.value;
         if (typeof displayVal === 'object' && displayVal !== null) {
-            displayVal = displayVal.text || displayVal.id || displayVal.time || '';
+            if ('latitude' in displayVal && 'longitude' in displayVal) {
+                displayVal = formatCoordinates(displayVal.latitude, displayVal.longitude);
+            } else {
+                displayVal = displayVal.text || displayVal.id || displayVal.time || '';
+            }
         }
         let $input = $('<input>')
             .addClass('cradle-input')
@@ -4051,7 +4211,11 @@
     function addRow(pid) {
         let propDef = schemaProperties[pid] || {};
         let meta = propertyMetadata[pid] || {};
-        let dt = inferDatatype(propDef, meta);
+        let sampleClaim = (isItemPage && entityData && entityData.claims && entityData.claims[pid] && entityData.claims[pid][0]);
+        let sampleVal = sampleClaim && sampleClaim.mainsnak && sampleClaim.mainsnak.datavalue && sampleClaim.mainsnak.datavalue.value;
+        let claimDatatype = sampleClaim && sampleClaim.mainsnak && (sampleClaim.mainsnak.datatype || (sampleClaim.mainsnak.datavalue && sampleClaim.mainsnak.datavalue.type));
+        if (claimDatatype === 'globecoordinate') claimDatatype = 'globe-coordinate';
+        let dt = claimDatatype || inferDatatype(propDef, meta, pid, sampleVal);
         formState[pid].push(createNewRowState(dt));
         renderPropertyRows(pid);
         liveUpdateValidation();
@@ -4682,14 +4846,20 @@ function searchWikidataItems(term) {
      */
     function isEmptyValue(value, datatype) {
         if (value === null || value === undefined) return true;
-        if (datatype === 'globe-coordinate' || datatype === 'globecoordinate') {
+        if (datatype === 'globe-coordinate' || datatype === 'globecoordinate' || (typeof value === 'object' && ('latitude' in value || 'longitude' in value))) {
             if (typeof value === 'object') {
                 return value.latitude === '' || value.latitude === null || value.longitude === '' || value.longitude === null;
             }
+            if (typeof value === 'string') {
+                return !parseCoordinateInput(value);
+            }
             return !value;
         }
-        if (datatype === 'monolingualtext') {
-            return !value || typeof value !== 'object' || !value.text || !value.language;
+        if (datatype === 'monolingualtext' || (typeof value === 'object' && ('language' in value || 'text' in value))) {
+            if (typeof value === 'object') {
+                return !value.text || !String(value.text).trim();
+            }
+            return !value;
         }
         if (typeof value === 'string') {
             return value.trim() === '';
@@ -4702,7 +4872,7 @@ function searchWikidataItems(term) {
      */
     function constructDataValue(value, datatype) {
         if (datatype === 'wikibase-item') {
-            let qid = typeof value === 'string' ? value.trim().toUpperCase() : value.id;
+            let qid = typeof value === 'string' ? value.trim().toUpperCase() : (value && value.id ? value.id : '');
             if (!qid.startsWith('Q')) return null;
             let numId = parseInt(qid.substring(1));
             return {
@@ -4715,7 +4885,7 @@ function searchWikidataItems(term) {
             };
         }
         if (datatype === 'entity-schema') {
-            let eid = typeof value === 'string' ? value.trim().toUpperCase() : value.id;
+            let eid = typeof value === 'string' ? value.trim().toUpperCase() : (value && value.id ? value.id : '');
             if (!eid || !eid.startsWith('E')) return null;
             return {
                 type: 'wikibase-entityid',
@@ -4725,28 +4895,35 @@ function searchWikidataItems(term) {
                 }
             };
         }
-        if (datatype === 'string' || datatype === 'external-id' || datatype === 'url' || datatype === 'commonsMedia') {
-            return {
-                type: 'string',
-                value: value.trim()
-            };
-        }
-        if (datatype === 'monolingualtext') {
+        if (datatype === 'monolingualtext' || (typeof value === 'object' && value !== null && ('language' in value || 'text' in value))) {
+            let t = (value && typeof value === 'object' && value.text !== undefined) ? String(value.text).trim() : (typeof value === 'string' ? value.trim() : '');
+            let l = (value && typeof value === 'object' && value.language) ? String(value.language).trim().toLowerCase() : (mw.config.get('wgUserLanguage') || 'en');
+            if (!t) return null;
             return {
                 type: 'monolingualtext',
                 value: {
-                    text: value.text.trim(),
-                    language: value.language.trim().toLowerCase()
+                    text: t,
+                    language: l
                 }
             };
         }
-        if (datatype === 'globe-coordinate' || datatype === 'globecoordinate') {
-            let lat = typeof value === 'object' ? parseFloat(value.latitude) : NaN;
-            let lon = typeof value === 'object' ? parseFloat(value.longitude) : NaN;
+        if (datatype === 'globe-coordinate' || datatype === 'globecoordinate' || (typeof value === 'object' && value !== null && ('latitude' in value || 'longitude' in value))) {
+            let lat = NaN, lon = NaN, prec = 0.0001, globe = 'http://www.wikidata.org/entity/Q2', alt = null;
+            if (typeof value === 'object' && value !== null) {
+                lat = parseFloat(value.latitude);
+                lon = parseFloat(value.longitude);
+                if (value.precision) prec = parseFloat(value.precision);
+                if (value.globe) globe = value.globe;
+                if (value.altitude !== undefined) alt = value.altitude;
+            } else if (typeof value === 'string') {
+                let parsed = parseCoordinateInput(value);
+                if (parsed) {
+                    lat = parsed.latitude;
+                    lon = parsed.longitude;
+                    prec = parsed.precision || 0.0001;
+                }
+            }
             if (isNaN(lat) || isNaN(lon)) return null;
-            let prec = (typeof value === 'object' && value.precision) ? parseFloat(value.precision) : 0.0001;
-            let globe = (typeof value === 'object' && value.globe) ? value.globe : 'http://www.wikidata.org/entity/Q2';
-            let alt = (typeof value === 'object' && value.altitude !== undefined) ? value.altitude : null;
             return {
                 type: 'globecoordinate',
                 value: {
@@ -4756,6 +4933,12 @@ function searchWikidataItems(term) {
                     precision: prec,
                     globe: globe
                 }
+            };
+        }
+        if (datatype === 'string' || datatype === 'external-id' || datatype === 'url' || datatype === 'commonsMedia') {
+            return {
+                type: 'string',
+                value: typeof value === 'string' ? value.trim() : String(value).trim()
             };
         }
         if (datatype === 'quantity') {
