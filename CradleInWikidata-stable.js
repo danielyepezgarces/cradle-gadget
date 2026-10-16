@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.55.1
+ * Version: 1.56.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.55.1');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.56.0');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.55.1';
+    const CRADLE_VERSION = '1.56.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -288,6 +288,13 @@
             'cradle-valtype-label': 'Value type: ',
             'cradle-orgroup-label': 'Alternative group (OR): ',
             'cradle-subshape-name-label': 'Sub-schema name: ',
+            'cradle-subshape-mode-label': 'Sub-schema source: ',
+            'cradle-subshape-mode-internal': 'Internal in this schema (@<SubShape>)',
+            'cradle-subshape-mode-external': 'External EntitySchema (IMPORT E...)',
+            'cradle-subshape-name-placeholder': 'Sub-schema name (e.g. country or ConservationStatus)',
+            'cradle-subshape-external-id-label': 'External EntitySchema ID: ',
+            'cradle-subshape-external-id-placeholder': 'e.g. E10 or E10#country',
+            'cradle-subshape-classes-hint': 'Allowed classes (wdt:P31) for internal sub-schema:',
             'cradle-import-from-item': 'Import from item',
             'cradle-schema-exists-notice': 'Schema already exists: ',
             'cradle-schema-target-item-label': 'Associated class/item',
@@ -454,29 +461,64 @@
         // Load local English fallbacks first
         mw.messages.set(fallbackMessages);
 
-        // Fetch translations dynamically from Wikidata User subpage
-        let i18nUrl = mw.util.wikiScript('index') + '?title=User:Danielyepezgarces/Gadget-cradle/i18n.json&action=raw&ctype=application/json';
-        
-        $.getJSON(i18nUrl).then(function(data) {
-            if (data) {
-                function loadCleanMessages(langMap) {
-                    if (!langMap || typeof langMap !== 'object') return;
-                    let clean = {};
-                    for (let k in langMap) {
-                        if (k !== '@metadata') clean[k] = langMap[k];
-                    }
-                    mw.messages.set(clean);
+        function loadCleanMessages(langMap) {
+            if (!langMap || typeof langMap !== 'object') return;
+            let clean = {};
+            for (let k in langMap) {
+                if (k !== '@metadata') clean[k] = langMap[k];
+            }
+            mw.messages.set(clean);
+        }
+
+        // English users need 0 network requests (embedded fallbackMessages are already loaded)
+        if (userLang === 'en') {
+            proceedInit();
+            return;
+        }
+
+        let baseLang = (userLang && userLang.includes('-')) ? userLang.split('-')[0] : null;
+
+        function fetchFallbackCatalog() {
+            let unifiedUrl = mw.util.wikiScript('index') + '?title=User:Danielyepezgarces/Gadget-cradle/i18n.json&action=raw&ctype=application/json';
+            $.getJSON(unifiedUrl).then(function(catalog) {
+                if (catalog) {
+                    if (catalog[userLang]) loadCleanMessages(catalog[userLang]);
+                    else if (baseLang && catalog[baseLang]) loadCleanMessages(catalog[baseLang]);
                 }
-                // Load English translations first
-                if (data['en']) loadCleanMessages(data['en']);
-                // Load current user language translations if available
-                if (data[userLang]) loadCleanMessages(data[userLang]);
+                proceedInit();
+            }).catch(function(err) {
+                console.warn("[Cradle] Could not load i18n catalog, using local fallbacks:", err);
+                applyLocalSpanishFallback();
+            });
+        }
+
+        // Optimized on-demand i18n loader: fetch ONLY user's language subpage (~15 KB instead of full catalog)
+        let subpageUrl = mw.util.wikiScript('index') + '?title=User:Danielyepezgarces/Gadget-cradle/i18n/' + encodeURIComponent(userLang) + '.json&action=raw&ctype=application/json';
+
+        $.getJSON(subpageUrl).then(function(langData) {
+            if (langData) {
+                loadCleanMessages(langData);
             }
             proceedInit();
-        }).catch(function(err) {
-            console.warn("[Cradle] Could not load external translations, using local English fallback:", err);
-            // Fallback for Spanish interface users
-            if (userLang === 'es') {
+        }).catch(function() {
+            if (baseLang) {
+                let baseUrl = mw.util.wikiScript('index') + '?title=User:Danielyepezgarces/Gadget-cradle/i18n/' + encodeURIComponent(baseLang) + '.json&action=raw&ctype=application/json';
+                $.getJSON(baseUrl).then(function(baseData) {
+                    if (baseData) {
+                        loadCleanMessages(baseData);
+                    }
+                    proceedInit();
+                }).catch(function() {
+                    fetchFallbackCatalog();
+                });
+            } else {
+                fetchFallbackCatalog();
+            }
+        });
+
+        // Fallback for Spanish interface users
+        function applyLocalSpanishFallback() {
+            if (userLang === 'es' || baseLang === 'es') {
                 mw.messages.set({
                     'cradle-editor': 'Editor Cradle',
                     'cradle-edit-tab': 'Editar elemento actual',
@@ -582,11 +624,18 @@
                     'cradle-coord-lat-placeholder': 'ej. 8.76 u 8°45\'36"N',
                     'cradle-coord-lon-placeholder': 'ej. -75.88 o 75°53\'8"W',
                     'cradle-coord-placeholder': 'ej. 8°45\'36"N, 75°53\'8"W u 8.76, -75.88',
-                    'cradle-coord-precision': 'Precisión: $1'
+                    'cradle-coord-precision': 'Precisión: $1',
+                    'cradle-subshape-mode-label': 'Origen del sub-esquema: ',
+                    'cradle-subshape-mode-internal': 'Interno en este esquema (@<SubForma>)',
+                    'cradle-subshape-mode-external': 'EntitySchema externo (IMPORT E...)',
+                    'cradle-subshape-name-placeholder': 'Nombre del sub-esquema (ej. country o EstadoConservacion)',
+                    'cradle-subshape-external-id-label': 'ID del EntitySchema externo: ',
+                    'cradle-subshape-external-id-placeholder': 'ej. E10 o E10#country',
+                    'cradle-subshape-classes-hint': 'Clases permitidas (wdt:P31) para el sub-esquema interno:'
                 });
             }
             proceedInit();
-        });
+        }
     }
 
     /**
@@ -1637,15 +1686,15 @@
         );
 
         getEntityData().then(() => {
-            return fetchSchema(schemaId);
+            return fetchSchemaWithImports(schemaId);
         }).then(schema => {
             activeSchema = schema;
             if (true) {
                 $('.cradle-subtitle').text(`Schema: ${schema.label} (${schema.id})`);
             }
             
-            // Parse properties in the ShEx schema
-            schemaProperties = parseShEx(schema.schemaText);
+            // Parse properties in the ShEx schema (including imported external EntitySchemas)
+            schemaProperties = parseShEx(schema.schemaText, schema.importedSchemas);
             let propIds = Object.keys(schemaProperties);
             
             if (propIds.length === 0) {
@@ -1725,6 +1774,69 @@
     }
 
     /**
+     * Extracts external EntitySchema IDs (e.g. ['E10', 'E519']) referenced via ShEx IMPORT directives.
+     */
+    function extractImportIdsFromShEx(shexText) {
+        if (!shexText) return [];
+        let cleaned = stripShExComments(shexText);
+        let importIds = [];
+        let importRegex = /IMPORT\s+<([^>]+)>/gi;
+        let m;
+        while ((m = importRegex.exec(cleaned)) !== null) {
+            let url = m[1] || '';
+            let eMatch = url.match(/(?:EntitySchemaText\/|EntitySchema:|entity\/)(E\d+)\b/i) || url.match(/\b(E\d+)$/i);
+            if (eMatch) {
+                let eid = eMatch[1].toUpperCase();
+                if (!importIds.includes(eid)) {
+                    importIds.push(eid);
+                }
+            }
+        }
+        return importIds;
+    }
+
+    /**
+     * Fetches an EntitySchema along with any external EntitySchemas referenced via ShEx IMPORT directives.
+     * Prevents circular import loops per ShEx 2.1 Section 5.6.
+     */
+    function fetchSchemaWithImports(schemaId, visited) {
+        visited = visited || new Set();
+        let cleanRootId = String(schemaId || '').trim().toUpperCase();
+        if (!cleanRootId.startsWith('E')) {
+            cleanRootId = 'E' + cleanRootId.replace(/\D/g, '');
+        }
+        visited.add(cleanRootId);
+
+        return fetchSchema(cleanRootId).then(mainSchema => {
+            let importIds = extractImportIdsFromShEx(mainSchema.schemaText).filter(id => !visited.has(id));
+            if (importIds.length === 0) {
+                mainSchema.importedSchemas = {};
+                return mainSchema;
+            }
+            importIds.forEach(id => visited.add(id));
+            let promises = importIds.map(id =>
+                fetchSchemaWithImports(id, visited).catch(err => {
+                    logError('[Cradle] Could not load imported schema ' + id + ':', err);
+                    return null;
+                })
+            );
+            return Promise.all(promises).then(results => {
+                let importedMap = {};
+                results.forEach(imp => {
+                    if (imp && imp.id) {
+                        importedMap[imp.id.toUpperCase()] = imp;
+                        if (imp.importedSchemas) {
+                            Object.assign(importedMap, imp.importedSchemas);
+                        }
+                    }
+                });
+                mainSchema.importedSchemas = importedMap;
+                return mainSchema;
+            });
+        });
+    }
+
+    /**
      * Escapes regex special characters in a string.
      */
     function escapeRegex(str) {
@@ -1773,15 +1885,15 @@
     }
 
     /**
-     * Robust shape extractor that identifies shape definitions (<shapeName> [EXTRA ...] { ... })
+     * Robust shape extractor that identifies shape definitions (<shapeName> [@<Base> AND] [EXTRA ...] { ... })
      * without confusing them with assignments (start = @<shapeName>) or inline shape references.
      */
     function extractShape(text, shapeName) {
-        if (!shapeName) return { content: text, extraPids: [] };
+        if (!shapeName) return { content: text, extraPids: [], baseShapeRefs: [] };
         let cleanShape = String(shapeName).replace(/^[<@:]+|[>]+$/g, '').trim();
-        let pattern = new RegExp('(?:<' + escapeRegex(cleanShape) + '>|:' + escapeRegex(cleanShape) + '|\\b' + escapeRegex(cleanShape) + ')\\s*(?:EXTRA\\s+([^{]+))?\\s*\\{', 'i');
+        let pattern = new RegExp('(?:<' + escapeRegex(cleanShape) + '>|:' + escapeRegex(cleanShape) + '|\\b' + escapeRegex(cleanShape) + ')\\s*([^{};=\n]*?)\\{', 'i');
         let match = pattern.exec(text);
-        if (!match) return { content: text, extraPids: [] };
+        if (!match) return { content: text, extraPids: [], baseShapeRefs: [] };
 
         let braceStart = text.indexOf('{', match.index);
         let depth = 0;
@@ -1797,29 +1909,31 @@
             }
         }
         let content = endIdx !== -1 ? text.substring(braceStart + 1, endIdx) : text.substring(braceStart + 1);
+        let modifierStr = match[1] || '';
         let extraPids = [];
-        if (match[1]) {
-            let pids = match[1].match(/P\d+/gi) || [];
+        let extraSection = modifierStr.replace(/@<\s*[^>]+\s*>|@[A-Za-z0-9_:-]+/g, '');
+        if (/\bEXTRA\b/i.test(extraSection)) {
+            let pids = extraSection.match(/P\d+/gi) || [];
             extraPids = pids.map(p => p.toUpperCase());
         }
-        return { content: content, extraPids: extraPids };
+        let baseShapeRefs = (modifierStr.match(/@<\s*([^>]+)\s*>|@([A-Za-z0-9_:-]+)/g) || [])
+            .map(r => r.replace(/^[@<:]+|[>]+$/g, '').trim())
+            .filter(Boolean);
+        return { content: content, extraPids: extraPids, baseShapeRefs: baseShapeRefs };
     }
 
     /**
-     * A robust ShEx schema parser supporting root shapes, nested sub-shapes, multiline blocks, and cardinalities.
+     * Discovers all shape definitions (<shape> ... { ... } and <shape> EXTERNAL) in a cleaned ShEx string.
      */
-    function parseShEx(shexText) {
-        // 1. Remove comments (#...) while preserving IRIs
-        let cleaned = stripShExComments(shexText);
-
-        // 2. Discover all shape definitions in the schema
-        let shapeHeaderRegex = /(?:<([A-Za-z0-9_:-]+)>|:([A-Za-z0-9_:-]+)|\b([A-Za-z0-9_:-]+))\s*(?:EXTRA\s+([^{]+))?\s*\{/g;
+    function discoverShapesInShEx(cleaned, sourceSchemaId) {
+        let shapeHeaderRegex = /(?:<([A-Za-z0-9_:-]+)>|:([A-Za-z0-9_:-]+)|\b(?!start\b|PREFIX\b|BASE\b|IMPORT\b|EXTRA\b|CLOSED\b|EXTERNAL\b)([A-Za-z0-9_:-]+))\s*([^{};=\n]*?)\{/gi;
         let match;
         let shapes = [];
         let shapesMap = {};
         while ((match = shapeHeaderRegex.exec(cleaned)) !== null) {
             let name = match[1] || match[2] || match[3];
-            let extraStr = match[4] || '';
+            if (!name) continue;
+            let modifierStr = match[4] || '';
             let braceStart = cleaned.indexOf('{', match.index);
             let depth = 0;
             let endIdx = -1;
@@ -1834,13 +1948,49 @@
                 }
             }
             let content = endIdx !== -1 ? cleaned.substring(braceStart + 1, endIdx) : cleaned.substring(braceStart + 1);
-            let extraPids = (extraStr.match(/P\d+/gi) || []).map(p => p.toUpperCase());
-            let shapeObj = { name: name, extraPids: extraPids, content: content, startIndex: match.index };
+            let extraSection = modifierStr.replace(/@<\s*[^>]+\s*>|@[A-Za-z0-9_:-]+/g, '');
+            let extraPids = /\bEXTRA\b/i.test(extraSection)
+                ? (extraSection.match(/P\d+/gi) || []).map(p => p.toUpperCase())
+                : [];
+            let baseShapeRefs = (modifierStr.match(/@<\s*([^>]+)\s*>|@([A-Za-z0-9_:-]+)/g) || [])
+                .map(r => r.replace(/^[@<:]+|[>]+$/g, '').trim())
+                .filter(Boolean);
+            let shapeObj = {
+                name: name,
+                extraPids: extraPids,
+                baseShapeRefs: baseShapeRefs,
+                content: content,
+                startIndex: match.index,
+                isExternal: false,
+                sourceSchemaId: sourceSchemaId || null
+            };
             shapes.push(shapeObj);
             shapesMap[name.toLowerCase()] = shapeObj;
+            if (endIdx !== -1) {
+                shapeHeaderRegex.lastIndex = endIdx + 1;
+            }
         }
 
-        // 3. Find start shape or root shape
+        // Also detect <Shape> EXTERNAL declarations per ShEx 2.1 Section 6 Rule [9]
+        let externalDeclRegex = /(?:<([A-Za-z0-9_:-]+)>|:([A-Za-z0-9_:-]+))\s+EXTERNAL\b/gi;
+        let extMatch;
+        while ((extMatch = externalDeclRegex.exec(cleaned)) !== null) {
+            let extName = extMatch[1] || extMatch[2];
+            if (extName && !shapesMap[extName.toLowerCase()]) {
+                let extObj = {
+                    name: extName,
+                    extraPids: [],
+                    baseShapeRefs: [],
+                    content: '',
+                    startIndex: extMatch.index,
+                    isExternal: true,
+                    sourceSchemaId: sourceSchemaId || null
+                };
+                shapes.push(extObj);
+                shapesMap[extName.toLowerCase()] = extObj;
+            }
+        }
+
         let startMatch = cleaned.match(/start\s*=\s*@<\s*(.+?)\s*>/i) || cleaned.match(/start\s*=\s*@?([A-Za-z0-9_:-]+)/i);
         let startShapeName = startMatch ? (startMatch[1] || startMatch[2]).replace(/^[<@:]+|[>]+$/g, '').trim() : null;
 
@@ -1848,138 +1998,246 @@
         if (startShapeName && shapesMap[startShapeName.toLowerCase()]) {
             targetShape = shapesMap[startShapeName.toLowerCase()];
         } else if (shapes.length > 0) {
-            // Find root shape not referenced as sub-shape by others, or fallback to the shape with most properties
             let referenced = new Set();
             shapes.forEach(s => {
                 let refs = s.content.match(/@<\s*([^>]+)\s*>/g) || [];
                 refs.forEach(r => referenced.add(r.replace(/[@<>]/g, '').toLowerCase()));
             });
-            let unreferenced = shapes.filter(s => !referenced.has(s.name.toLowerCase()));
+            let unreferenced = shapes.filter(s => !referenced.has(s.name.toLowerCase()) && !s.isExternal);
             targetShape = unreferenced.length > 0 ? unreferenced[0] : shapes[0];
         }
 
-        let targetText = targetShape ? targetShape.content : cleaned;
-        let shapeExtraPids = targetShape ? targetShape.extraPids : [];
+        return {
+            shapes: shapes,
+            shapesMap: shapesMap,
+            startShapeName: startShapeName || (targetShape ? targetShape.name : null),
+            targetShape: targetShape
+        };
+    }
 
-        // 4. Extract statement blocks split by ';'
-        let props = {};
-        let statementBlocks = targetText.split(';');
+    /**
+     * A robust ShEx schema parser supporting root shapes, internal sub-shapes, external IMPORT schemas,
+     * shape conjunctions (@<Base> AND), triple expression inclusions (&<Base>), multiline blocks, and cardinalities.
+     */
+    function parseShEx(shexText, importedSchemas) {
+        if (!shexText) return {};
 
-        statementBlocks.forEach(rawBlock => {
-            let block = rawBlock.trim();
-            if (!block) return;
+        // 0. Extract inline comment hints for external sub-schema origins (# externalSubShape: @<name> from EntitySchema:E10)
+        let externalSubShapeHints = {};
+        let hintRegex = /#\s*externalSubShape:\s*@?<([^>]+)>\s*from\s*(?:EntitySchema:)?(E\d+)/gi;
+        let hm;
+        while ((hm = hintRegex.exec(shexText)) !== null) {
+            externalSubShapeHints[hm[1].trim().toLowerCase()] = hm[2].trim().toUpperCase();
+        }
 
-            // Match main statement property (p:P123, wdt:P123, or inner ps:P123)
-            let mainPropMatch = block.match(/(?:wdt|p):(P\d+)/i) || block.match(/(?:ps|pq|psn|psv|pxt):(P\d+)/i);
-            if (!mainPropMatch) return;
+        // 1. Remove comments (#...) while preserving IRIs
+        let cleaned = stripShExComments(shexText);
+        let importIds = extractImportIdsFromShEx(shexText);
+        let defaultImportId = importIds.length > 0 ? importIds[0] : '';
 
-            let pid = mainPropMatch[1].toUpperCase();
+        // 2. Discover local shapes and external imported shapes
+        let localDiscovered = discoverShapesInShEx(cleaned, null);
+        let shapesMap = localDiscovered.shapesMap;
+        let targetShape = localDiscovered.targetShape;
 
-            let mandatory = false;
-            let min = 0;
-            let max = 1;
-            let cardinality = '1';
+        let externalShapesMap = {};
+        if (importedSchemas && typeof importedSchemas === 'object') {
+            Object.keys(importedSchemas).forEach(eId => {
+                let imp = importedSchemas[eId];
+                if (!imp || !imp.schemaText) return;
+                let impCleaned = stripShExComments(imp.schemaText);
+                let impDisc = discoverShapesInShEx(impCleaned, eId.toUpperCase());
+                Object.keys(impDisc.shapesMap).forEach(k => {
+                    let sObj = impDisc.shapesMap[k];
+                    if (!externalShapesMap[k]) {
+                        externalShapesMap[k] = sObj;
+                    }
+                    externalShapesMap[(eId + '#' + k).toLowerCase()] = sObj;
+                });
+                if (impDisc.targetShape) {
+                    externalShapesMap[eId.toLowerCase()] = impDisc.targetShape;
+                }
+            });
+        }
 
-            if (block.includes('+')) {
-                min = 1;
-                mandatory = true;
-                max = Infinity;
-                cardinality = '+';
-            } else if (block.includes('*')) {
-                min = 0;
-                max = Infinity;
-                mandatory = false;
-                cardinality = '*';
-            } else if (block.includes('?')) {
-                min = 0;
-                max = 1;
-                mandatory = false;
-                cardinality = '?';
-            } else {
-                let cardMatch = block.match(/\{\s*(\d+)\s*(?:,\s*(\d+)?)?\s*\}/);
-                if (cardMatch) {
-                    min = parseInt(cardMatch[1]);
-                    max = cardMatch[2] ? parseInt(cardMatch[2]) : min;
-                    mandatory = min > 0;
-                    cardinality = min > 1 ? '+' : (max === 1 ? '1' : '+');
-                } else {
+        function parseShapeProps(shapeObj, visitedShapes) {
+            visitedShapes = visitedShapes || new Set();
+            if (!shapeObj) return {};
+            let shapeKey = ((shapeObj.sourceSchemaId || 'local') + ':' + shapeObj.name).toLowerCase();
+            if (visitedShapes.has(shapeKey)) return {};
+            visitedShapes.add(shapeKey);
+
+            let props = {};
+
+            // Resolve inherited properties from @<BaseShape> AND in header or &<BaseShape> in body
+            let includeMatches = (shapeObj.content.match(/&<\s*([^>]+)\s*>|&([A-Za-z0-9_:-]+)/g) || [])
+                .map(r => r.replace(/^[&<:]+|[>]+$/g, '').trim())
+                .filter(Boolean);
+            let allBaseRefs = (shapeObj.baseShapeRefs || []).concat(includeMatches);
+
+            allBaseRefs.forEach(baseRef => {
+                let refLower = baseRef.toLowerCase();
+                let baseShapeObj = shapesMap[refLower] || externalShapesMap[refLower] || (defaultImportId ? externalShapesMap[defaultImportId.toLowerCase()] : null);
+                if (baseShapeObj && !baseShapeObj.isExternal) {
+                    let inheritedProps = parseShapeProps(baseShapeObj, visitedShapes);
+                    Object.assign(props, inheritedProps);
+                }
+            });
+
+            let shapeExtraPids = shapeObj.extraPids || [];
+            let statementBlocks = shapeObj.content.split(';');
+
+            statementBlocks.forEach(rawBlock => {
+                let block = rawBlock.trim();
+                if (!block) return;
+
+                // Match main statement property (p:P123, wdt:P123, or inner ps:P123)
+                let mainPropMatch = block.match(/(?:wdt|p):(P\d+)/i) || block.match(/(?:ps|pq|psn|psv|pxt):(P\d+)/i);
+                if (!mainPropMatch) return;
+
+                let pid = mainPropMatch[1].toUpperCase();
+
+                let mandatory = false;
+                let min = 0;
+                let max = 1;
+                let cardinality = '1';
+
+                if (block.includes('+')) {
                     min = 1;
-                    max = 1;
                     mandatory = true;
-                    cardinality = '1';
-                }
-            }
-
-            if (shapeExtraPids.includes(pid) || shapeExtraPids.includes('ALL')) {
-                max = Infinity;
-                if (cardinality === '1') cardinality = '+';
-                else if (cardinality === '?') cardinality = '*';
-            }
-
-            // Extract Value Type, Sub-Shape name, and Value sets (hardselect / softselect)
-            let valueType = 'IRI';
-            let subShapeName = '';
-            let hardselect = [];
-            let softselect = [];
-            let langTags = (block.match(/@([a-z]{2,3}(?:-[a-z0-9]+)?)/gi) || []).map(t => t.substring(1).toLowerCase());
-            let hasLangTags = langTags.length > 0 || /@~/i.test(block);
-
-            if (/xsd:string/i.test(block)) valueType = 'xsd:string';
-            else if (/rdf:langString/i.test(block) || hasLangTags || KNOWN_MONOLINGUAL_PROPERTIES.includes(pid)) valueType = 'rdf:langString';
-            else if (/xsd:dateTime/i.test(block)) valueType = 'xsd:dateTime';
-            else if (/xsd:decimal/i.test(block) || /xsd:integer/i.test(block)) valueType = 'xsd:decimal';
-            else if (/geo:wktLiteral/i.test(block) || KNOWN_COORDINATE_PROPERTIES.includes(pid)) valueType = 'geo:wktLiteral';
-            else {
-                let subShapeMatch = block.match(/@<\s*([^>]+)\s*>/i) || block.match(/@([A-Za-z0-9_:-]+)/i);
-                if (subShapeMatch) {
-                    valueType = 'subshape';
-                    subShapeName = (subShapeMatch[1] || '').replace(/^[<@:]+|[>]+$/g, '');
-                    if (shapesMap[subShapeName.toLowerCase()]) {
-                        let subContent = shapesMap[subShapeName.toLowerCase()].content;
-                        let subQids = subContent.match(/(?:wd:|Q)(Q\d+)/gi) || [];
-                        subQids.forEach(q => {
-                            let cleanQ = q.replace(/wd:/i, '').toUpperCase();
-                            if (!softselect.includes(cleanQ)) softselect.push(cleanQ);
-                        });
-                    }
+                    max = Infinity;
+                    cardinality = '+';
+                } else if (block.includes('*')) {
+                    min = 0;
+                    max = Infinity;
+                    mandatory = false;
+                    cardinality = '*';
+                } else if (block.includes('?')) {
+                    min = 0;
+                    max = 1;
+                    mandatory = false;
+                    cardinality = '?';
                 } else {
-                    let bracketMatch = block.match(/\[([^\]]+)\]/);
-                    if (bracketMatch) {
-                        let bQids = bracketMatch[1].match(/(?:wd:|Q)(Q\d+)/gi) || [];
-                        bQids.forEach(q => {
-                            let cleanQ = q.replace(/wd:/i, '').toUpperCase();
-                            if (!hardselect.includes(cleanQ)) hardselect.push(cleanQ);
-                        });
+                    let cardMatch = block.match(/\{\s*(\d+)\s*(?:,\s*(\d+)?)?\s*\}/);
+                    if (cardMatch) {
+                        min = parseInt(cardMatch[1]);
+                        max = cardMatch[2] ? parseInt(cardMatch[2]) : min;
+                        mandatory = min > 0;
+                        cardinality = min > 1 ? '+' : (max === 1 ? '1' : '+');
+                    } else {
+                        min = 1;
+                        max = 1;
+                        mandatory = true;
+                        cardinality = '1';
                     }
-                    let otherQids = block.match(/(?:wd:|Q)(Q\d+)/gi) || [];
-                    otherQids.forEach(q => {
-                        let cleanQ = q.replace(/wd:/i, '').toUpperCase();
-                        if (!hardselect.includes(cleanQ) && !softselect.includes(cleanQ)) {
-                            softselect.push(cleanQ);
-                        }
-                    });
-                    valueType = 'IRI';
                 }
-            }
 
-            if (!props[pid] || mandatory) {
-                props[pid] = {
-                    id: pid,
-                    min: min,
-                    max: max,
-                    mandatory: mandatory,
-                    cardinality: cardinality,
-                    valueType: valueType,
-                    hasLangTags: hasLangTags,
-                    langTags: langTags,
-                    subShapeName: subShapeName,
-                    hardselect: hardselect,
-                    softselect: softselect.length > 0 ? softselect : hardselect
-                };
-            }
-        });
+                if (shapeExtraPids.includes(pid) || shapeExtraPids.includes('ALL')) {
+                    max = Infinity;
+                    if (cardinality === '1') cardinality = '+';
+                    else if (cardinality === '?') cardinality = '*';
+                }
 
-        return props;
+                // Extract Value Type, Sub-Shape name/source, and Value sets (hardselect / softselect)
+                let valueType = 'IRI';
+                let subShapeName = '';
+                let subShapeMode = 'internal';
+                let subShapeExternalId = '';
+                let hardselect = [];
+                let softselect = [];
+                let langTags = (block.match(/@([a-z]{2,3}(?:-[a-z0-9]+)?)/gi) || []).map(t => t.substring(1).toLowerCase());
+                let hasLangTags = langTags.length > 0 || /@~/i.test(block);
+
+                if (/xsd:string/i.test(block)) valueType = 'xsd:string';
+                else if (/rdf:langString/i.test(block) || hasLangTags || KNOWN_MONOLINGUAL_PROPERTIES.includes(pid)) valueType = 'rdf:langString';
+                else if (/xsd:dateTime/i.test(block)) valueType = 'xsd:dateTime';
+                else if (/xsd:decimal/i.test(block) || /xsd:integer/i.test(block)) valueType = 'xsd:decimal';
+                else if (/geo:wktLiteral/i.test(block) || KNOWN_COORDINATE_PROPERTIES.includes(pid)) valueType = 'geo:wktLiteral';
+                else {
+                    let subShapeMatch = block.match(/@<\s*([^>]+)\s*>/i) || block.match(/@([A-Za-z0-9_:-]+)/i);
+                    if (subShapeMatch) {
+                        valueType = 'subshape';
+                        let rawSubRef = (subShapeMatch[1] || '').replace(/^[<@:]+|[>]+$/g, '').trim();
+                        subShapeName = rawSubRef;
+
+                        let explicitExtMatch = rawSubRef.match(/^(E\d+)(?:#(.+))?$/i);
+                        let subLower = rawSubRef.toLowerCase();
+                        let localSub = shapesMap[subLower];
+                        let extSub = externalShapesMap[subLower];
+
+                        if (explicitExtMatch) {
+                            subShapeMode = 'external';
+                            subShapeExternalId = explicitExtMatch[1].toUpperCase();
+                            if (explicitExtMatch[2]) {
+                                subShapeName = explicitExtMatch[2];
+                            }
+                        } else if (externalSubShapeHints[subLower]) {
+                            subShapeMode = 'external';
+                            subShapeExternalId = externalSubShapeHints[subLower];
+                        } else if (localSub && !localSub.isExternal) {
+                            subShapeMode = 'internal';
+                        } else if (extSub) {
+                            subShapeMode = 'external';
+                            subShapeExternalId = extSub.sourceSchemaId || defaultImportId;
+                        } else if ((localSub && localSub.isExternal) || (!localSub && defaultImportId)) {
+                            subShapeMode = 'external';
+                            subShapeExternalId = defaultImportId;
+                        }
+
+                        let resolvedSubObj = (localSub && !localSub.isExternal) ? localSub : (extSub || (subShapeExternalId ? externalShapesMap[subShapeExternalId.toLowerCase()] : null));
+                        if (resolvedSubObj && resolvedSubObj.content) {
+                            let subQids = resolvedSubObj.content.match(/(?:wd:|Q)(Q\d+)/gi) || [];
+                            subQids.forEach(q => {
+                                let cleanQ = q.replace(/wd:/i, '').toUpperCase();
+                                if (!softselect.includes(cleanQ)) softselect.push(cleanQ);
+                            });
+                        }
+                    } else {
+                        let bracketMatch = block.match(/\[([^\]]+)\]/);
+                        if (bracketMatch) {
+                            let bQids = bracketMatch[1].match(/(?:wd:|Q)(Q\d+)/gi) || [];
+                            bQids.forEach(q => {
+                                let cleanQ = q.replace(/wd:/i, '').toUpperCase();
+                                if (!hardselect.includes(cleanQ)) hardselect.push(cleanQ);
+                            });
+                        }
+                        let otherQids = block.match(/(?:wd:|Q)(Q\d+)/gi) || [];
+                        otherQids.forEach(q => {
+                            let cleanQ = q.replace(/wd:/i, '').toUpperCase();
+                            if (!hardselect.includes(cleanQ) && !softselect.includes(cleanQ)) {
+                                softselect.push(cleanQ);
+                            }
+                        });
+                        valueType = 'IRI';
+                    }
+                }
+
+                if (!props[pid] || mandatory || shapeObj === targetShape) {
+                    props[pid] = {
+                        id: pid,
+                        min: min,
+                        max: max,
+                        mandatory: mandatory,
+                        cardinality: cardinality,
+                        valueType: valueType,
+                        hasLangTags: hasLangTags,
+                        langTags: langTags,
+                        subShapeName: subShapeName,
+                        subShapeMode: subShapeMode,
+                        subShapeExternalId: subShapeExternalId,
+                        hardselect: hardselect,
+                        softselect: softselect.length > 0 ? softselect : hardselect
+                    };
+                }
+            });
+
+            return props;
+        }
+
+        if (targetShape) {
+            return parseShapeProps(targetShape, new Set());
+        }
+        return parseShapeProps({ name: 'root', content: cleaned, extraPids: [], baseShapeRefs: [] }, new Set());
     }
 
     /**
@@ -5234,29 +5492,131 @@ function searchWikidataItems(term) {
     }
 
     /**
-     * Generates rich Wikidata-standard ShEx (Shape Expression) code for an EntitySchema.
+     * Normalizes a ShEx shape label while preserving valid identifier characters.
+     */
+    function normalizeShExShapeLabel(rawName, fallback) {
+        let cleaned = String(rawName || '').replace(/^[@<:]+|[>]+$/g, '').trim();
+        if (cleaned.includes('#')) {
+            cleaned = cleaned.split('#').pop().trim();
+        }
+        cleaned = cleaned.replace(/[^A-Za-z0-9_:-]/g, '_');
+        return cleaned || (fallback || 'sub_shape');
+    }
+
+    /**
+     * Parses an external EntitySchema reference (e.g. 'E10' or 'E10#country') into { schemaId, shapeName }.
+     */
+    function parseExternalSubShapeSpec(externalIdRaw, subShapeNameRaw) {
+        let rawExt = String(externalIdRaw || '').trim();
+        let rawName = String(subShapeNameRaw || '').replace(/^[@<:]+|[>]+$/g, '').trim();
+
+        let schemaId = '';
+        let shapeName = '';
+
+        let hashMatch = rawExt.match(/^(E?\d+)#(.+)$/i) || rawName.match(/^(E\d+)#(.+)$/i);
+        if (hashMatch) {
+            schemaId = hashMatch[1].toUpperCase();
+            if (!schemaId.startsWith('E')) schemaId = 'E' + schemaId;
+            shapeName = normalizeShExShapeLabel(hashMatch[2], '');
+        } else {
+            if (rawExt) {
+                let digits = rawExt.replace(/^EntitySchema:/i, '').trim();
+                if (/^E?\d+$/i.test(digits)) {
+                    schemaId = digits.toUpperCase().startsWith('E') ? digits.toUpperCase() : ('E' + digits);
+                }
+            }
+            if (!schemaId && /^E\d+$/i.test(rawName)) {
+                schemaId = rawName.toUpperCase();
+            }
+            if (rawName && !/^E\d+$/i.test(rawName)) {
+                shapeName = normalizeShExShapeLabel(rawName, '');
+            }
+        }
+
+        if (!shapeName) {
+            shapeName = schemaId || 'external_shape';
+        }
+        return { schemaId: schemaId, shapeName: shapeName };
+    }
+
+    /**
+     * Generates rich Wikidata-standard ShEx (Shape Expression) code for an EntitySchema,
+     * supporting both internal sub-schemas (<SubShape> EXTRA wdt:P31 { ... }) and
+     * external schemas via IMPORT <http://www.wikidata.org/wiki/Special:EntitySchemaText/E...>.
      */
     function generateShExCode(title, propRows, propertyLabels, targetItem, subShapes, baseSchema) {
         let cleanTitle = (title || 'custom_shape').toLowerCase().replace(/[^a-z0-9_]/g, '');
         if (!cleanTitle) cleanTitle = 'custom_shape';
         let targetQID = (targetItem || '').trim().toUpperCase();
-        let cleanBaseSchema = (baseSchema || '').trim().toUpperCase();
+        let rawBaseSchema = (baseSchema || '').trim();
+
+        let importedSchemaIds = [];
+        let baseShapeRef = '';
+        if (rawBaseSchema) {
+            let baseSpec = parseExternalSubShapeSpec(rawBaseSchema, '');
+            if (baseSpec.schemaId) {
+                if (!importedSchemaIds.includes(baseSpec.schemaId)) {
+                    importedSchemaIds.push(baseSpec.schemaId);
+                }
+                baseShapeRef = (baseSpec.shapeName && baseSpec.shapeName !== baseSpec.schemaId)
+                    ? baseSpec.shapeName
+                    : (baseSpec.schemaId === 'E10' ? 'human' : baseSpec.schemaId);
+            } else {
+                baseShapeRef = normalizeShExShapeLabel(rawBaseSchema, '');
+            }
+        }
+
+        let internalSubShapesMap = {};
+        let externalSubShapeComments = [];
+
+        (propRows || []).forEach(row => {
+            if (!row) return;
+            let vType = row.valueType || 'IRI';
+            if (vType === 'subshape' || (vType && vType.startsWith('@<'))) {
+                let mode = row.subShapeMode || ((row.subShapeExternalId || /^E\d+(?:#.+)?$/i.test(row.subShapeName || '')) ? 'external' : 'internal');
+                if (mode === 'external') {
+                    let extSpec = parseExternalSubShapeSpec(row.subShapeExternalId, row.subShapeName);
+                    if (extSpec.schemaId && !importedSchemaIds.includes(extSpec.schemaId)) {
+                        importedSchemaIds.push(extSpec.schemaId);
+                    }
+                    if (extSpec.schemaId && extSpec.shapeName) {
+                        externalSubShapeComments.push(`# externalSubShape: @<${extSpec.shapeName}> from EntitySchema:${extSpec.schemaId}`);
+                    }
+                } else {
+                    let sName = normalizeShExShapeLabel(row.subShapeName || vType, 'sub_shape');
+                    let qidsStr = row.subShapeQids || row.hardselect || row.softselect || '';
+                    let qids = (Array.isArray(qidsStr) ? qidsStr : String(qidsStr).split(','))
+                        .map(q => (q || '').trim().toUpperCase())
+                        .filter(q => /^Q\d+$/i.test(q));
+                    if (!internalSubShapesMap[sName.toLowerCase()]) {
+                        internalSubShapesMap[sName.toLowerCase()] = { name: sName, qids: qids };
+                    } else if (qids.length > 0) {
+                        qids.forEach(q => {
+                            if (!internalSubShapesMap[sName.toLowerCase()].qids.includes(q)) {
+                                internalSubShapesMap[sName.toLowerCase()].qids.push(q);
+                            }
+                        });
+                    }
+                }
+            }
+        });
 
         let lines = [];
         if (targetQID && /^Q\d+$/i.test(targetQID)) {
             lines.push(`# targetItem: ${targetQID}`);
             lines.push(`# Associated Item / Target Class: ${targetQID}`);
         }
-        if (cleanBaseSchema) {
-            if (!cleanBaseSchema.startsWith('E') && !cleanBaseSchema.startsWith('@')) {
-                cleanBaseSchema = 'E' + cleanBaseSchema.replace(/\D/g, '');
-            }
-            let schemaNum = cleanBaseSchema.replace(/^@/, '');
-            lines.push(`# Base Schema / Derivation: EntitySchema:${schemaNum}`);
-            lines.push(`IMPORT <http://www.wikidata.org/wiki/Special:EntitySchemaText/${schemaNum}>`);
+        if (importedSchemaIds.length > 0) {
+            lines.push(`# Base / Imported External Schemas: ${importedSchemaIds.map(id => 'EntitySchema:' + id).join(', ')}`);
         }
+        externalSubShapeComments.forEach(c => {
+            if (!lines.includes(c)) lines.push(c);
+        });
         lines.push(`# Schema: ${title || cleanTitle}`);
         lines.push(`# Generated with Cradle Schema Designer on Wikidata (https://www.wikidata.org/wiki/Wikidata:Cradle-gadget)`);
+        importedSchemaIds.forEach(schemaNum => {
+            lines.push(`IMPORT <http://www.wikidata.org/wiki/Special:EntitySchemaText/${schemaNum}>`);
+        });
         lines.push(``);
         lines.push(`PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>`);
         lines.push(`PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>`);
@@ -5267,16 +5627,16 @@ function searchWikidataItems(term) {
         lines.push(``);
         lines.push(`start = @<${cleanTitle}>`);
         lines.push(``);
-        let extraClause = cleanBaseSchema ? ` EXTRA wdt:P31 AND @<${cleanBaseSchema.replace(/^@/, '')}>` : ` EXTRA wdt:P31`;
-        lines.push(`<${cleanTitle}>${extraClause} {`);
+        let headerModifier = baseShapeRef ? ` @<${baseShapeRef}> AND EXTRA wdt:P31` : ` EXTRA wdt:P31`;
+        lines.push(`<${cleanTitle}>${headerModifier} {`);
 
         let propMap = propertyLabels || propertyMetadata || {};
         let orGroups = {};
 
-        propRows.forEach((row) => {
+        (propRows || []).forEach((row) => {
             let pid = row.pid;
             let meta = propMap[pid] || {};
-            let label = meta.label || pid;
+            let label = (meta && meta.label) ? meta.label : (typeof meta === 'string' ? meta : pid);
 
             let valueExpr = '.';
             let valueType = row.valueType || 'IRI';
@@ -5287,12 +5647,20 @@ function searchWikidataItems(term) {
             else if (valueType === 'xsd:decimal') valueExpr = 'xsd:decimal';
             else if (valueType === 'geo:wktLiteral') valueExpr = 'geo:wktLiteral';
             else if (valueType && valueType.startsWith('@<')) valueExpr = valueType;
-            else if (valueType === 'subshape' && row.subShapeName) valueExpr = `@<${row.subShapeName.toLowerCase().replace(/[^a-z0-9_]/g, '')}>`;
-            else {
+            else if (valueType === 'subshape') {
+                let mode = row.subShapeMode || ((row.subShapeExternalId || /^E\d+(?:#.+)?$/i.test(row.subShapeName || '')) ? 'external' : 'internal');
+                if (mode === 'external') {
+                    let extSpec = parseExternalSubShapeSpec(row.subShapeExternalId, row.subShapeName);
+                    valueExpr = `@<${extSpec.shapeName}>`;
+                } else {
+                    let sName = normalizeShExShapeLabel(row.subShapeName, 'sub_shape');
+                    valueExpr = `@<${sName}>`;
+                }
+            } else {
                 let options = [];
                 let qidsStr = row.hardselect || row.softselect || '';
                 if (qidsStr) {
-                    let qids = qidsStr.split(',').map(q => q.trim()).filter(q => /^Q\d+$/i.test(q));
+                    let qids = (Array.isArray(qidsStr) ? qidsStr : String(qidsStr).split(',')).map(q => (q || '').trim()).filter(q => /^Q\d+$/i.test(q));
                     if (qids.length > 0) {
                         options = qids.map(q => `wd:${q.toUpperCase()}`);
                     }
@@ -5333,24 +5701,45 @@ function searchWikidataItems(term) {
         lines.push(`  rdfs:label rdf:langString+;`);
         lines.push(`}`);
 
+        let emittedSubShapes = new Set([cleanTitle.toLowerCase()]);
+
         if (subShapes && Array.isArray(subShapes) && subShapes.length > 0) {
             subShapes.forEach(sub => {
-                let subName = (sub.name || 'sub_shape').toLowerCase().replace(/[^a-z0-9_]/g, '');
+                let subName = normalizeShExShapeLabel(sub.name, 'sub_shape');
+                emittedSubShapes.add(subName.toLowerCase());
                 lines.push(``);
-                lines.push(`<${subName}> {`);
-                if (sub.props && Array.isArray(sub.props)) {
+                lines.push(`<${subName}> EXTRA wdt:P31 {`);
+                if (sub.props && Array.isArray(sub.props) && sub.props.length > 0) {
                     sub.props.forEach(sp => {
                         let sPid = sp.pid;
                         let sMeta = propMap[sPid] || {};
-                        let sLabel = sMeta.label || sPid;
+                        let sLabel = (sMeta && sMeta.label) ? sMeta.label : (typeof sMeta === 'string' ? sMeta : sPid);
                         let sValExpr = sp.valueType || 'IRI';
                         let sCard = sp.cardinality || ';';
                         lines.push(`  wdt:${sPid} ${sValExpr} ${sCard}   # ${sLabel}`);
                     });
+                } else if (sub.qids && sub.qids.length > 0) {
+                    lines.push(`  wdt:P31 [ ${sub.qids.map(q => 'wd:' + q.toUpperCase()).join(' ')} ] + ;`);
+                } else {
+                    lines.push(`  wdt:P31 IRI + ;`);
                 }
                 lines.push(`}`);
             });
         }
+
+        Object.keys(internalSubShapesMap).forEach(k => {
+            if (emittedSubShapes.has(k)) return;
+            let subInfo = internalSubShapesMap[k];
+            emittedSubShapes.add(k);
+            lines.push(``);
+            lines.push(`<${subInfo.name}> EXTRA wdt:P31 {`);
+            if (subInfo.qids && subInfo.qids.length > 0) {
+                lines.push(`  wdt:P31 [ ${subInfo.qids.map(q => 'wd:' + q.toUpperCase()).join(' ')} ] + ;`);
+            } else {
+                lines.push(`  wdt:P31 IRI + ;`);
+            }
+            lines.push(`}`);
+        });
 
         return lines.join('\n');
     }
@@ -5364,40 +5753,59 @@ function searchWikidataItems(term) {
             return { valid: false, errors: ['ShEx code is empty.'] };
         }
 
+        let cleaned = stripShExComments(shexText);
         let lines = shexText.split('\n');
         
         // 1. Check balanced brackets, braces, and angle brackets
-        let openBraces = (shexText.match(/\{/g) || []).length;
-        let closeBraces = (shexText.match(/\}/g) || []).length;
+        let openBraces = (cleaned.match(/\{/g) || []).length;
+        let closeBraces = (cleaned.match(/\}/g) || []).length;
         if (openBraces !== closeBraces) {
             errors.push(`Unbalanced braces: found ${openBraces} '{' and ${closeBraces} '}'.`);
         }
 
-        let openBrackets = (shexText.match(/\[/g) || []).length;
-        let closeBrackets = (shexText.match(/\]/g) || []).length;
+        let openBrackets = (cleaned.match(/\[/g) || []).length;
+        let closeBrackets = (cleaned.match(/\]/g) || []).length;
         if (openBrackets !== closeBrackets) {
             errors.push(`Unbalanced brackets: found ${openBrackets} '[' and ${closeBrackets} ']'.`);
         }
 
-        let openAngles = (shexText.match(/</g) || []).length;
-        let closeAngles = (shexText.match(/>/g) || []).length;
+        let openAngles = (cleaned.match(/</g) || []).length;
+        let closeAngles = (cleaned.match(/>/g) || []).length;
         if (openAngles !== closeAngles) {
             errors.push(`Unbalanced angle brackets: found ${openAngles} '<' and ${closeAngles} '>'.`);
         }
 
-        // 2. Check start shape declaration vs shape definition
-        let startMatch = shexText.match(/start\s*=\s*@<\s*(.+?)\s*>/i);
+        // 2. Check for misplaced AND after EXTRA (invalid ShExC order)
+        if (/\bEXTRA\s+[^\{]*\bAND\s+@/i.test(cleaned)) {
+            errors.push("Invalid ShExC header order: '@<BaseShape> AND' must appear before 'EXTRA wdt:P31 {', not after EXTRA.");
+        }
+
+        // 3. Check start shape declaration vs shape definitions and sub-shape references
+        let discovered = discoverShapesInShEx(cleaned, null);
+        let hasImports = extractImportIdsFromShEx(shexText).length > 0 || /\bIMPORT\s+<[^>]+>/i.test(cleaned);
+        let startMatch = cleaned.match(/start\s*=\s*@<\s*(.+?)\s*>/i);
         if (startMatch) {
-            let startShapeName = startMatch[1];
-            let shapeDefRegex = new RegExp(`<\\s*${startShapeName}\\s*>`, 'i');
-            if (!shapeDefRegex.test(shexText)) {
+            let startShapeName = startMatch[1].trim();
+            if (!discovered.shapesMap[startShapeName.toLowerCase()] && !hasImports) {
                 errors.push(`Declaration 'start = @<${startShapeName}>' does not match any defined shape '<${startShapeName}> {'.`);
             }
-        } else if (!/<[^>]+>\s*(?:EXTRA\s+[^{]+)?\s*\{/.test(shexText)) {
+        } else if (discovered.shapes.length === 0) {
             errors.push("No valid shape definition found like '<ShapeName> { ... }'.");
         }
 
-        // 3. Line-by-line checks for property syntax
+        // Check that internal @<SubShape> references resolve to a defined shape or an IMPORT directive
+        discovered.shapes.forEach(s => {
+            let refRegex = /@<\s*([^>]+)\s*>/g;
+            let rm;
+            while ((rm = refRegex.exec(s.content)) !== null) {
+                let refName = (rm[1] || '').trim();
+                if (refName && !discovered.shapesMap[refName.toLowerCase()] && !hasImports) {
+                    errors.push(`Referenced sub-schema '@<${refName}>' in '<${s.name}>' is not defined in this schema and no IMPORT directive is present.`);
+                }
+            }
+        });
+
+        // 4. Line-by-line checks for property syntax
         let inShape = false;
         lines.forEach((line, idx) => {
             let cleanLine = line.replace(/#.*/, '').trim();
@@ -6820,14 +7228,29 @@ function searchWikidataItems(term) {
             $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
             $row.append($optionsRow);
 
-            // SubShape Name Container (hidden unless valueType === 'subshape')
-            let $subShapeGroup = $('<div>').css({'display': 'none', 'gap': '8px', 'align-items': 'center', 'margin-top': '4px'});
-            let $subShapeInput = $('<input>').addClass('cradle-input').attr('placeholder', 'Nombre del sub-esquema (Ej: EstadoConservacion)').css({
+            // SubShape Container (supports both internal @<SubShape> and external IMPORT EntitySchema)
+            let $subShapeGroup = $('<div>').css({'display': 'none', 'flex-direction': 'column', 'gap': '6px', 'margin-top': '4px', 'padding': '8px', 'background': '#fff', 'border': '1px solid #c8ccd1', 'border-radius': '4px'});
+            let $subShapeTopRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center', 'flex-wrap': 'wrap'});
+            let $subShapeModeSelect = $('<select>').addClass('cradle-select').css({'font-size': '12px', 'height': '28px', 'padding': '2px 6px', 'width': 'auto'});
+            $subShapeModeSelect.append($('<option>').val('internal').text(mw.msg('cradle-subshape-mode-internal')));
+            $subShapeModeSelect.append($('<option>').val('external').text(mw.msg('cradle-subshape-mode-external')));
+            let $subShapeModeLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-mode-label')).append($subShapeModeSelect);
+
+            let $subShapeExternalWrap = $('<div>').css({'display': 'none', 'gap': '6px', 'align-items': 'center'});
+            let $subShapeExternalInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-subshape-external-id-placeholder')).css({'font-size': '12px', 'height': '28px', 'width': '150px'});
+            $subShapeExternalWrap.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-external-id-label'))).append($subShapeExternalInput);
+
+            let $subShapeNameWrap = $('<div>').css({'display': 'flex', 'gap': '6px', 'align-items': 'center', 'flex': '1', 'min-width': '200px'});
+            let $subShapeInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-subshape-name-placeholder')).css({
                 'font-size': '12px',
                 'height': '28px',
                 'flex': '1'
             });
-            $subShapeGroup.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-name-label'))).append($subShapeInput);
+            $subShapeNameWrap.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-name-label'))).append($subShapeInput);
+
+            let $subShapeClassesHint = $('<div>').css({'font-size': '11px', 'color': '#54595d'}).text(mw.msg('cradle-subshape-classes-hint'));
+            $subShapeTopRow.append($subShapeModeLabel).append($subShapeExternalWrap).append($subShapeNameWrap);
+            $subShapeGroup.append($subShapeTopRow).append($subShapeClassesHint);
             $row.append($subShapeGroup);
 
             // Selection options layout: Radio buttons for Value type
@@ -6876,17 +7299,27 @@ function searchWikidataItems(term) {
             let $chipsDiv = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px', 'margin-top': '4px'});
             $valuePresetContainer.append($chipsDiv);
 
-            // Toggle visibility of QID chips / subShape based on ValueType selection
+            // Toggle visibility of QID chips / subShape based on ValueType and SubShape Mode selection
             function updateVisibilityBasedOnValueType() {
                 let vt = $valueTypeSelect.val();
+                let sMode = $subShapeModeSelect.val();
                 if (vt === 'IRI') {
                     $radioGroup.show();
                     $valuePresetContainer.show();
                     $subShapeGroup.css('display', 'none');
                 } else if (vt === 'subshape') {
                     $radioGroup.hide();
-                    $valuePresetContainer.hide();
                     $subShapeGroup.css('display', 'flex');
+                    if (sMode === 'external') {
+                        $subShapeExternalWrap.css('display', 'flex');
+                        $subShapeClassesHint.hide();
+                        $valuePresetContainer.hide();
+                    } else {
+                        $subShapeExternalWrap.css('display', 'none');
+                        $subShapeClassesHint.show();
+                        $valuePresetContainer.show();
+                        if (typeof updateSearchInputVisibility === 'function') updateSearchInputVisibility();
+                    }
                 } else {
                     $radioGroup.hide();
                     $valuePresetContainer.hide();
@@ -6894,6 +7327,7 @@ function searchWikidataItems(term) {
                 }
             }
             $valueTypeSelect.on('change', updateVisibilityBasedOnValueType);
+            $subShapeModeSelect.on('change', updateVisibilityBasedOnValueType);
             updateVisibilityBasedOnValueType();
 
             let selectedItems = []; // List of { qid, label }
@@ -7008,6 +7442,11 @@ function searchWikidataItems(term) {
 
             function updateSearchInputVisibility() {
                 if (!$valSearchGroup || !$valSearchGroup.length) return;
+                if ($valueTypeSelect.val() === 'subshape' && $subShapeModeSelect.val() === 'internal') {
+                    $chipsDiv.show();
+                    $valSearchGroup.show();
+                    return;
+                }
                 let activeType = $radioHard.is(':checked') ? 'hard' : ($radioSoft.is(':checked') ? 'soft' : 'none');
                 if (activeType === 'none') {
                     $valSearchGroup.hide();
@@ -7053,6 +7492,8 @@ function searchWikidataItems(term) {
                 let useSoft = $radioSoft.is(':checked');
                 let cardVal = $cardinalitySelect.val();
                 let vType = $valueTypeSelect.val();
+                let sMode = $subShapeModeSelect.val() || 'internal';
+                let sExtId = $subShapeExternalInput.val().trim();
                 let sName = $subShapeInput.val().trim();
                 let oGroup = $orGroupInput.val().trim();
                 return {
@@ -7061,11 +7502,14 @@ function searchWikidataItems(term) {
                     mandatory: (cardVal === '1' || cardVal === '+'),
                     allowMultiple: (cardVal === '+' || cardVal === '*'),
                     valueType: vType,
+                    subShapeMode: sMode,
+                    subShapeExternalId: sExtId,
                     subShapeName: sName,
+                    subShapeQids: (vType === 'subshape' && sMode === 'internal') ? qidString : '',
                     orGroup: oGroup,
                     defaultValue: '',
                     hardselect: (vType === 'IRI' && useHard && qidString) ? qidString : '',
-                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ''
+                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ((vType === 'subshape' && sMode === 'internal') ? qidString : '')
                 };
             });
 
@@ -7275,8 +7719,8 @@ function searchWikidataItems(term) {
             .append($('<p>').text(mw.msg('cradle-loading-schema', cleanId)))
         );
 
-        fetchSchema(cleanId).then(function(schema) {
-            let parsedProps = parseShEx(schema.schemaText);
+        fetchSchemaWithImports(cleanId).then(function(schema) {
+            let parsedProps = parseShEx(schema.schemaText, schema.importedSchemas);
             let pids = Object.keys(parsedProps);
 
             let qidsToFetch = [];
@@ -7453,8 +7897,16 @@ function searchWikidataItems(term) {
             else if (valueType === 'xsd:decimal') valueExpr = 'xsd:decimal';
             else if (valueType === 'geo:wktLiteral') valueExpr = 'geo:wktLiteral';
             else if (valueType && valueType.startsWith('@<')) valueExpr = valueType;
-            else if (valueType === 'subshape' && row.subShapeName) valueExpr = `@<${row.subShapeName.toLowerCase().replace(/[^a-z0-9_]/g, '')}>`;
-            else {
+            else if (valueType === 'subshape') {
+                let mode = row.subShapeMode || ((row.subShapeExternalId || /^E\d+(?:#.+)?$/i.test(row.subShapeName || '')) ? 'external' : 'internal');
+                if (mode === 'external') {
+                    let extSpec = parseExternalSubShapeSpec(row.subShapeExternalId, row.subShapeName);
+                    valueExpr = `@<${extSpec.shapeName}>`;
+                } else {
+                    let sName = normalizeShExShapeLabel(row.subShapeName, 'sub_shape');
+                    valueExpr = `@<${sName}>`;
+                }
+            } else {
                 let options = [];
                 let qidsStr = row.hardselect || row.softselect || '';
                 if (qidsStr) {
@@ -7504,6 +7956,42 @@ function searchWikidataItems(term) {
         } else if (!hasLabelConstraint) {
             newBody.push('  rdfs:label rdf:langString+;');
         }
+
+        // Synchronize external IMPORT directives in preamble and internal sub-schema blocks in postamble
+        (propRows || []).forEach(row => {
+            if (!row || row.valueType !== 'subshape') return;
+            let mode = row.subShapeMode || ((row.subShapeExternalId || /^E\d+(?:#.+)?$/i.test(row.subShapeName || '')) ? 'external' : 'internal');
+            if (mode === 'external') {
+                let extSpec = parseExternalSubShapeSpec(row.subShapeExternalId, row.subShapeName);
+                if (extSpec.schemaId) {
+                    let importLine = `IMPORT <http://www.wikidata.org/wiki/Special:EntitySchemaText/${extSpec.schemaId}>`;
+                    if (!new RegExp('EntitySchemaText/' + extSpec.schemaId + '\\b', 'i').test(preamble)) {
+                        preamble = importLine + '\n' + preamble;
+                    }
+                    let hintComment = `# externalSubShape: @<${extSpec.shapeName}> from EntitySchema:${extSpec.schemaId}`;
+                    if (!preamble.includes(hintComment)) {
+                        preamble = hintComment + '\n' + preamble;
+                    }
+                }
+            } else {
+                let sName = normalizeShExShapeLabel(row.subShapeName, 'sub_shape');
+                let qidsStr = row.subShapeQids || row.hardselect || row.softselect || '';
+                let qids = (Array.isArray(qidsStr) ? qidsStr : String(qidsStr).split(','))
+                    .map(q => (q || '').trim().toUpperCase())
+                    .filter(q => /^Q\d+$/i.test(q));
+                let subBlockBody = qids.length > 0
+                    ? `  wdt:P31 [ ${qids.map(q => 'wd:' + q).join(' ')} ] + ;`
+                    : `  wdt:P31 IRI + ;`;
+                let existingSubRegex = new RegExp(`(<${escapeRegex(sName)}>\\s*(?:EXTRA\\s+[^{]+)?\\{)([\\s\\S]*?)(\\})`, 'i');
+                if (existingSubRegex.test(postamble)) {
+                    if (qids.length > 0) {
+                        postamble = postamble.replace(existingSubRegex, `$1\n${subBlockBody}\n$3`);
+                    }
+                } else {
+                    postamble = postamble + `\n\n<${sName}> EXTRA wdt:P31 {\n${subBlockBody}\n}`;
+                }
+            }
+        });
 
         return preamble + '\n' + newBody.join('\n') + '\n' + postamble;
     }
@@ -7716,14 +8204,30 @@ function searchWikidataItems(term) {
             $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
             $row.append($optionsRow);
 
-            // SubShape input
-            let $subShapeGroup = $('<div>').css({'display': 'none', 'gap': '8px', 'align-items': 'center', 'margin-top': '4px'});
-            let $subShapeInput = $('<input>').addClass('cradle-input').attr('placeholder', 'Nombre del sub-esquema (Ej: EstadoConservacion)').css({
+            // SubShape input (supports both internal @<SubShape> and external IMPORT EntitySchema)
+            let $subShapeGroup = $('<div>').css({'display': 'none', 'flex-direction': 'column', 'gap': '6px', 'margin-top': '4px', 'padding': '8px', 'background': '#fff', 'border': '1px solid #c8ccd1', 'border-radius': '4px'});
+            let $subShapeTopRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center', 'flex-wrap': 'wrap'});
+            let $subShapeModeSelect = $('<select>').addClass('cradle-select').css({'font-size': '12px', 'height': '28px', 'padding': '2px 6px', 'width': 'auto'});
+            $subShapeModeSelect.append($('<option>').val('internal').text(mw.msg('cradle-subshape-mode-internal')));
+            $subShapeModeSelect.append($('<option>').val('external').text(mw.msg('cradle-subshape-mode-external')));
+            $subShapeModeSelect.val(pData.subShapeMode || (pData.subShapeExternalId ? 'external' : 'internal'));
+            let $subShapeModeLabel = $('<label>').css({'display': 'flex', 'align-items': 'center', 'gap': '6px', 'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-mode-label')).append($subShapeModeSelect);
+
+            let $subShapeExternalWrap = $('<div>').css({'display': 'none', 'gap': '6px', 'align-items': 'center'});
+            let $subShapeExternalInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-subshape-external-id-placeholder')).css({'font-size': '12px', 'height': '28px', 'width': '150px'}).val(pData.subShapeExternalId || '');
+            $subShapeExternalWrap.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-external-id-label'))).append($subShapeExternalInput);
+
+            let $subShapeNameWrap = $('<div>').css({'display': 'flex', 'gap': '6px', 'align-items': 'center', 'flex': '1', 'min-width': '200px'});
+            let $subShapeInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-subshape-name-placeholder')).css({
                 'font-size': '12px',
                 'height': '28px',
                 'flex': '1'
             }).val(pData.subShapeName || '');
-            $subShapeGroup.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-name-label'))).append($subShapeInput);
+            $subShapeNameWrap.append($('<label>').css({'font-size': '12px', 'font-weight': 'bold'}).text(mw.msg('cradle-subshape-name-label'))).append($subShapeInput);
+
+            let $subShapeClassesHint = $('<div>').css({'font-size': '11px', 'color': '#54595d'}).text(mw.msg('cradle-subshape-classes-hint'));
+            $subShapeTopRow.append($subShapeModeLabel).append($subShapeExternalWrap).append($subShapeNameWrap);
+            $subShapeGroup.append($subShapeTopRow).append($subShapeClassesHint);
             $row.append($subShapeGroup);
 
             // Presets: None / Hardselect / Softselect
@@ -7755,14 +8259,24 @@ function searchWikidataItems(term) {
 
             function updateVisibilityBasedOnValueType() {
                 let vt = $valueTypeSelect.val();
+                let sMode = $subShapeModeSelect.val();
                 if (vt === 'IRI') {
                     $radioGroup.show();
                     $valuePresetContainer.show();
                     $subShapeGroup.css('display', 'none');
                 } else if (vt === 'subshape') {
                     $radioGroup.hide();
-                    $valuePresetContainer.hide();
                     $subShapeGroup.css('display', 'flex');
+                    if (sMode === 'external') {
+                        $subShapeExternalWrap.css('display', 'flex');
+                        $subShapeClassesHint.hide();
+                        $valuePresetContainer.hide();
+                    } else {
+                        $subShapeExternalWrap.css('display', 'none');
+                        $subShapeClassesHint.show();
+                        $valuePresetContainer.show();
+                        if (typeof updateSearchInputVisibility === 'function') updateSearchInputVisibility();
+                    }
                 } else {
                     $radioGroup.hide();
                     $valuePresetContainer.hide();
@@ -7770,6 +8284,7 @@ function searchWikidataItems(term) {
                 }
             }
             $valueTypeSelect.on('change', updateVisibilityBasedOnValueType);
+            $subShapeModeSelect.on('change', updateVisibilityBasedOnValueType);
             updateVisibilityBasedOnValueType();
 
             let selectedItems = [];
@@ -7866,6 +8381,11 @@ function searchWikidataItems(term) {
 
             function updateSearchInputVisibility() {
                 if (!$valSearchGroup || !$valSearchGroup.length) return;
+                if ($valueTypeSelect.val() === 'subshape' && $subShapeModeSelect.val() === 'internal') {
+                    $chipsDiv.show();
+                    $valSearchGroup.show();
+                    return;
+                }
                 let activeType = $radioHard.is(':checked') ? 'hard' : ($radioSoft.is(':checked') ? 'soft' : 'none');
                 if (activeType === 'none') {
                     $valSearchGroup.hide();
@@ -7913,6 +8433,8 @@ function searchWikidataItems(term) {
                 let useSoft = $radioSoft.is(':checked');
                 let cardVal = $cardinalitySelect.val();
                 let vType = $valueTypeSelect.val();
+                let sMode = $subShapeModeSelect.val() || 'internal';
+                let sExtId = $subShapeExternalInput.val().trim();
                 let sName = $subShapeInput.val().trim();
                 let oGroup = $orGroupInput.val().trim();
                 return {
@@ -7921,11 +8443,14 @@ function searchWikidataItems(term) {
                     mandatory: (cardVal === '1' || cardVal === '+'),
                     allowMultiple: (cardVal === '+' || cardVal === '*'),
                     valueType: vType,
+                    subShapeMode: sMode,
+                    subShapeExternalId: sExtId,
                     subShapeName: sName,
+                    subShapeQids: (vType === 'subshape' && sMode === 'internal') ? qidString : '',
                     orGroup: oGroup,
                     defaultValue: '',
                     hardselect: (vType === 'IRI' && useHard && qidString) ? qidString : '',
-                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ''
+                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ((vType === 'subshape' && sMode === 'internal') ? qidString : '')
                 };
             });
 
@@ -8088,7 +8613,7 @@ function searchWikidataItems(term) {
                 return;
             }
 
-            let newParsed = parseShEx(code);
+            let newParsed = parseShEx(code, schema.importedSchemas);
             let newPids = Object.keys(newParsed);
 
             let qidsToFetch = [];
