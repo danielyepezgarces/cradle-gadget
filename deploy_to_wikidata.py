@@ -23,6 +23,7 @@ Prerequisites:
 import os
 import sys
 import re
+import json
 import argparse
 import subprocess
 import requests
@@ -53,6 +54,7 @@ def get_current_git_branch():
 
 WIKIDATA_API_URL = "https://www.wikidata.org/w/api.php"
 SHARED_I18N_PAGE = "User:Danielyepezgarces/Gadget-cradle/i18n.json"
+SHARED_I18N_SUBPAGE_PREFIX = "User:Danielyepezgarces/Gadget-cradle/i18n"
 
 TARGET_PAGES = {
     "stable": {
@@ -150,9 +152,21 @@ def get_remote_page_content(session, title):
 def update_wikidata_page(session, title, content, summary):
     """Updates a page on Wikidata using action=edit, skipping if unchanged."""
     remote_content = get_remote_page_content(session, title)
-    if remote_content is not None and remote_content.strip() == content.strip():
-        print(f"ℹ️ No changes detected in '{title}' — skipping deployment.")
-        return
+    if remote_content is not None:
+        if remote_content.strip() == content.strip():
+            print(f"ℹ️ No changes detected in '{title}' — skipping deployment.")
+            return
+
+        # For JSON pages, perform semantic JSON equality check to ignore formatting (tabs vs spaces)
+        if title.endswith(".json"):
+            try:
+                remote_obj = json.loads(remote_content)
+                local_obj = json.loads(content)
+                if remote_obj == local_obj:
+                    print(f"ℹ️ No changes detected in '{title}' — skipping deployment.")
+                    return
+            except Exception:
+                pass
 
     csrf_token = get_csrf_token(session)
     params = {
@@ -279,10 +293,22 @@ def main():
                 css_code = f_css.read()
             update_wikidata_page(session, target_css_page, css_code, edit_summary)
 
-        if args.upload_i18n and os.path.exists("CradleI18n.json"):
-            with open("CradleI18n.json", "r", encoding="utf-8") as f_i18n:
-                i18n_code = f_i18n.read()
-            update_wikidata_page(session, target_i18n_page, i18n_code, edit_summary)
+        if args.upload_i18n:
+            print("\nDeploying i18n localization files:")
+            tw_dir = "translatewiki"
+            if os.path.isdir(tw_dir):
+                tw_files = sorted([f for f in os.listdir(tw_dir) if f.endswith(".json") and f != "qqq.json"])
+                for tw_file in tw_files:
+                    lang_code = tw_file[:-5]
+                    lang_subpage = f"{SHARED_I18N_SUBPAGE_PREFIX}/{lang_code}.json"
+                    with open(os.path.join(tw_dir, tw_file), "r", encoding="utf-8") as f_lang:
+                        lang_content = f_lang.read()
+                    update_wikidata_page(session, lang_subpage, lang_content, f"Update {lang_code} translation via Translatewiki / Cradle (v{version_str})")
+
+            if os.path.exists("CradleI18n.json"):
+                with open("CradleI18n.json", "r", encoding="utf-8") as f_i18n:
+                    i18n_code = f_i18n.read()
+                update_wikidata_page(session, target_i18n_page, i18n_code, edit_summary)
 
         if args.update_commonjs:
             update_commonjs_loader_version(session, username, args.target_env, version_str)
