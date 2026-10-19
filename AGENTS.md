@@ -5,7 +5,7 @@ These rules apply to any AI coding agent developing or modifying the Cradle Wiki
 ## 1. Internationalization (i18n)
 - **NO Hardcoded User-Facing Strings**: All alert messages, text labels, input placeholders, user notifications (`mw.notify`), loader text, search status, and generic interface texts must be fully internationalized using `mw.msg('key')`.
 - **Translations Registry**:
-  - Always add the new translation key to the dynamic translation catalog in `CradleI18n.json` (supporting at least `en` and `es`).
+  - Always add the new translation key to the translations in `translatewiki/en.json`, `translatewiki/es.json`, and document it in `translatewiki/qqq.json`.
   - Always register the English translation in the local `fallbackMessages` array inside `CradleInWikidata.js` (both the gadget and the extension versions) so that if the wiki fails to fetch the raw JSON from user space, the interface still loads with correct English fallbacks.
 
 ## 2. Coding Standards & Comments

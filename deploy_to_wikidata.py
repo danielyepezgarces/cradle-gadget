@@ -226,7 +226,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Deploy Cradle gadget code to Wikidata.")
     parser.add_argument("--target-env", choices=["stable", "beta", "dev"], default=default_env, help=f"Target environment: stable, beta, or dev (auto-detected: {default_env})")
-    parser.add_argument("--upload-i18n", action="store_true", help="Also upload CradleI18n.json to Wikidata")
+    parser.add_argument("--upload-i18n", action="store_true", help="Also upload translatewiki translations to Wikidata")
     parser.add_argument("--no-commonjs", action="store_false", dest="update_commonjs", help="Skip updating version parameter in user common.js")
     parser.set_defaults(update_commonjs=True)
     parser.add_argument("--force", action="store_true", help="Bypass git branch mismatch safety warnings")
@@ -305,10 +305,7 @@ def main():
                         lang_content = f_lang.read()
                     update_wikidata_page(session, lang_subpage, lang_content, f"Update {lang_code} translation via Translatewiki / Cradle (v{version_str})")
 
-            if os.path.exists("CradleI18n.json"):
-                with open("CradleI18n.json", "r", encoding="utf-8") as f_i18n:
-                    i18n_code = f_i18n.read()
-                update_wikidata_page(session, target_i18n_page, i18n_code, edit_summary)
+
 
         if args.update_commonjs:
             update_commonjs_loader_version(session, username, args.target_env, version_str)

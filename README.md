@@ -13,7 +13,7 @@ This repository is organized into two separate modules:
 
 ### 1. Wikidata User Gadget
 A client-side JavaScript gadget designed to be loaded by individual users on Wikidata via their personal JS configuration.
-- **Main Files**: `CradleInWikidata.js` and `CradleI18n.json` at the repository root.
+- **Main Files**: `CradleInWikidata.js` and `translatewiki/` catalog at the repository root.
 - **User guide**: [README_GADGET.md](README_GADGET.md) — installation, features, and custom schema format.
 - **Technical spec**: [GADGET_TECHNICAL.md](GADGET_TECHNICAL.md) — requirements and technical decisions.
 - **Architecture**: [GADGET_ARCHITECTURE.puml](GADGET_ARCHITECTURE.puml) — PlantUML component diagram.
