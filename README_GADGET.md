@@ -30,7 +30,7 @@ mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadg
 8. **Citoid Integration**: Automatic reference metadata extraction via Wikimedia Citoid REST API from URLs, DOIs, ISBNs, and PMIDs.
 9. **Live Quality Constraints (WBQC)**: Evaluates input values against Wikidata Property Constraints in real-time, displaying warning badges and suggestions.
 10. **Full 23 Wikibase Datatypes**: Support for items, properties, strings, monolingual text, dates/times, quantities, URLs, Commons media, coordinates, external identifiers, and more.
-11. **Wikimedia Codex & 100% i18n**: Adheres to Wikimedia Codex UI guidelines, using official Codex SVG icons (no raw emojis) and full internationalization (`CradleI18n.json`).
+11. **Wikimedia Codex & 100% i18n**: Adheres to Wikimedia Codex UI guidelines, using official Codex SVG icons (no raw emojis) and full internationalization (`translatewiki/`).
 
 ---
 
