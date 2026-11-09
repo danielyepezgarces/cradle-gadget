@@ -40,12 +40,12 @@
         }
     }
 
-    // Verify if we are on Wikidata
+    // Verify if we are on Wikidata or Test Wikidata
     if (!mw.config.get('wgServer').includes('wikidata.org')) {
         return;
     }
 
-    mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.css&action=raw&ctype=text/css&version=' + CRADLE_VERSION, 'text/css');
+    mw.loader.load(mw.util.wikiScript('index') + '?title=User:Danielyepezgarces/Gadget-cradle-dev.css&action=raw&ctype=text/css&version=' + CRADLE_VERSION, 'text/css');
 
     const P12861 = 'P12861'; // EntitySchema for this class
     const P31 = 'P31';       // Instance of

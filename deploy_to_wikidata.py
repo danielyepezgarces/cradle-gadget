@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Wikidata Automatic Gadget Deployer Script
------------------------------------------
-Deploys local CradleInWikidata.js directly to Wikidata user space:
-  - stable: User:Danielyepezgarces/Gadget-cradle.js (Production release)
-  - beta:   User:Danielyepezgarces/Gadget-cradle-beta.js (Release candidate)
-  - dev:    User:Danielyepezgarces/Gadget-cradle-dev.js (Development / Bleeding edge)
+Wikidata & Test Wikidata Automatic Gadget Deployer Script
+---------------------------------------------------------
+Deploys local CradleInWikidata files directly to Wikidata or Test Wikidata user space:
+  - stable: User:Danielyepezgarces/Gadget-cradle.js on www.wikidata.org (Production release)
+  - beta:   User:Danielyepezgarces/Gadget-cradle-beta.js on www.wikidata.org (Release candidate)
+  - dev:    User:Danielyepezgarces/Gadget-cradle-dev.js on test.wikidata.org (Development / Test wiki)
 
 Shared i18n Catalog:
-  - User:Danielyepezgarces/Gadget-cradle/i18n.json (Shared by all environments)
+  - User:Danielyepezgarces/Gadget-cradle/i18n.json
 
 Automatically updates version parameter in User:Danielyepezgarces/common.js to bypass browser cache.
 
@@ -16,7 +16,9 @@ Usage:
   python3 deploy_to_wikidata.py [--target-env stable|beta|dev] [--upload-i18n] [--no-commonjs] [--force]
 
 Prerequisites:
-  1. Create a Bot Password at https://www.wikidata.org/wiki/Special:BotPasswords
+  1. Create Bot Passwords at:
+     - https://www.wikidata.org/wiki/Special:BotPasswords (for stable/beta)
+     - https://test.wikidata.org/wiki/Special:BotPasswords (for dev)
   2. Fill credentials in .env file (WIKIDATA_USERNAME & WIKIDATA_BOT_PASSWORD)
 """
 
@@ -52,7 +54,18 @@ def get_current_git_branch():
         return None
 
 
-WIKIDATA_API_URL = "https://www.wikidata.org/w/api.php"
+API_URLS = {
+    "stable": "https://www.wikidata.org/w/api.php",
+    "beta": "https://www.wikidata.org/w/api.php",
+    "dev": "https://test.wikidata.org/w/api.php"
+}
+
+DOMAINS = {
+    "stable": "www.wikidata.org",
+    "beta": "www.wikidata.org",
+    "dev": "test.wikidata.org"
+}
+
 SHARED_I18N_PAGE = "User:Danielyepezgarces/Gadget-cradle/i18n.json"
 SHARED_I18N_SUBPAGE_PREFIX = "User:Danielyepezgarces/Gadget-cradle/i18n"
 
@@ -83,22 +96,22 @@ def safe_json_response(res):
         sys.exit(1)
 
 
-def get_login_token(session):
-    """Fetches a login token from Wikidata API."""
+def get_login_token(session, api_url):
+    """Fetches a login token from target MediaWiki API."""
     params = {
         "action": "query",
         "meta": "tokens",
         "type": "login",
         "format": "json"
     }
-    res = session.get(WIKIDATA_API_URL, params=params)
+    res = session.get(api_url, params=params)
     data = safe_json_response(res)
     return data["query"]["tokens"]["logintoken"]
 
 
-def login_bot(session, username, bot_password):
+def login_bot(session, api_url, username, bot_password):
     """Authenticates using MediaWiki login action with Bot Password."""
-    token = get_login_token(session)
+    token = get_login_token(session, api_url)
     params = {
         "action": "login",
         "lgname": username,
@@ -106,14 +119,14 @@ def login_bot(session, username, bot_password):
         "lgtoken": token,
         "format": "json"
     }
-    res = session.post(WIKIDATA_API_URL, data=params)
+    res = session.post(api_url, data=params)
     data = safe_json_response(res)
     if data.get("login", {}).get("result") != "Success":
-        raise PermissionError(f"Login failed: {data.get('login', {}).get('reason', 'Unknown error')}")
-    print(f"✓ Successfully authenticated as: {data['login']['lgusername']}")
+        raise PermissionError(f"Login failed on {api_url}: {data.get('login', {}).get('reason', 'Unknown error')}")
+    print(f"✓ Successfully authenticated as: {data['login']['lgusername']} on {api_url}")
 
 
-def get_csrf_token(session):
+def get_csrf_token(session, api_url):
     """Fetches a CSRF token for editing."""
     params = {
         "action": "query",
@@ -121,13 +134,13 @@ def get_csrf_token(session):
         "type": "csrf",
         "format": "json"
     }
-    res = session.get(WIKIDATA_API_URL, params=params)
+    res = session.get(api_url, params=params)
     data = safe_json_response(res)
     return data["query"]["tokens"]["csrftoken"]
 
 
-def get_remote_page_content(session, title):
-    """Fetches existing raw page content from Wikidata to avoid duplicate edits."""
+def get_remote_page_content(session, api_url, title):
+    """Fetches existing raw page content from target wiki to avoid duplicate edits."""
     params = {
         "action": "query",
         "prop": "revisions",
@@ -136,7 +149,7 @@ def get_remote_page_content(session, title):
         "rvprop": "content",
         "format": "json"
     }
-    res = session.get(WIKIDATA_API_URL, params=params)
+    res = session.get(api_url, params=params)
     data = safe_json_response(res)
     pages = data.get("query", {}).get("pages", {})
     for page_id, page_data in pages.items():
@@ -149,9 +162,9 @@ def get_remote_page_content(session, title):
     return None
 
 
-def update_wikidata_page(session, title, content, summary):
-    """Updates a page on Wikidata using action=edit, skipping if unchanged."""
-    remote_content = get_remote_page_content(session, title)
+def update_wikidata_page(session, api_url, title, content, summary):
+    """Updates a page on target wiki using action=edit, skipping if unchanged."""
+    remote_content = get_remote_page_content(session, api_url, title)
     if remote_content is not None:
         if remote_content.strip() == content.strip():
             print(f"ℹ️ No changes detected in '{title}' — skipping deployment.")
@@ -168,7 +181,7 @@ def update_wikidata_page(session, title, content, summary):
             except Exception:
                 pass
 
-    csrf_token = get_csrf_token(session)
+    csrf_token = get_csrf_token(session, api_url)
     params = {
         "action": "edit",
         "title": title,
@@ -177,11 +190,11 @@ def update_wikidata_page(session, title, content, summary):
         "token": csrf_token,
         "format": "json"
     }
-    res = session.post(WIKIDATA_API_URL, data=params)
+    res = session.post(api_url, data=params)
     data = safe_json_response(res)
     if "edit" in data and data["edit"].get("result") == "Success":
         new_revid = data["edit"].get("newrevid", "no change")
-        print(f"✓ Successfully updated '{title}' on Wikidata! (Revision ID: {new_revid})")
+        print(f"✓ Successfully updated '{title}'! (Revision ID: {new_revid})")
     else:
         print(f"❌ Failed to edit page '{title}': {data}")
 
@@ -198,20 +211,20 @@ TARGET_CSS_FILES = {
     "dev": "CradleInWikidata-dev.css"
 }
 
-def update_commonjs_loader_version(session, username, target_env, version_str):
-    """Updates User:Danielyepezgarces/common.js to load exclusively target_env script."""
+def update_commonjs_loader_version(session, api_url, target_domain, username, target_env, version_str):
+    """Updates User:username/common.js on target wiki to load exclusively target_env script."""
     user_base = username.split('@')[0]
     commonjs_title = f"User:{user_base}/common.js"
 
     target_script_name = TARGET_PAGES[target_env]["js"].split("/")[-1]
-    new_loader_line = f'mw.loader.load("//www.wikidata.org/w/index.php?title=User:{user_base}/{target_script_name}&action=raw&ctype=text/javascript&version={version_str}");'
+    new_loader_line = f'mw.loader.load("//{target_domain}/w/index.php?title=User:{user_base}/{target_script_name}&action=raw&ctype=text/javascript&version={version_str}");'
 
     new_content = f"""// User:{user_base}/common.js
-// Cradle Wikidata Gadget Loader ({target_env.upper()} release)
+// Cradle Wikidata Gadget Loader ({target_env.upper()} release on {target_domain})
 {new_loader_line}
 """
-    update_wikidata_page(session, commonjs_title, new_content, f"Set loader to {target_script_name} version {version_str} ({target_env})")
-    print(f"✓ Updated loader in '{commonjs_title}' to target '{target_script_name}' (version {version_str}).")
+    update_wikidata_page(session, api_url, commonjs_title, new_content, f"Set loader to {target_script_name} version {version_str} ({target_env})")
+    print(f"✓ Updated loader in '{commonjs_title}' on {target_domain} to target '{target_script_name}' (version {version_str}).")
 
 
 def main():
@@ -223,10 +236,12 @@ def main():
         default_env = "stable"
     elif current_branch == "beta":
         default_env = "beta"
+    elif current_branch == "test":
+        default_env = "dev"
 
-    parser = argparse.ArgumentParser(description="Deploy Cradle gadget code to Wikidata.")
-    parser.add_argument("--target-env", choices=["stable", "beta", "dev"], default=default_env, help=f"Target environment: stable, beta, or dev (auto-detected: {default_env})")
-    parser.add_argument("--upload-i18n", action="store_true", help="Also upload translatewiki translations to Wikidata")
+    parser = argparse.ArgumentParser(description="Deploy Cradle gadget code to Wikidata or Test Wikidata.")
+    parser.add_argument("--target-env", choices=["stable", "beta", "dev"], default=default_env, help=f"Target environment: stable, beta (wikidata.org), or dev (test.wikidata.org) (auto-detected: {default_env})")
+    parser.add_argument("--upload-i18n", action="store_true", help="Also upload translatewiki translations to target wiki")
     parser.add_argument("--no-commonjs", action="store_false", dest="update_commonjs", help="Skip updating version parameter in user common.js")
     parser.set_defaults(update_commonjs=True)
     parser.add_argument("--force", action="store_true", help="Bypass git branch mismatch safety warnings")
@@ -236,21 +251,31 @@ def main():
 
     args = parser.parse_args()
 
-    # Safety check: Warn if deploying 'stable' while on 'master' branch
+    # Safety check: Warn if deploying 'stable' while not on 'stable' branch
     if args.target_env == "stable" and current_branch != "stable" and not args.force:
-        print(f"⚠️ SAFETY WARNING: You are currently on git branch '{current_branch}', but trying to deploy to [STABLE] 'User:Danielyepezgarces/Gadget-cradle.js'.")
+        print(f"⚠️ SAFETY WARNING: You are currently on git branch '{current_branch}', but trying to deploy to [STABLE] 'User:Danielyepezgarces/Gadget-cradle.js' on www.wikidata.org.")
         confirm = input("Are you sure you want to deploy non-stable code to production? (y/N): ").strip().lower()
         if confirm != "y":
             print("Aborted deployment.")
             sys.exit(0)
 
-    username = args.username or os.getenv("WIKIDATA_USERNAME")
-    password = args.password or os.getenv("WIKIDATA_BOT_PASSWORD")
+    api_url = API_URLS[args.target_env]
+    target_domain = DOMAINS[args.target_env]
+
+    # Select environment-specific credentials if available, otherwise fallback
+    if args.target_env == "dev":
+        username = args.username or os.getenv("TEST_WIKIDATA_USERNAME") or os.getenv("WIKIDATA_USERNAME")
+        password = args.password or os.getenv("TEST_WIKIDATA_BOT_PASSWORD") or os.getenv("WIKIDATA_BOT_PASSWORD")
+    else:
+        username = args.username or os.getenv("WIKIDATA_USERNAME")
+        password = args.password or os.getenv("WIKIDATA_BOT_PASSWORD")
 
     if not username:
-        username = input("Enter your Wikidata Username or BotName (e.g. Danielyepezgarces@cradle-deploy): ").strip()
+        username = input(f"Enter your Username or BotName for {target_domain} (e.g. Danielyepezgarces@cradle-deploy): ").strip()
     if not password:
         import getpass
+        password = getpass.getpass(f"Enter Bot Password for {username} on {target_domain}: ").strip()
+
     local_file = args.file or TARGET_FILES.get(args.target_env, "CradleInWikidata.js")
 
     if not os.path.exists(local_file):
@@ -270,8 +295,9 @@ def main():
     if args.target_env != "stable":
         edit_summary += f" ({args.target_env})"
 
-    print(f"Preparing deployment to Wikidata [{args.target_env.upper()}] environment:")
-    print(f"  Active Git Branch: {current_branch or 'unknown'}")
+    print(f"Preparing deployment to [{args.target_env.upper()}] environment on {target_domain}:")
+    print(f"  Target Wiki API:  {api_url}")
+    print(f"  Active Git Branch:{current_branch or 'unknown'}")
     print(f"  Target JS Page:   {target_js_page}")
     print(f"  Shared i18n Page: {target_i18n_page}")
     print(f"  Version:          {version_str}")
@@ -279,22 +305,22 @@ def main():
 
     session = requests.Session()
     session.headers.update({
-        "User-Agent": "CradleGadgetDeployer/1.0 (https://www.wikidata.org/wiki/User:Danielyepezgarces; cradle-gadget-bot@wikidata.org) Python-requests/2.31"
+        "User-Agent": f"CradleGadgetDeployer/1.0 (https://{target_domain}/wiki/User:Danielyepezgarces; cradle-gadget-bot@{target_domain}) Python-requests/2.31"
     })
 
     try:
-        login_bot(session, username, password)
-        update_wikidata_page(session, target_js_page, js_code, edit_summary)
+        login_bot(session, api_url, username, password)
+        update_wikidata_page(session, api_url, target_js_page, js_code, edit_summary)
 
         target_css_page = TARGET_PAGES[args.target_env].get("css")
         local_css_file = TARGET_CSS_FILES.get(args.target_env, "CradleInWikidata.css")
         if target_css_page and os.path.exists(local_css_file):
             with open(local_css_file, "r", encoding="utf-8") as f_css:
                 css_code = f_css.read()
-            update_wikidata_page(session, target_css_page, css_code, edit_summary)
+            update_wikidata_page(session, api_url, target_css_page, css_code, edit_summary)
 
         if args.upload_i18n:
-            print("\nDeploying i18n localization files:")
+            print(f"\nDeploying i18n localization files to {target_domain}:")
             tw_dir = "translatewiki"
             if os.path.isdir(tw_dir):
                 tw_files = sorted([f for f in os.listdir(tw_dir) if f.endswith(".json") and f != "qqq.json"])
@@ -303,12 +329,10 @@ def main():
                     lang_subpage = f"{SHARED_I18N_SUBPAGE_PREFIX}/{lang_code}.json"
                     with open(os.path.join(tw_dir, tw_file), "r", encoding="utf-8") as f_lang:
                         lang_content = f_lang.read()
-                    update_wikidata_page(session, lang_subpage, lang_content, f"Update {lang_code} translation via Translatewiki / Cradle (v{version_str})")
-
-
+                    update_wikidata_page(session, api_url, lang_subpage, lang_content, f"Update {lang_code} translation via Translatewiki / Cradle (v{version_str})")
 
         if args.update_commonjs:
-            update_commonjs_loader_version(session, username, args.target_env, version_str)
+            update_commonjs_loader_version(session, api_url, target_domain, username, args.target_env, version_str)
 
     except Exception as err:
         print(f"❌ Error during deployment: {err}")
