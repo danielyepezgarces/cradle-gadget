@@ -608,6 +608,77 @@
         .cradle-row.deleted .cradle-btn-delete {
             color: var(--color-progressive, #36c);
         }
+
+        /* Wikibase Rank Selector */
+        .cradle-rank-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .cradle-rank-btn {
+            background: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 32px;
+            width: 28px;
+            color: var(--color-subtle, #72777d);
+            transition: all 0.15s ease;
+        }
+        .cradle-rank-btn:hover {
+            background-color: var(--background-color-interactive-subtle, rgba(0, 0, 0, 0.05));
+            border-color: var(--border-color-base, #a2a9b1);
+        }
+        .cradle-rank-btn.rank-preferred {
+            color: var(--color-progressive, #36c);
+        }
+        .cradle-rank-btn.rank-deprecated {
+            color: var(--color-destructive, #d33);
+        }
+        .cradle-rank-btn.rank-normal {
+            color: var(--color-base, #202122);
+        }
+        .cradle-rank-icon {
+            display: inline-block;
+            vertical-align: middle;
+            transition: transform 0.1s ease;
+        }
+        .cradle-rank-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 10001;
+            background: var(--background-color-base, #ffffff);
+            border: 1px solid var(--border-color-base, #a2a9b1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 2px;
+            padding: 4px 0;
+            min-width: 140px;
+            list-style: none;
+            margin: 2px 0 0 0;
+        }
+        .cradle-rank-menuitem {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            font-size: 0.82rem;
+            color: var(--color-base, #202122);
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .cradle-rank-menuitem:hover {
+            background-color: var(--background-color-interactive-subtle, rgba(0, 0, 0, 0.05));
+        }
+        .cradle-rank-menuitem.active {
+            font-weight: 600;
+            background-color: rgba(51, 102, 204, 0.08);
+            color: var(--color-progressive, #36c);
+        }
         /* Wikibase Quality Constraints (wbqc) status styling */
         .cradle-drawer .wbqc-reports-status {
             display: inline-flex;
