@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.57.0
+ * Version: 1.59.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.56.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.0');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.56.0';
+    const CRADLE_VERSION = '1.59.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -40,7 +40,7 @@
         }
     }
 
-    // Verify if we are on Wikidata
+    // Verify if we are on Wikidata or Test Wikidata
     if (!mw.config.get('wgServer').includes('wikidata.org')) {
         return;
     }
@@ -216,7 +216,12 @@
         edit: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M16.77 8l1.94-2a1 1 0 0 0 0-1.41l-3.34-3.3a1 1 0 0 0-1.41 0L12 3.23zM1 14.25V19h4.75l9.96-9.96-4.75-4.75z"/></svg>`,
         code: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m5 13-4-3 4-3 1.4 1.4-2.1 1.6 2.1 1.6zm10 0-1.4-1.4 2.1-1.6-2.1-1.6L15 7l4 3zm-6.8 3.5-2.4-.6 6-12 2.4.6z"/></svg>`,
         feedback: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M18 10c0-4.42-3.58-8-8-8s-8 3.58-8 8c0 2.03.76 3.87 2 5.28V19l3.53-1.77C8.41 17.72 9.19 18 10 18c4.42 0 8-3.58 8-8zm-8 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm1-4H9V6h2v4z"/></svg>`,
-        mapPin: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M10 2a6 6 0 0 0-6 6c0 4.5 6 10 6 10s6-5.5 6-10a6 6 0 0 0-6-6zm0 8.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>`
+        mapPin: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M10 2a6 6 0 0 0-6 6c0 4.5 6 10 6 10s6-5.5 6-10a6 6 0 0 0-6-6zm0 8.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>`,
+        qualifier: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M19.41 10.42l-7.83-7.83a2 2 0 0 0-1.41-.59H3a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l7.83 7.82a2 2 0 0 0 2.82 0l7.17-7.17a2 2 0 0 0 0-2.82zM5.5 7A1.5 1.5 0 1 1 7 5.5 1.5 1.5 0 0 1 5.5 7z"/></svg>`,
+        reference: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M15 1H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zm-1 14H6V5h8z"/></svg>`,
+        chevronDown: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20"><path d="m10 13.5 6-6-1.4-1.4-4.6 4.6-4.6-4.6L4 7.5z"/></svg>`,
+        chevronRight: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20"><path d="m7.5 4-1.4 1.4 4.6 4.6-4.6 4.6 1.4 1.4 6-6z"/></svg>`,
+        cite: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20"><path d="M7 5H3v6h4v4h3V5H7zm9 0h-4v6h4v4h3V5h-3z"/></svg>`
     };
 
     /**
@@ -251,6 +256,7 @@
             'cradle-cardinality-req-multi': '1..* / + (Required, multiple)',
             'cradle-change-form': 'Change schema',
             'cradle-change-schema': 'Change schema',
+            'cradle-citoid-error': 'Failed to fetch metadata from Citoid: $1',
             'cradle-citoid-loading': 'Fetching metadata (Citoid)...',
             'cradle-citoid-success': 'Metadata loaded!',
             'cradle-confirm-proceed': 'Do you want to proceed anyway?',
@@ -372,13 +378,16 @@
             'cradle-publish-shex-failed': 'Failed to publish EntitySchema: $1',
             'cradle-publish-shex-success': 'EntitySchema $1 published successfully on Wikidata!',
             'cradle-publishing-shex': 'Publishing EntitySchema to Wikidata...',
+            'cradle-qualifier-prop-placeholder': 'Property (e.g. start time, P580)',
             'cradle-qualifiers': 'Qualifiers',
             'cradle-rank': 'Rank',
             'cradle-rank-deprecated': 'Deprecated',
             'cradle-rank-normal': 'Normal',
             'cradle-rank-preferred': 'Preferred',
+            'cradle-ref-heading': 'Reference #$1',
             'cradle-ref-url-placeholder': 'Enter URL, DOI, ISBN or PMID...',
             'cradle-references': 'References',
+            'cradle-references-count': '$1 reference(s)',
             'cradle-remove-qualifier': 'Remove qualifier',
             'cradle-remove-reference': 'Remove reference',
             'cradle-required-checkbox': 'Required',
@@ -2900,6 +2909,78 @@
                         let rowDt = snak.datatype || (snak.datavalue && snak.datavalue.type) || effectiveDatatype;
                         if (rowDt === 'globecoordinate') rowDt = 'globe-coordinate';
 
+                        // Parse qualifiers into normalized array
+                        let normalizedQualifiers = [];
+                        if (claim.qualifiers) {
+                            let qOrder = (claim['qualifiers-order'] && claim['qualifiers-order'].slice()) || Object.keys(claim.qualifiers);
+                            Object.keys(claim.qualifiers).forEach(k => {
+                                if (!qOrder.includes(k)) qOrder.push(k);
+                            });
+                            qOrder.forEach(qPid => {
+                                let snaks = claim.qualifiers[qPid] || [];
+                                snaks.forEach(qSnak => {
+                                    let qSnaktype = qSnak.snaktype || 'value';
+                                    let qVal = '';
+                                    if (qSnaktype === 'value' && qSnak.datavalue) {
+                                        qVal = parseClaimValue(qSnak.datavalue);
+                                    } else if (qSnaktype === 'somevalue' || qSnaktype === 'novalue') {
+                                        qVal = qSnaktype;
+                                    }
+                                    let qDt = qSnak.datatype || (qSnak.datavalue && qSnak.datavalue.type) || 'string';
+                                    if (qDt === 'globecoordinate') qDt = 'globe-coordinate';
+                                    normalizedQualifiers.push({
+                                        id: Math.random().toString(36).substring(2, 9),
+                                        hash: qSnak.hash || null,
+                                        pid: qPid,
+                                        propertyLabel: null,
+                                        datatype: qDt,
+                                        snaktype: qSnaktype,
+                                        value: qVal
+                                    });
+                                });
+                            });
+                        }
+
+                        // Parse references into normalized array
+                        let normalizedReferences = [];
+                        if (claim.references && Array.isArray(claim.references)) {
+                            claim.references.forEach(ref => {
+                                let snakList = [];
+                                let snaksOrder = (ref['snaks-order'] && ref['snaks-order'].slice()) || Object.keys(ref.snaks || {});
+                                Object.keys(ref.snaks || {}).forEach(k => {
+                                    if (!snaksOrder.includes(k)) snaksOrder.push(k);
+                                });
+                                snaksOrder.forEach(rPid => {
+                                    let snaks = (ref.snaks && ref.snaks[rPid]) || [];
+                                    snaks.forEach(rSnak => {
+                                        let rSnaktype = rSnak.snaktype || 'value';
+                                        let rVal = '';
+                                        if (rSnaktype === 'value' && rSnak.datavalue) {
+                                            rVal = parseClaimValue(rSnak.datavalue);
+                                        } else if (rSnaktype === 'somevalue' || rSnaktype === 'novalue') {
+                                            rVal = rSnaktype;
+                                        }
+                                        let rDt = rSnak.datatype || (rSnak.datavalue && rSnak.datavalue.type) || 'string';
+                                        if (rDt === 'globecoordinate') rDt = 'globe-coordinate';
+                                        snakList.push({
+                                            id: Math.random().toString(36).substring(2, 9),
+                                            hash: rSnak.hash || null,
+                                            pid: rPid,
+                                            propertyLabel: null,
+                                            datatype: rDt,
+                                            snaktype: rSnaktype,
+                                            value: rVal
+                                        });
+                                    });
+                                });
+                                normalizedReferences.push({
+                                    id: Math.random().toString(36).substring(2, 9),
+                                    hash: ref.hash || null,
+                                    snaks: snakList
+                                });
+                            });
+                        }
+
                         if (snaktype === 'value' || snaktype === 'somevalue' || snaktype === 'novalue') {
                             formState[pid].push({
                                 id: Math.random().toString(36).substring(2, 9),
@@ -2908,8 +2989,10 @@
                                 snaktype: snaktype,
                                 datatype: rowDt,
                                 rank: claim.rank || 'normal',
-                                references: claim.references || [],
-                                qualifiers: claim.qualifiers || {},
+                                references: normalizedReferences,
+                                isReferencesExpanded: false,
+                                qualifiers: normalizedQualifiers,
+                                isQualifiersExpanded: normalizedQualifiers.length > 0,
                                 isDeleted: false
                             });
                         }
@@ -2934,6 +3017,35 @@
                 propDef.max = Infinity;
             }
         });
+
+        // Preload metadata for any existing qualifier or reference properties
+        let extraPropIds = [];
+        Object.keys(formState).forEach(p => {
+            formState[p].forEach(r => {
+                (r.qualifiers || []).forEach(q => {
+                    if (q.pid && !propertyMetadata[q.pid] && !extraPropIds.includes(q.pid)) {
+                        extraPropIds.push(q.pid);
+                    }
+                });
+                (r.references || []).forEach(ref => {
+                    (ref.snaks || []).forEach(s => {
+                        if (s.pid && !propertyMetadata[s.pid] && !extraPropIds.includes(s.pid)) {
+                            extraPropIds.push(s.pid);
+                        }
+                    });
+                });
+            });
+        });
+        if (extraPropIds.length > 0) {
+            loadPropertiesMetadata(extraPropIds).then(metaMap => {
+                Object.assign(propertyMetadata, metaMap);
+                extraPropIds.forEach(propId => {
+                    let label = (metaMap[propId] && metaMap[propId].label) || propId;
+                    $(`.cradle-qualifier-prop-pill[data-pid="${propId}"] .cradle-qualifier-prop-name`).text(label);
+                    $(`.cradle-ref-prop-pill[data-pid="${propId}"] .cradle-ref-prop-name`).text(label);
+                });
+            });
+        }
     }
 
     const MONTH_NAMES_ES = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -3148,7 +3260,8 @@
             datatype: datatype,
             rank: 'normal',
             references: [],
-            qualifiers: {},
+            qualifiers: [],
+            isQualifiersExpanded: false,
             isDeleted: false
         };
     }
@@ -4032,7 +4145,7 @@
             }
             $card.append($cardHeader);
             // Container for statement input rows
-            let $rowsContainer = $('<div>').attr('id', `cradle-rows-${pid}`);
+            let $rowsContainer = $('<div>').addClass('cradle-rows-container').attr('id', `cradle-rows-${pid}`);
             $card.append($rowsContainer);
 
             // Container for action bar
@@ -4049,6 +4162,82 @@
     }
 
     /**
+     * Returns an SVG string representing the Wikibase 3-tier rank icon for a given rank.
+     */
+    function getRankSvg(rank) {
+        let preferredColor = (rank === 'preferred') ? 'var(--color-progressive, #36c)' : 'var(--color-subtle, #a2a9b1)';
+        let normalColor = (rank === 'normal') ? 'var(--color-base, #202122)' : 'var(--color-subtle, #a2a9b1)';
+        let deprecatedColor = (rank === 'deprecated') ? 'var(--color-destructive, #d33)' : 'var(--color-subtle, #a2a9b1)';
+
+        return `<svg class="cradle-rank-icon" width="10" height="18" viewBox="0 0 10 18">
+            <path d="M5,1 L1,5.5 L9,5.5 Z" fill="${preferredColor}" stroke="${preferredColor}" stroke-width="0.5"/>
+            <path d="M1,8 L9,8 L9,10 L1,10 Z" fill="${normalColor}"/>
+            <path d="M5,17 L1,12.5 L9,12.5 Z" fill="${deprecatedColor}" stroke="${deprecatedColor}" stroke-width="0.5"/>
+        </svg>`;
+    }
+
+    /**
+     * Creates an interactive Wikibase Rank Selector widget for a statement row.
+     */
+    function createRankSelector(pid, row) {
+        let currentRank = row.rank || 'normal';
+        let $container = $('<div>').addClass('cradle-rank-container');
+
+        let rankTitleMap = {
+            'preferred': mw.msg('cradle-rank-preferred'),
+            'normal': mw.msg('cradle-rank-normal'),
+            'deprecated': mw.msg('cradle-rank-deprecated')
+        };
+
+        let $rankBtn = $('<button>')
+            .attr('type', 'button')
+            .addClass(`cradle-rank-btn rank-${currentRank}`)
+            .attr('title', `${mw.msg('cradle-rank')}: ${rankTitleMap[currentRank] || currentRank}`)
+            .html(getRankSvg(currentRank));
+
+        let $menu = $('<ul>').addClass('cradle-rank-menu').hide();
+
+        ['preferred', 'normal', 'deprecated'].forEach(r => {
+            let $item = $('<li>')
+                .addClass(`cradle-rank-menuitem rank-${r}`)
+                .toggleClass('active', r === currentRank)
+                .html(`${getRankSvg(r)} <span>${rankTitleMap[r]}</span>`)
+                .on('click', function(e) {
+                    e.stopPropagation();
+                    $menu.hide();
+                    if (row.rank !== r) {
+                        row.rank = r;
+                        $rankBtn
+                            .removeClass('rank-preferred rank-normal rank-deprecated')
+                            .addClass(`rank-${r}`)
+                            .attr('title', `${mw.msg('cradle-rank')}: ${rankTitleMap[r]}`)
+                            .html(getRankSvg(r));
+                        $menu.find('.cradle-rank-menuitem').removeClass('active');
+                        $item.addClass('active');
+                        liveUpdateValidation();
+                    }
+                });
+            $menu.append($item);
+        });
+
+        $rankBtn.on('click', function(e) {
+            e.stopPropagation();
+            if (row.isDeleted) return;
+            $('.cradle-rank-menu').not($menu).hide();
+            $menu.toggle();
+        });
+
+        $(document).on('click.cradleRankMenu', function(e) {
+            if (!$container.is(e.target) && $container.has(e.target).length === 0) {
+                $menu.hide();
+            }
+        });
+
+        $container.append($rankBtn).append($menu);
+        return $container;
+    }
+
+    /**
      * Render statement rows for a given property.
      */
     function renderPropertyRows(pid) {
@@ -4058,30 +4247,93 @@
         
         let rows = formState[pid];
 
+        let nonDeletedRows = rows.filter(r => !r.isDeleted);
+        if (nonDeletedRows.length > 1) {
+            $container.addClass('cradle-multiple-rows');
+        } else {
+            $container.removeClass('cradle-multiple-rows');
+        }
+
         rows.forEach((row, index) => {
+            let $statement = $('<div>')
+                .addClass('cradle-statement')
+                .attr('id', `cradle-statement-${row.id}`);
+
             let $row = $('<div>')
                 .addClass('cradle-row')
                 .attr('id', `cradle-row-${row.id}`);
 
             if (row.isDeleted) {
                 $row.addClass('deleted');
+                $statement.addClass('deleted');
             }
+
+            let $rankSelector = createRankSelector(pid, row);
+            $row.append($rankSelector);
 
             let $inputElement = createInputForDatatype(pid, row);
             let $indicators = $('<div>').addClass('wikibase-snakview-indicators').attr('id', `cradle-indicators-${row.id}`).css({'margin-left': '6px', 'display': 'inline-flex'});
-            let $inputWithIndicators = $('<div>').css({'display': 'flex', 'align-items': 'center', 'flex': '1'}).append($inputElement).append($indicators);
+            let $inputWithIndicators = $('<div>').css({'display': 'flex', 'align-items': 'center', 'flex': '1', 'min-width': '0'}).append($inputElement).append($indicators);
             $row.append($inputWithIndicators);
+
+            let $statementToolbar = $('<div>').addClass('cradle-statement-toolbar');
+
+            // Qualifier Toggle Button
+            let qualCount = (row.qualifiers || []).filter(q => q.pid && !isEmptyValue(q.value, q.datatype)).length;
+            let $qualBtn = $('<button>')
+                .addClass('cradle-btn-qualifier-toggle')
+                .attr('type', 'button')
+                .attr('title', mw.msg('cradle-qualifiers'))
+                .html(ICONS.qualifier + (qualCount > 0 ? `<span class="cradle-badge-count">${qualCount}</span>` : ''))
+                .on('click', function() {
+                    row.isQualifiersExpanded = !row.isQualifiersExpanded;
+                    renderPropertyRows(pid);
+                });
+            if (row.isQualifiersExpanded) {
+                $qualBtn.addClass('active');
+            }
+            $statementToolbar.append($qualBtn);
+
+            // References Toggle Button
+            let refCount = (row.references || []).length;
+            let $refBtn = $('<button>')
+                .addClass('cradle-btn-ref-toggle')
+                .attr('type', 'button')
+                .attr('title', mw.msg('cradle-references'))
+                .html(ICONS.reference + (refCount > 0 ? `<span class="cradle-badge-count">${refCount}</span>` : ''))
+                .on('click', function() {
+                    row.isReferencesExpanded = !row.isReferencesExpanded;
+                    renderPropertyRows(pid);
+                });
+            if (row.isReferencesExpanded) {
+                $refBtn.addClass('active');
+            }
+            $statementToolbar.append($refBtn);
 
             let $deleteBtn = $('<button>')
                 .addClass('cradle-btn-delete')
+                .attr('type', 'button')
                 .html(row.isDeleted ? ICONS.undo : ICONS.trash)
                 .attr('title', row.isDeleted ? 'Restore Claim' : 'Delete Claim')
                 .on('click', function() {
                     toggleDeleteRow(pid, row.id);
                 });
+            $statementToolbar.append($deleteBtn);
 
-            $row.append($deleteBtn);
-            $container.append($row);
+            $row.append($statementToolbar);
+            $statement.append($row);
+
+            // Render qualifiers section if expanded or if row has qualifiers
+            if (row.isQualifiersExpanded || (row.qualifiers && row.qualifiers.length > 0)) {
+                let $qualSection = renderQualifiersSection(pid, row);
+                $statement.append($qualSection);
+            }
+
+            // Render references section (Wikibase statementview references container)
+            let $refSection = renderReferencesSection(pid, row);
+            $statement.append($refSection);
+
+            $container.append($statement);
         });
 
         // Dynamic Action Bar rendering (Add row button)
@@ -4092,12 +4344,1094 @@
         if (showAddButton) {
             let $addBtn = $('<button>')
                 .addClass('cradle-btn-text')
+                .attr('type', 'button')
                 .html(`${ICONS.plus} ${mw.msg('cradle-add-value')}`)
                 .on('click', function() {
                     addRow(pid);
                 });
             $actionsContainer.append($addBtn);
         }
+    }
+
+    /**
+     * Adds a new qualifier to a statement row.
+     */
+    function addQualifierToRow(pid, row, prefillPid) {
+        if (!row.qualifiers) row.qualifiers = [];
+        row.isQualifiersExpanded = true;
+        let pId = prefillPid || '';
+        let meta = pId ? (propertyMetadata[pId] || {}) : {};
+        let dt = meta.datatype || (pId === 'P580' || pId === 'P582' || pId === 'P585' ? 'time' : 'string');
+
+        let newQual = {
+            id: Math.random().toString(36).substring(2, 9),
+            hash: null,
+            pid: pId,
+            propertyLabel: meta.label || (pId ? pId : ''),
+            datatype: dt,
+            snaktype: 'value',
+            value: ''
+        };
+        row.qualifiers.push(newQual);
+        renderPropertyRows(pid);
+        liveUpdateValidation();
+    }
+
+    /**
+     * Removes a qualifier from a statement row.
+     */
+    function removeQualifierFromRow(pid, row, qualId) {
+        if (!row.qualifiers) return;
+        row.qualifiers = row.qualifiers.filter(q => q.id !== qualId);
+        renderPropertyRows(pid);
+        liveUpdateValidation();
+    }
+
+    /**
+     * Renders the qualifiers section container for a statement.
+     */
+    function renderQualifiersSection(pid, row) {
+        let $section = $('<div>')
+            .addClass('cradle-qualifiers-container')
+            .attr('id', `cradle-qualifiers-${row.id}`);
+
+        let $list = $('<div>').addClass('cradle-qualifiers-list');
+
+        let qualifiers = row.qualifiers || [];
+        qualifiers.forEach((qual, qIndex) => {
+            let $qRow = renderQualifierRow(pid, row, qual, qIndex);
+            $list.append($qRow);
+        });
+
+        $section.append($list);
+
+        // Actions bar under qualifiers: "+ Add qualifier" and suggestions
+        let $footer = $('<div>').css({'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between', 'flex-wrap': 'wrap', 'gap': '8px', 'margin-top': '4px'});
+
+        let $addBtn = $('<button>')
+            .addClass('cradle-btn-text cradle-btn-add-qualifier')
+            .attr('type', 'button')
+            .html(`${ICONS.plus} ${mw.msg('cradle-add-qualifier')}`)
+            .on('click', function() {
+                addQualifierToRow(pid, row);
+            });
+        $footer.append($addBtn);
+
+        // Common qualifier suggestions if statement has few/no qualifiers
+        let commonQuals = [
+            { pid: 'P580', label: 'start time' },
+            { pid: 'P582', label: 'end time' },
+            { pid: 'P585', label: 'point in time' },
+            { pid: 'P459', label: 'determination method' }
+        ];
+        let existingPids = qualifiers.map(q => q.pid);
+        let suggestions = commonQuals.filter(cq => !existingPids.includes(cq.pid));
+
+        if (suggestions.length > 0) {
+            let $sugBox = $('<div>').addClass('cradle-qualifier-suggestions');
+            suggestions.forEach(s => {
+                let sLabel = (propertyMetadata[s.pid] && propertyMetadata[s.pid].label) || s.label;
+                let $chip = $('<span>')
+                    .addClass('cradle-qualifier-suggestion-chip')
+                    .text(`+ ${sLabel}`)
+                    .attr('title', s.pid)
+                    .on('click', function() {
+                        addQualifierToRow(pid, row, s.pid);
+                    });
+                $sugBox.append($chip);
+            });
+            $footer.append($sugBox);
+        }
+
+        $section.append($footer);
+        return $section;
+    }
+
+    /**
+     * Renders a single qualifier row.
+     */
+    function renderQualifierRow(pid, row, qual, qIndex) {
+        let $qRow = $('<div>')
+            .addClass('cradle-qualifier-row')
+            .attr('id', `cradle-qualifier-${qual.id}`);
+
+        let $propCol = $('<div>').addClass('cradle-qualifier-property');
+
+        if (qual.pid) {
+            // Display property pill
+            let meta = propertyMetadata[qual.pid] || {};
+            let propLabel = qual.propertyLabel || meta.label || qual.pid;
+            let $pill = $('<div>')
+                .addClass('cradle-qualifier-prop-pill')
+                .attr('data-pid', qual.pid)
+                .attr('title', `${propLabel} (${qual.pid}) - ${mw.msg('cradle-btn-edit')}`);
+
+            $pill.append($('<span>').addClass('cradle-qualifier-prop-name').text(propLabel));
+            $pill.append($('<span>').addClass('cradle-qualifier-prop-id').text(`(${qual.pid})`));
+
+            $pill.on('click', function() {
+                qual.pid = '';
+                renderPropertyRows(pid);
+            });
+            $propCol.append($pill);
+        } else {
+            // Display property autocomplete search input
+            let $propWrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'width': '100%'});
+            let $propInput = $('<input>')
+                .addClass('cradle-input cradle-qualifier-prop-search')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-qualifier-prop-placeholder'))
+                .val('');
+
+            let $propDropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
+            $propWrapper.append($propInput).append($propDropdown);
+
+            let searchTimeout = null;
+            $propInput.on('input', function() {
+                clearTimeout(searchTimeout);
+                let term = $propInput.val().trim();
+                if (term.length < 1) {
+                    $propDropdown.hide().empty();
+                    return;
+                }
+                searchTimeout = setTimeout(function() {
+                    let api = new mw.Api();
+                    api.get({
+                        action: 'wbsearchentities',
+                        search: term,
+                        type: 'property',
+                        language: mw.config.get('wgUserLanguage') || 'en',
+                        format: 'json'
+                    }).done(function(res) {
+                        $propDropdown.empty();
+                        let items = (res && res.search) ? res.search : [];
+                        if (items.length === 0) {
+                            $propDropdown.hide();
+                            return;
+                        }
+                        items.forEach(item => {
+                            let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
+                            let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(item.label || item.id);
+                            $lbl.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${item.id})`));
+                            $r.append($lbl);
+                            if (item.description) {
+                                $r.append($('<div>').addClass('cradle-autocomplete-row-desc').css({'font-size': '0.75rem', 'color': 'var(--color-subtle, #54595d)'}).text(item.description));
+                            }
+                            $r.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                qual.pid = item.id;
+                                qual.propertyLabel = item.label || item.id;
+                                let itemDt = item.datatype;
+                                if (itemDt) {
+                                    qual.datatype = itemDt === 'globecoordinate' ? 'globe-coordinate' : itemDt;
+                                    propertyMetadata[item.id] = propertyMetadata[item.id] || {};
+                                    propertyMetadata[item.id].label = item.label;
+                                    propertyMetadata[item.id].datatype = itemDt;
+                                    renderPropertyRows(pid);
+                                    liveUpdateValidation();
+                                } else {
+                                    loadPropertiesMetadata([item.id]).then(metaMap => {
+                                        Object.assign(propertyMetadata, metaMap);
+                                        let fetchedMeta = metaMap[item.id] || {};
+                                        qual.datatype = fetchedMeta.datatype || 'string';
+                                        if (qual.datatype === 'globecoordinate') qual.datatype = 'globe-coordinate';
+                                        renderPropertyRows(pid);
+                                        liveUpdateValidation();
+                                    });
+                                }
+                            });
+                            $propDropdown.append($r);
+                        });
+                        $propDropdown.show();
+                    }).fail(function() {
+                        $propDropdown.hide();
+                    });
+                }, 250);
+            });
+
+            $(document).on('click.cradleQualProp', function(e) {
+                if (!$propWrapper.is(e.target) && $propWrapper.has(e.target).length === 0) {
+                    $propDropdown.hide();
+                }
+            });
+
+            $propCol.append($propWrapper);
+            setTimeout(() => { $propInput.focus(); }, 50);
+        }
+
+        $qRow.append($propCol);
+
+        // Qualifier value input
+        let $valCol = $('<div>').addClass('cradle-qualifier-value');
+        if (qual.pid) {
+            let $valInput = createQualifierValueInput(qual, function() {
+                liveUpdateValidation();
+            });
+            $valCol.append($valInput);
+        } else {
+            let $dummyInput = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('disabled', true)
+                .attr('placeholder', mw.msg('cradle-search-placeholder'))
+                .css({'opacity': '0.6', 'cursor': 'not-allowed'});
+            $valCol.append($dummyInput);
+        }
+        $qRow.append($valCol);
+
+        // Remove button
+        let $removeBtn = $('<button>')
+            .addClass('cradle-btn-remove-qualifier')
+            .attr('type', 'button')
+            .attr('title', mw.msg('cradle-remove-qualifier'))
+            .html(ICONS.close)
+            .on('click', function() {
+                removeQualifierFromRow(pid, row, qual.id);
+            });
+        $qRow.append($removeBtn);
+
+        return $qRow;
+    }
+
+    /**
+     * Creates an appropriate input element for a qualifier value.
+     */
+    function createQualifierValueInput(qual, onUpdate) {
+        let dt = qual.datatype || 'string';
+
+        // 1. wikibase-item
+        if (dt === 'wikibase-item') {
+            let $wrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'flex': '1'});
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-search-placeholder'))
+                .val('');
+
+            let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
+            $wrapper.append($input).append($dropdown);
+
+            if (qual.value) {
+                loadItemLabels([qual.value]).then(labels => {
+                    let label = labels[qual.value] || qual.value;
+                    $input.val(label !== qual.value ? `${label} (${qual.value})` : qual.value);
+                });
+            }
+
+            let searchTimeout = null;
+            $input.on('input', function() {
+                clearTimeout(searchTimeout);
+                let q = $input.val().trim();
+                qual.value = q;
+                onUpdate();
+
+                if (q.length < 1) {
+                    $dropdown.hide().empty();
+                    return;
+                }
+
+                searchTimeout = setTimeout(function() {
+                    searchWikidataItems(q).then(items => {
+                        $dropdown.empty();
+                        if (items.length === 0) {
+                            $dropdown.hide();
+                            return;
+                        }
+                        items.forEach(item => {
+                            let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
+                            let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(item.label || item.id);
+                            $lbl.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${item.id})`));
+                            $r.append($lbl);
+                            if (item.description) {
+                                $r.append($('<div>').addClass('cradle-autocomplete-row-desc').css({'font-size': '0.75rem', 'color': 'var(--color-subtle, #54595d)'}).text(item.description));
+                            }
+                            $r.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                qual.value = item.id;
+                                $input.val(item.label ? `${item.label} (${item.id})` : item.id);
+                                $dropdown.hide();
+                                onUpdate();
+                            });
+                            $dropdown.append($r);
+                        });
+                        $dropdown.show();
+                    });
+                }, 250);
+            });
+
+            $(document).on('click.cradleQualItem', function(e) {
+                if (!$wrapper.is(e.target) && $wrapper.has(e.target).length === 0) {
+                    $dropdown.hide();
+                }
+            });
+
+            return $wrapper;
+        }
+
+        // 2. time
+        if (dt === 'time') {
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', 'YYYY-MM-DD or YYYY')
+                .val(qual.value || '');
+            $input.on('input', function() {
+                qual.value = $input.val();
+                onUpdate();
+            });
+            return $input;
+        }
+
+        // 3. quantity
+        if (dt === 'quantity') {
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'number')
+                .attr('placeholder', 'Number')
+                .val(qual.value || '');
+            $input.on('input', function() {
+                qual.value = $input.val();
+                onUpdate();
+            });
+            return $input;
+        }
+
+        // 4. monolingualtext
+        if (dt === 'monolingualtext') {
+            let $group = $('<div>').css({'display': 'flex', 'gap': '6px', 'flex': '1'});
+            let valObj = (typeof qual.value === 'object' && qual.value !== null) ? qual.value : {
+                text: typeof qual.value === 'string' ? qual.value : '',
+                language: mw.config.get('wgUserLanguage') || 'en'
+            };
+            qual.value = valObj;
+
+            let $langInput = $('<input>')
+                .addClass('cradle-input cradle-lang-input')
+                .css({'width': '65px', 'flex': 'none'})
+                .attr('placeholder', 'Lang')
+                .val(valObj.language);
+
+            let $textInput = $('<input>')
+                .addClass('cradle-input')
+                .css({'flex': '1'})
+                .attr('placeholder', mw.msg('cradle-monolingual-text-placeholder'))
+                .val(valObj.text);
+
+            $langInput.on('input', function() {
+                valObj.language = $langInput.val().trim();
+                onUpdate();
+            });
+            $textInput.on('input', function() {
+                valObj.text = $textInput.val();
+                onUpdate();
+            });
+
+            $group.append($langInput).append($textInput);
+            return $group;
+        }
+
+        // 5. globe-coordinate
+        if (dt === 'globe-coordinate' || dt === 'globecoordinate') {
+            let coordVal = (typeof qual.value === 'object' && qual.value !== null) ? qual.value : {
+                latitude: '',
+                longitude: '',
+                altitude: null,
+                precision: 0.0001,
+                globe: 'http://www.wikidata.org/entity/Q2'
+            };
+            qual.value = coordVal;
+
+            let initialText = '';
+            if (coordVal.latitude !== '' && coordVal.latitude !== null && coordVal.longitude !== '' && coordVal.longitude !== null && !isNaN(coordVal.latitude) && !isNaN(coordVal.longitude)) {
+                initialText = formatCoordinates(coordVal.latitude, coordVal.longitude);
+            }
+
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr({type: 'text', placeholder: mw.msg('cradle-coord-placeholder')})
+                .val(initialText);
+
+            $input.on('input blur', function() {
+                let parsed = parseCoordinateInput($input.val().trim());
+                if (parsed) {
+                    coordVal.latitude = parsed.latitude;
+                    coordVal.longitude = parsed.longitude;
+                    coordVal.precision = parsed.precision || 0.0001;
+                } else {
+                    coordVal.latitude = $input.val().trim();
+                    coordVal.longitude = '';
+                }
+                onUpdate();
+            });
+            return $input;
+        }
+
+        // 6. commonsMedia
+        if (dt === 'commonsMedia') {
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', 'e.g. File.jpg')
+                .val(qual.value || '');
+            $input.on('input', function() {
+                qual.value = $input.val().trim().replace(/^File:/i, '');
+                onUpdate();
+            });
+            return $input;
+        }
+
+        // 7. wikibase-property
+        if (dt === 'wikibase-property') {
+            let $wrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'flex': '1'});
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-qualifier-prop-placeholder'))
+                .val(qual.value || '');
+            let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
+            $wrapper.append($input).append($dropdown);
+
+            let searchTimeout = null;
+            $input.on('input', function() {
+                clearTimeout(searchTimeout);
+                let q = $input.val().trim();
+                qual.value = q;
+                onUpdate();
+                if (q.length < 1) { $dropdown.hide().empty(); return; }
+                searchTimeout = setTimeout(function() {
+                    let api = new mw.Api();
+                    api.get({
+                        action: 'wbsearchentities',
+                        search: q,
+                        type: 'property',
+                        language: mw.config.get('wgUserLanguage') || 'en',
+                        format: 'json'
+                    }).done(function(res) {
+                        $dropdown.empty();
+                        let items = (res && res.search) ? res.search : [];
+                        if (items.length === 0) { $dropdown.hide(); return; }
+                        items.forEach(item => {
+                            let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
+                            let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(item.label || item.id);
+                            $lbl.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${item.id})`));
+                            $r.append($lbl);
+                            $r.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                qual.value = item.id;
+                                $input.val(item.label ? `${item.label} (${item.id})` : item.id);
+                                $dropdown.hide();
+                                onUpdate();
+                            });
+                            $dropdown.append($r);
+                        });
+                        $dropdown.show();
+                    });
+                }, 250);
+            });
+            return $wrapper;
+        }
+
+        // 8. Fallback text input (string, external-id, url, etc.)
+        let displayVal = qual.value;
+        if (typeof displayVal === 'object' && displayVal !== null) {
+            displayVal = displayVal.text || displayVal.id || displayVal.time || '';
+        }
+        let $input = $('<input>')
+            .addClass('cradle-input')
+            .attr('type', 'text')
+            .attr('placeholder', 'Enter value')
+            .val(displayVal || '');
+
+        $input.on('input', function() {
+            qual.value = $input.val();
+            onUpdate();
+        });
+        return $input;
+    }
+
+    /**
+     * Renders the references section container for a statement.
+     */
+    function renderReferencesSection(pid, row) {
+        let $section = $('<div>')
+            .addClass('cradle-references-container')
+            .attr('id', `cradle-references-${row.id}`);
+
+        let references = row.references || [];
+        let refCount = references.length;
+
+        // References collapsible heading
+        let $heading = $('<div>')
+            .addClass('cradle-references-heading')
+            .toggleClass('cradle-no-refs', refCount === 0);
+
+        let chevronIcon = row.isReferencesExpanded ? ICONS.chevronDown : ICONS.chevronRight;
+        let countText = mw.msg('cradle-references-count', refCount);
+
+        $heading.html(`${chevronIcon} <span>${countText}</span>`);
+        $heading.on('click', function() {
+            row.isReferencesExpanded = !row.isReferencesExpanded;
+            if (row.isReferencesExpanded && references.length === 0) {
+                // If user expands an empty references block, create a blank reference with Citoid
+                addReferenceToRow(pid, row);
+                return;
+            }
+            renderPropertyRows(pid);
+        });
+        $section.append($heading);
+
+        // References list (visible if isReferencesExpanded)
+        if (row.isReferencesExpanded) {
+            let $list = $('<div>').addClass('cradle-references-list');
+
+            references.forEach((ref, refIndex) => {
+                let $refCard = renderReferenceCard(pid, row, ref, refIndex);
+                $list.append($refCard);
+            });
+
+            // Button to add another reference
+            let $addRefBtn = $('<button>')
+                .addClass('cradle-btn-text cradle-btn-add-ref')
+                .attr('type', 'button')
+                .html(`${ICONS.plus} ${mw.msg('cradle-add-reference')}`)
+                .on('click', function() {
+                    addReferenceToRow(pid, row);
+                });
+            $list.append($addRefBtn);
+
+            $section.append($list);
+        }
+
+        return $section;
+    }
+
+    /**
+     * Adds a new empty reference to a statement row.
+     */
+    function addReferenceToRow(pid, row) {
+        if (!row.references) row.references = [];
+        row.isReferencesExpanded = true;
+        let newRef = {
+            id: Math.random().toString(36).substring(2, 9),
+            hash: null,
+            snaks: []
+        };
+        row.references.push(newRef);
+        renderPropertyRows(pid);
+        liveUpdateValidation();
+    }
+
+    /**
+     * Removes a reference from a statement row.
+     */
+    function removeReferenceFromRow(pid, row, refId) {
+        if (!row.references) return;
+        row.references = row.references.filter(r => r.id !== refId);
+        renderPropertyRows(pid);
+        liveUpdateValidation();
+    }
+
+    /**
+     * Infers datatype for common reference properties.
+     */
+    function inferRefPropertyDatatype(pid) {
+        if (!pid) return 'string';
+        let uPid = pid.toUpperCase();
+        if (uPid === 'P248' || uPid === 'P1433' || uPid === 'P407' || uPid === 'P123') return 'wikibase-item';
+        if (uPid === 'P813' || uPid === 'P577') return 'time';
+        if (uPid === 'P854') return 'url';
+        if (uPid === 'P1476') return 'monolingualtext';
+        return 'string';
+    }
+
+    /**
+     * Adds a new snak to a reference.
+     */
+    function addSnakToReference(pid, row, ref, prefillPid, prefillVal) {
+        if (!ref.snaks) ref.snaks = [];
+        let pId = prefillPid || '';
+        let meta = pId ? (propertyMetadata[pId] || {}) : {};
+        let dt = meta.datatype || inferRefPropertyDatatype(pId);
+
+        let newSnak = {
+            id: Math.random().toString(36).substring(2, 9),
+            hash: null,
+            pid: pId,
+            propertyLabel: meta.label || (pId ? pId : ''),
+            datatype: dt,
+            snaktype: 'value',
+            value: prefillVal || ''
+        };
+        ref.snaks.push(newSnak);
+        renderPropertyRows(pid);
+        liveUpdateValidation();
+    }
+
+    /**
+     * Queries Wikimedia Citoid API to retrieve citation metadata and maps it to Wikidata properties.
+     */
+    function fetchCitoidReference(query) {
+        return new Promise((resolve, reject) => {
+            query = query.trim();
+            if (!query) {
+                reject('Empty query');
+                return;
+            }
+
+            let encoded = encodeURIComponent(query);
+            let citoidUrl = 'https://en.wikipedia.org/api/rest_v1/data/citation/mediawiki/' + encoded;
+
+            $.ajax({
+                url: citoidUrl,
+                method: 'GET',
+                dataType: 'json',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).done(function(data) {
+                if (!Array.isArray(data) || data.length === 0) {
+                    reject('No citation data returned');
+                    return;
+                }
+
+                let item = data[0];
+                let snaks = [];
+                let today = new Date().toISOString().slice(0, 10);
+
+                // 1. URL (P854)
+                let refUrl = item.url || (/^https?:\/\//i.test(query) ? query : null);
+                if (refUrl) {
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P854',
+                        propertyLabel: 'reference URL',
+                        datatype: 'url',
+                        snaktype: 'value',
+                        value: refUrl
+                    });
+                }
+
+                // 2. Title (P1476)
+                if (item.title) {
+                    let lang = item.language || mw.config.get('wgUserLanguage') || 'en';
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P1476',
+                        propertyLabel: 'title',
+                        datatype: 'monolingualtext',
+                        snaktype: 'value',
+                        value: { text: item.title, language: lang }
+                    });
+                }
+
+                // 3. Retrieved (P813)
+                let accessDate = item.accessDate ? item.accessDate.slice(0, 10) : today;
+                snaks.push({
+                    id: Math.random().toString(36).substring(2, 9),
+                    hash: null,
+                    pid: 'P813',
+                    propertyLabel: 'retrieved',
+                    datatype: 'time',
+                    snaktype: 'value',
+                    value: accessDate
+                });
+
+                // 4. Publication date (P577)
+                if (item.date) {
+                    let pubDate = item.date.slice(0, 10);
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P577',
+                        propertyLabel: 'publication date',
+                        datatype: 'time',
+                        snaktype: 'value',
+                        value: pubDate
+                    });
+                }
+
+                // 5. Author name string (P2093)
+                if (item.author && Array.isArray(item.author) && item.author.length > 0) {
+                    let firstAuthor = item.author[0];
+                    let authorStr = '';
+                    if (Array.isArray(firstAuthor)) {
+                        authorStr = firstAuthor.filter(Boolean).join(' ');
+                    } else if (typeof firstAuthor === 'object' && firstAuthor !== null) {
+                        authorStr = [firstAuthor.firstName, firstAuthor.lastName].filter(Boolean).join(' ');
+                    } else if (typeof firstAuthor === 'string') {
+                        authorStr = firstAuthor;
+                    }
+                    if (authorStr) {
+                        snaks.push({
+                            id: Math.random().toString(36).substring(2, 9),
+                            hash: null,
+                            pid: 'P2093',
+                            propertyLabel: 'author name string',
+                            datatype: 'string',
+                            snaktype: 'value',
+                            value: authorStr
+                        });
+                    }
+                }
+
+                // 6. DOI (P356)
+                if (item.DOI) {
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P356',
+                        propertyLabel: 'DOI',
+                        datatype: 'external-id',
+                        snaktype: 'value',
+                        value: item.DOI.toUpperCase()
+                    });
+                }
+
+                // 7. ISBN (P212)
+                if (item.ISBN && item.ISBN.length > 0) {
+                    let isbnVal = Array.isArray(item.ISBN) ? item.ISBN[0] : item.ISBN;
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P212',
+                        propertyLabel: 'ISBN-13',
+                        datatype: 'external-id',
+                        snaktype: 'value',
+                        value: isbnVal
+                    });
+                }
+
+                // 8. PMID (P698)
+                if (item.PMID) {
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P698',
+                        propertyLabel: 'PubMed ID',
+                        datatype: 'external-id',
+                        snaktype: 'value',
+                        value: item.PMID
+                    });
+                }
+
+                resolve(snaks);
+            }).fail(function(jqXHR, textStatus, errorThrown) {
+                reject(errorThrown || textStatus || 'Citoid request failed');
+            });
+        });
+    }
+
+    /**
+     * Renders a single reference card.
+     */
+    function renderReferenceCard(pid, row, ref, refIndex) {
+        let $card = $('<div>')
+            .addClass('cradle-reference-card')
+            .attr('id', `cradle-ref-${ref.id}`);
+
+        // Reference Header: "Reference #1" + Remove reference button
+        let $header = $('<div>').addClass('cradle-reference-header');
+        let $title = $('<div>')
+            .addClass('cradle-reference-title')
+            .html(`${ICONS.reference} <span>${mw.msg('cradle-ref-heading', refIndex + 1)}</span>`);
+        $header.append($title);
+
+        let $removeRefBtn = $('<button>')
+            .addClass('cradle-btn-remove-qualifier')
+            .attr('type', 'button')
+            .attr('title', mw.msg('cradle-remove-reference'))
+            .html(ICONS.trash)
+            .on('click', function() {
+                removeReferenceFromRow(pid, row, ref.id);
+            });
+        $header.append($removeRefBtn);
+        $card.append($header);
+
+        // Citoid auto-cite bar
+        let $citoidBar = $('<div>').addClass('cradle-citoid-bar');
+        let $citoidInput = $('<input>')
+            .addClass('cradle-input cradle-citoid-input')
+            .attr('type', 'text')
+            .attr('placeholder', mw.msg('cradle-ref-url-placeholder'));
+
+        let $citoidBtn = $('<button>')
+            .addClass('cradle-btn-citoid')
+            .attr('type', 'button')
+            .html(`${ICONS.cite} <span>${mw.msg('cradle-auto-cite')}</span>`);
+
+        function triggerCitoid() {
+            let query = $citoidInput.val().trim();
+            if (!query) return;
+            $citoidBtn.prop('disabled', true).html($('<div>').addClass('cradle-spinner'));
+            fetchCitoidReference(query).then(resultSnaks => {
+                $citoidBtn.prop('disabled', false).html(`${ICONS.cite} <span>${mw.msg('cradle-auto-cite')}</span>`);
+                if (resultSnaks && resultSnaks.length > 0) {
+                    ref.snaks = ref.snaks || [];
+                    resultSnaks.forEach(snak => {
+                        let existing = ref.snaks.find(s => s.pid === snak.pid);
+                        if (!existing) {
+                            ref.snaks.push(snak);
+                        } else {
+                            existing.value = snak.value;
+                        }
+                    });
+                    $citoidInput.val('');
+                    mw.notify(mw.msg('cradle-citoid-success'), { type: 'success' });
+                    renderPropertyRows(pid);
+                    liveUpdateValidation();
+                } else {
+                    mw.notify(mw.msg('cradle-citoid-error', 'No metadata found'), { type: 'warn' });
+                }
+            }).catch(err => {
+                $citoidBtn.prop('disabled', false).html(`${ICONS.cite} <span>${mw.msg('cradle-auto-cite')}</span>`);
+                // Fallback: If it's a URL, create P854 (URL) and P813 (retrieved)
+                if (/^https?:\/\//i.test(query)) {
+                    let today = new Date().toISOString().slice(0, 10);
+                    ref.snaks = ref.snaks || [];
+                    if (!ref.snaks.some(s => s.pid === 'P854')) {
+                        ref.snaks.push({
+                            id: Math.random().toString(36).substring(2, 9),
+                            hash: null,
+                            pid: 'P854',
+                            propertyLabel: 'reference URL',
+                            datatype: 'url',
+                            snaktype: 'value',
+                            value: query
+                        });
+                    }
+                    if (!ref.snaks.some(s => s.pid === 'P813')) {
+                        ref.snaks.push({
+                            id: Math.random().toString(36).substring(2, 9),
+                            hash: null,
+                            pid: 'P813',
+                            propertyLabel: 'retrieved',
+                            datatype: 'time',
+                            snaktype: 'value',
+                            value: today
+                        });
+                    }
+                    $citoidInput.val('');
+                    mw.notify(mw.msg('cradle-citoid-success'), { type: 'success' });
+                    renderPropertyRows(pid);
+                    liveUpdateValidation();
+                } else {
+                    mw.notify(mw.msg('cradle-citoid-error', String(err)), { type: 'error' });
+                }
+            });
+        }
+
+        $citoidBtn.on('click', triggerCitoid);
+        $citoidInput.on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                triggerCitoid();
+            }
+        });
+
+        $citoidBar.append($citoidInput).append($citoidBtn);
+        $card.append($citoidBar);
+
+        // List of snaks in this reference
+        let $snaksList = $('<div>').addClass('cradle-ref-snaks-list');
+        (ref.snaks || []).forEach((snak, sIndex) => {
+            let $snakRow = renderRefSnakRow(pid, row, ref, snak, sIndex);
+            $snaksList.append($snakRow);
+        });
+        $card.append($snaksList);
+
+        // Actions bar under reference snaks: "+ Add property" and suggestions
+        let $footer = $('<div>').css({'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between', 'flex-wrap': 'wrap', 'gap': '8px'});
+        let $addPropBtn = $('<button>')
+            .addClass('cradle-btn-text cradle-btn-add-ref-prop')
+            .attr('type', 'button')
+            .html(`${ICONS.plus} ${mw.msg('cradle-add-ref-property')}`)
+            .on('click', function() {
+                addSnakToReference(pid, row, ref);
+            });
+        $footer.append($addPropBtn);
+
+        // Common reference property suggestions
+        let commonRefProps = [
+            { pid: 'P248', label: 'stated in' },
+            { pid: 'P854', label: 'reference URL' },
+            { pid: 'P813', label: 'retrieved' },
+            { pid: 'P1476', label: 'title' }
+        ];
+        let existingSnakPids = (ref.snaks || []).map(s => s.pid);
+        let refSuggestions = commonRefProps.filter(p => !existingSnakPids.includes(p.pid));
+
+        if (refSuggestions.length > 0) {
+            let $sugBox = $('<div>').addClass('cradle-qualifier-suggestions');
+            refSuggestions.forEach(s => {
+                let sLabel = (propertyMetadata[s.pid] && propertyMetadata[s.pid].label) || s.label;
+                let $chip = $('<span>')
+                    .addClass('cradle-qualifier-suggestion-chip')
+                    .text(`+ ${sLabel}`)
+                    .attr('title', s.pid)
+                    .on('click', function() {
+                        let initVal = (s.pid === 'P813') ? new Date().toISOString().slice(0, 10) : '';
+                        addSnakToReference(pid, row, ref, s.pid, initVal);
+                    });
+                $sugBox.append($chip);
+            });
+            $footer.append($sugBox);
+        }
+
+        $card.append($footer);
+        return $card;
+    }
+
+    /**
+     * Renders a single snak row within a reference card.
+     */
+    function renderRefSnakRow(pid, row, ref, snak, sIndex) {
+        let $sRow = $('<div>')
+            .addClass('cradle-ref-snak-row')
+            .attr('id', `cradle-ref-snak-${snak.id}`);
+
+        let $propCol = $('<div>').addClass('cradle-qualifier-property');
+
+        if (snak.pid) {
+            let meta = propertyMetadata[snak.pid] || {};
+            let propLabel = snak.propertyLabel || meta.label || snak.pid;
+            let $pill = $('<div>')
+                .addClass('cradle-qualifier-prop-pill cradle-ref-prop-pill')
+                .attr('data-pid', snak.pid)
+                .attr('title', `${propLabel} (${snak.pid}) - ${mw.msg('cradle-btn-edit')}`);
+
+            $pill.append($('<span>').addClass('cradle-qualifier-prop-name cradle-ref-prop-name').text(propLabel));
+            $pill.append($('<span>').addClass('cradle-qualifier-prop-id').text(`(${snak.pid})`));
+
+            $pill.on('click', function() {
+                snak.pid = '';
+                renderPropertyRows(pid);
+            });
+            $propCol.append($pill);
+        } else {
+            // Autocomplete property search
+            let $propWrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'width': '100%'});
+            let $propInput = $('<input>')
+                .addClass('cradle-input cradle-qualifier-prop-search')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-qualifier-prop-placeholder'))
+                .val('');
+
+            let $propDropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
+            $propWrapper.append($propInput).append($propDropdown);
+
+            let searchTimeout = null;
+            $propInput.on('input', function() {
+                clearTimeout(searchTimeout);
+                let term = $propInput.val().trim();
+                if (term.length < 1) {
+                    $propDropdown.hide().empty();
+                    return;
+                }
+                searchTimeout = setTimeout(function() {
+                    let api = new mw.Api();
+                    api.get({
+                        action: 'wbsearchentities',
+                        search: term,
+                        type: 'property',
+                        language: mw.config.get('wgUserLanguage') || 'en',
+                        format: 'json'
+                    }).done(function(res) {
+                        $propDropdown.empty();
+                        let items = (res && res.search) ? res.search : [];
+                        if (items.length === 0) {
+                            $propDropdown.hide();
+                            return;
+                        }
+                        items.forEach(item => {
+                            let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
+                            let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(item.label || item.id);
+                            $lbl.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${item.id})`));
+                            $r.append($lbl);
+                            if (item.description) {
+                                $r.append($('<div>').addClass('cradle-autocomplete-row-desc').css({'font-size': '0.75rem', 'color': 'var(--color-subtle, #54595d)'}).text(item.description));
+                            }
+                            $r.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                snak.pid = item.id;
+                                snak.propertyLabel = item.label || item.id;
+                                let itemDt = item.datatype;
+                                if (itemDt) {
+                                    snak.datatype = itemDt === 'globecoordinate' ? 'globe-coordinate' : itemDt;
+                                    propertyMetadata[item.id] = propertyMetadata[item.id] || {};
+                                    propertyMetadata[item.id].label = item.label;
+                                    propertyMetadata[item.id].datatype = itemDt;
+                                    renderPropertyRows(pid);
+                                    liveUpdateValidation();
+                                } else {
+                                    loadPropertiesMetadata([item.id]).then(metaMap => {
+                                        Object.assign(propertyMetadata, metaMap);
+                                        let fetchedMeta = metaMap[item.id] || {};
+                                        snak.datatype = fetchedMeta.datatype || 'string';
+                                        if (snak.datatype === 'globecoordinate') snak.datatype = 'globe-coordinate';
+                                        renderPropertyRows(pid);
+                                        liveUpdateValidation();
+                                    });
+                                }
+                            });
+                            $propDropdown.append($r);
+                        });
+                        $propDropdown.show();
+                    }).fail(function() {
+                        $propDropdown.hide();
+                    });
+                }, 250);
+            });
+
+            $(document).on('click.cradleRefProp', function(e) {
+                if (!$propWrapper.is(e.target) && $propWrapper.has(e.target).length === 0) {
+                    $propDropdown.hide();
+                }
+            });
+
+            $propCol.append($propWrapper);
+            setTimeout(() => { $propInput.focus(); }, 50);
+        }
+
+        $sRow.append($propCol);
+
+        // Snak value input
+        let $valCol = $('<div>').addClass('cradle-qualifier-value');
+        if (snak.pid) {
+            let $valInput = createQualifierValueInput(snak, function() {
+                liveUpdateValidation();
+            });
+            $valCol.append($valInput);
+        } else {
+            let $dummyInput = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('disabled', true)
+                .attr('placeholder', mw.msg('cradle-search-placeholder'))
+                .css({'opacity': '0.6', 'cursor': 'not-allowed'});
+            $valCol.append($dummyInput);
+        }
+        $sRow.append($valCol);
+
+        // Remove snak button
+        let $removeBtn = $('<button>')
+            .addClass('cradle-btn-remove-qualifier')
+            .attr('type', 'button')
+            .attr('title', mw.msg('cradle-btn-delete'))
+            .html(ICONS.close)
+            .on('click', function() {
+                ref.snaks = (ref.snaks || []).filter(s => s.id !== snak.id);
+                renderPropertyRows(pid);
+                liveUpdateValidation();
+            });
+        $sRow.append($removeBtn);
+
+        return $sRow;
     }
 
     /**
@@ -5193,31 +6527,185 @@ function searchWikidataItems(term) {
                 let datavalue = constructDataValue(row.value, row.datatype);
                 if (!datavalue) return;
 
+                // Build qualifiers payload
+                let activeRowQuals = (row.qualifiers || []).filter(q => q.pid && !isEmptyValue(q.value, q.datatype));
+                let qualPayload = {};
+                let qualOrder = [];
+
+                activeRowQuals.forEach(q => {
+                    let qDv = constructDataValue(q.value, q.datatype);
+                    if (qDv) {
+                        if (!qualPayload[q.pid]) {
+                            qualPayload[q.pid] = [];
+                            qualOrder.push(q.pid);
+                        }
+                        let snakObj = {
+                            snaktype: 'value',
+                            property: q.pid,
+                            datavalue: qDv
+                        };
+                        if (q.hash) {
+                            snakObj.hash = q.hash;
+                        }
+                        qualPayload[q.pid].push(snakObj);
+                    }
+                });
+
+                // Build references payload
+                let activeRowRefs = [];
+                (row.references || []).forEach(ref => {
+                    let activeSnaks = (ref.snaks || []).filter(s => s.pid && !isEmptyValue(s.value, s.datatype));
+                    if (activeSnaks.length > 0) {
+                        let snakMap = {};
+                        let snakOrder = [];
+                        activeSnaks.forEach(s => {
+                            let sDv = constructDataValue(s.value, s.datatype);
+                            if (sDv) {
+                                if (!snakMap[s.pid]) {
+                                    snakMap[s.pid] = [];
+                                    snakOrder.push(s.pid);
+                                }
+                                let snakObj = {
+                                    snaktype: 'value',
+                                    property: s.pid,
+                                    datavalue: sDv
+                                };
+                                if (s.hash) snakObj.hash = s.hash;
+                                snakMap[s.pid].push(snakObj);
+                            }
+                        });
+                        if (snakOrder.length > 0) {
+                            let refObj = {
+                                snaks: snakMap,
+                                'snaks-order': snakOrder
+                            };
+                            if (ref.hash) refObj.hash = ref.hash;
+                            activeRowRefs.push(refObj);
+                        }
+                    }
+                });
+
                 if (row.guid) {
                     // Update claim
                     let origClaim = original.find(c => c.id === row.guid);
-                    if (origClaim && isValueChanged(origClaim, datavalue)) {
-                        propertyClaims.push({
+                    let valChanged = origClaim && isValueChanged(origClaim, datavalue);
+                    let rankChanged = origClaim && (origClaim.rank || 'normal') !== (row.rank || 'normal');
+
+                    // Detect qualifiers change
+                    let origQualList = [];
+                    if (origClaim && origClaim.qualifiers) {
+                        let origOrder = (origClaim['qualifiers-order'] && origClaim['qualifiers-order'].slice()) || Object.keys(origClaim.qualifiers);
+                        Object.keys(origClaim.qualifiers).forEach(k => {
+                            if (!origOrder.includes(k)) origOrder.push(k);
+                        });
+                        origOrder.forEach(qPid => {
+                            (origClaim.qualifiers[qPid] || []).forEach(snak => {
+                                origQualList.push(snak);
+                            });
+                        });
+                    }
+
+                    let qualifiersChanged = false;
+                    if (activeRowQuals.length !== origQualList.length) {
+                        qualifiersChanged = true;
+                    } else if (activeRowQuals.length > 0) {
+                        for (let i = 0; i < activeRowQuals.length; i++) {
+                            let q = activeRowQuals[i];
+                            let origSnak = origQualList[i];
+                            if (!origSnak || origSnak.property !== q.pid) {
+                                qualifiersChanged = true;
+                                break;
+                            }
+                            let qDv = constructDataValue(q.value, q.datatype);
+                            if (!qDv || !origSnak.datavalue || !areDataValuesEqual(origSnak.datavalue, qDv)) {
+                                qualifiersChanged = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Detect references change
+                    let origRefs = (origClaim && origClaim.references) || [];
+                    let referencesChanged = false;
+                    if (activeRowRefs.length !== origRefs.length) {
+                        referencesChanged = true;
+                    } else if (activeRowRefs.length > 0) {
+                        for (let rIdx = 0; rIdx < activeRowRefs.length; rIdx++) {
+                            let curRef = activeRowRefs[rIdx];
+                            let origRef = origRefs[rIdx];
+                            let curPids = curRef['snaks-order'] || [];
+                            let origPids = (origRef && (origRef['snaks-order'] || Object.keys(origRef.snaks || {}))) || [];
+                            if (curPids.length !== origPids.length) {
+                                referencesChanged = true;
+                                break;
+                            }
+                            for (let pIdx = 0; pIdx < curPids.length; pIdx++) {
+                                let p = curPids[pIdx];
+                                let curSnaks = curRef.snaks[p] || [];
+                                let origSnaks = (origRef && origRef.snaks && origRef.snaks[p]) || [];
+                                if (curSnaks.length !== origSnaks.length) {
+                                    referencesChanged = true;
+                                    break;
+                                }
+                                for (let sIdx = 0; sIdx < curSnaks.length; sIdx++) {
+                                    if (!origSnaks[sIdx] || !areDataValuesEqual(curSnaks[sIdx].datavalue, origSnaks[sIdx].datavalue)) {
+                                        referencesChanged = true;
+                                        break;
+                                    }
+                                }
+                                if (referencesChanged) break;
+                            }
+                            if (referencesChanged) break;
+                        }
+                    }
+
+                    if (origClaim && (valChanged || rankChanged || qualifiersChanged || referencesChanged)) {
+                        let claimUpdate = {
                             id: row.guid,
                             mainsnak: {
                                 snaktype: 'value',
                                 property: pid,
                                 datavalue: datavalue
                             },
-                            type: 'statement'
-                        });
+                            type: 'statement',
+                            rank: row.rank || 'normal'
+                        };
+                        if (qualOrder.length > 0) {
+                            claimUpdate.qualifiers = qualPayload;
+                            claimUpdate['qualifiers-order'] = qualOrder;
+                        } else if (origQualList.length > 0) {
+                            claimUpdate.qualifiers = {};
+                            claimUpdate['qualifiers-order'] = [];
+                        }
+
+                        if (activeRowRefs.length > 0) {
+                            claimUpdate.references = activeRowRefs;
+                        } else if (origRefs.length > 0) {
+                            claimUpdate.references = [];
+                        }
+
+                        propertyClaims.push(claimUpdate);
                         hasChanges = true;
                     }
                 } else {
                     // Add new claim
-                    propertyClaims.push({
+                    let newClaim = {
                         mainsnak: {
                             snaktype: 'value',
                             property: pid,
                             datavalue: datavalue
                         },
-                        type: 'statement'
-                    });
+                        type: 'statement',
+                        rank: row.rank || 'normal'
+                    };
+                    if (qualOrder.length > 0) {
+                        newClaim.qualifiers = qualPayload;
+                        newClaim['qualifiers-order'] = qualOrder;
+                    }
+                    if (activeRowRefs.length > 0) {
+                        newClaim.references = activeRowRefs;
+                    }
+                    propertyClaims.push(newClaim);
                     hasChanges = true;
                 }
             });
@@ -5387,6 +6875,19 @@ function searchWikidataItems(term) {
                 }
             };
         }
+        if (datatype === 'wikibase-property') {
+            let pid = typeof value === 'string' ? value.trim().toUpperCase() : (value && value.id ? value.id : '');
+            if (!pid.startsWith('P')) return null;
+            let numId = parseInt(pid.substring(1));
+            return {
+                type: 'wikibase-entityid',
+                value: {
+                    'entity-type': 'property',
+                    'numeric-id': numId,
+                    'id': pid
+                }
+            };
+        }
         if (datatype === 'time') {
             return parseNaturalDate(value);
         }
@@ -5394,36 +6895,42 @@ function searchWikidataItems(term) {
     }
 
     /**
+     * Compares two Wikibase datavalue objects for equality.
+     */
+    function areDataValuesEqual(dv1, dv2) {
+        if (!dv1 || !dv2) return false;
+        if (dv1.type !== dv2.type) return false;
+        let v1 = dv1.value;
+        let v2 = dv2.value;
+        if (dv1.type === 'wikibase-entityid') {
+            return v1.id === v2.id;
+        }
+        if (dv1.type === 'string') {
+            return v1 === v2;
+        }
+        if (dv1.type === 'monolingualtext') {
+            return v1.text === v2.text && v1.language === v2.language;
+        }
+        if (dv1.type === 'globecoordinate') {
+            let latMatch = Math.abs(parseFloat(v1.latitude) - parseFloat(v2.latitude)) < 1e-7;
+            let lonMatch = Math.abs(parseFloat(v1.longitude) - parseFloat(v2.longitude)) < 1e-7;
+            return latMatch && lonMatch;
+        }
+        if (dv1.type === 'quantity') {
+            return parseFloat(v1.amount) === parseFloat(v2.amount);
+        }
+        if (dv1.type === 'time') {
+            return v1.time === v2.time;
+        }
+        return JSON.stringify(v1) === JSON.stringify(v2);
+    }
+
+    /**
      * Checks if form input value differs from existing claim value.
      */
     function isValueChanged(origClaim, datavalue) {
         if (!origClaim.mainsnak || !origClaim.mainsnak.datavalue) return true;
-        let origVal = origClaim.mainsnak.datavalue.value;
-        let newVal = datavalue.value;
-        
-        if (datavalue.type !== origClaim.mainsnak.datavalue.type) return true;
-        
-        if (datavalue.type === 'wikibase-entityid') {
-            return origVal.id !== newVal.id;
-        }
-        if (datavalue.type === 'string') {
-            return origVal !== newVal;
-        }
-        if (datavalue.type === 'monolingualtext') {
-            return origVal.text !== newVal.text || origVal.language !== newVal.language;
-        }
-        if (datavalue.type === 'globecoordinate') {
-            let latMatch = Math.abs(parseFloat(origVal.latitude) - parseFloat(newVal.latitude)) < 1e-7;
-            let lonMatch = Math.abs(parseFloat(origVal.longitude) - parseFloat(newVal.longitude)) < 1e-7;
-            return !latMatch || !lonMatch;
-        }
-        if (datavalue.type === 'quantity') {
-            return parseFloat(origVal.amount) !== parseFloat(newVal.amount);
-        }
-        if (datavalue.type === 'time') {
-            return origVal.time !== newVal.time;
-        }
-        return JSON.stringify(origVal) !== JSON.stringify(newVal);
+        return !areDataValuesEqual(origClaim.mainsnak.datavalue, datavalue);
     }
 
     // Load hook
