@@ -150,6 +150,7 @@
   "cradle-publish-shex-failed": "Failed to publish EntitySchema: $1",
   "cradle-publish-shex-success": "EntitySchema $1 published successfully on Wikidata!",
   "cradle-publishing-shex": "Publishing EntitySchema to Wikidata...",
+  "cradle-qualifier-prop-placeholder": "Property (e.g. start time, P580)",
   "cradle-qualifiers": "Qualifiers",
   "cradle-rank": "Rank",
   "cradle-rank-deprecated": "Deprecated",

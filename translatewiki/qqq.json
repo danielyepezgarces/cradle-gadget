@@ -150,6 +150,7 @@
   "cradle-publish-shex-failed": "Error alert displayed when publishing an EntitySchema to Wikidata fails.\nParameters:\n* $1 - Error message or API error code.",
   "cradle-publish-shex-success": "Success notification displayed when an EntitySchema is published on Wikidata.\nParameters:\n* $1 - The full title or link of the published EntitySchema (e.g. EntitySchema:E123). Do not translate.",
   "cradle-publishing-shex": "Status message displayed while the EntitySchema is being published on Wikidata.",
+  "cradle-qualifier-prop-placeholder": "Placeholder text for the search property input field when adding a statement qualifier.",
   "cradle-qualifiers": "Section heading or button label for statement qualifiers.\n{{Identical|Qualifier}}",
   "cradle-rank": "Dropdown label or tooltip for selecting a statement's rank (normal, preferred, deprecated).\n{{Identical|Rank}}",
   "cradle-rank-deprecated": "Dropdown option label for deprecated statement rank.",

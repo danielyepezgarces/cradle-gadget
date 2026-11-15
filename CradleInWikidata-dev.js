@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.58.0-dev
+ * Version: 1.59.0-dev
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on test.wikidata.org (increment version value to bypass cache)
  * 
  * Development loader snippet for your common.js on test.wikidata.org:
- * mw.loader.load('//test.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle-dev.js&action=raw&ctype=text/javascript&version=1.58.0-dev');
+ * mw.loader.load('//test.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle-dev.js&action=raw&ctype=text/javascript&version=1.59.0-dev');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.58.0-dev';
+    const CRADLE_VERSION = '1.59.0-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -216,7 +216,8 @@
         edit: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M16.77 8l1.94-2a1 1 0 0 0 0-1.41l-3.34-3.3a1 1 0 0 0-1.41 0L12 3.23zM1 14.25V19h4.75l9.96-9.96-4.75-4.75z"/></svg>`,
         code: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m5 13-4-3 4-3 1.4 1.4-2.1 1.6 2.1 1.6zm10 0-1.4-1.4 2.1-1.6-2.1-1.6L15 7l4 3zm-6.8 3.5-2.4-.6 6-12 2.4.6z"/></svg>`,
         feedback: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M18 10c0-4.42-3.58-8-8-8s-8 3.58-8 8c0 2.03.76 3.87 2 5.28V19l3.53-1.77C8.41 17.72 9.19 18 10 18c4.42 0 8-3.58 8-8zm-8 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm1-4H9V6h2v4z"/></svg>`,
-        mapPin: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M10 2a6 6 0 0 0-6 6c0 4.5 6 10 6 10s6-5.5 6-10a6 6 0 0 0-6-6zm0 8.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>`
+        mapPin: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M10 2a6 6 0 0 0-6 6c0 4.5 6 10 6 10s6-5.5 6-10a6 6 0 0 0-6-6zm0 8.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>`,
+        qualifier: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M19.41 10.42l-7.83-7.83a2 2 0 0 0-1.41-.59H3a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l7.83 7.82a2 2 0 0 0 2.82 0l7.17-7.17a2 2 0 0 0 0-2.82zM5.5 7A1.5 1.5 0 1 1 7 5.5 1.5 1.5 0 0 1 5.5 7z"/></svg>`
     };
 
     /**
@@ -372,6 +373,7 @@
             'cradle-publish-shex-failed': 'Failed to publish EntitySchema: $1',
             'cradle-publish-shex-success': 'EntitySchema $1 published successfully on Wikidata!',
             'cradle-publishing-shex': 'Publishing EntitySchema to Wikidata...',
+            'cradle-qualifier-prop-placeholder': 'Property (e.g. start time, P580)',
             'cradle-qualifiers': 'Qualifiers',
             'cradle-rank': 'Rank',
             'cradle-rank-deprecated': 'Deprecated',
@@ -2900,6 +2902,38 @@
                         let rowDt = snak.datatype || (snak.datavalue && snak.datavalue.type) || effectiveDatatype;
                         if (rowDt === 'globecoordinate') rowDt = 'globe-coordinate';
 
+                        // Parse qualifiers into normalized array
+                        let normalizedQualifiers = [];
+                        if (claim.qualifiers) {
+                            let qOrder = (claim['qualifiers-order'] && claim['qualifiers-order'].slice()) || Object.keys(claim.qualifiers);
+                            Object.keys(claim.qualifiers).forEach(k => {
+                                if (!qOrder.includes(k)) qOrder.push(k);
+                            });
+                            qOrder.forEach(qPid => {
+                                let snaks = claim.qualifiers[qPid] || [];
+                                snaks.forEach(qSnak => {
+                                    let qSnaktype = qSnak.snaktype || 'value';
+                                    let qVal = '';
+                                    if (qSnaktype === 'value' && qSnak.datavalue) {
+                                        qVal = parseClaimValue(qSnak.datavalue);
+                                    } else if (qSnaktype === 'somevalue' || qSnaktype === 'novalue') {
+                                        qVal = qSnaktype;
+                                    }
+                                    let qDt = qSnak.datatype || (qSnak.datavalue && qSnak.datavalue.type) || 'string';
+                                    if (qDt === 'globecoordinate') qDt = 'globe-coordinate';
+                                    normalizedQualifiers.push({
+                                        id: Math.random().toString(36).substring(2, 9),
+                                        hash: qSnak.hash || null,
+                                        pid: qPid,
+                                        propertyLabel: null,
+                                        datatype: qDt,
+                                        snaktype: qSnaktype,
+                                        value: qVal
+                                    });
+                                });
+                            });
+                        }
+
                         if (snaktype === 'value' || snaktype === 'somevalue' || snaktype === 'novalue') {
                             formState[pid].push({
                                 id: Math.random().toString(36).substring(2, 9),
@@ -2909,7 +2943,8 @@
                                 datatype: rowDt,
                                 rank: claim.rank || 'normal',
                                 references: claim.references || [],
-                                qualifiers: claim.qualifiers || {},
+                                qualifiers: normalizedQualifiers,
+                                isQualifiersExpanded: normalizedQualifiers.length > 0,
                                 isDeleted: false
                             });
                         }
@@ -2934,6 +2969,27 @@
                 propDef.max = Infinity;
             }
         });
+
+        // Preload metadata for any existing qualifier properties
+        let qualifierPids = [];
+        Object.keys(formState).forEach(p => {
+            formState[p].forEach(r => {
+                (r.qualifiers || []).forEach(q => {
+                    if (q.pid && !propertyMetadata[q.pid] && !qualifierPids.includes(q.pid)) {
+                        qualifierPids.push(q.pid);
+                    }
+                });
+            });
+        });
+        if (qualifierPids.length > 0) {
+            loadPropertiesMetadata(qualifierPids).then(metaMap => {
+                Object.assign(propertyMetadata, metaMap);
+                qualifierPids.forEach(qPid => {
+                    let label = (metaMap[qPid] && metaMap[qPid].label) || qPid;
+                    $(`.cradle-qualifier-prop-pill[data-pid="${qPid}"] .cradle-qualifier-prop-name`).text(label);
+                });
+            });
+        }
     }
 
     const MONTH_NAMES_ES = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -3148,7 +3204,8 @@
             datatype: datatype,
             rank: 'normal',
             references: [],
-            qualifiers: {},
+            qualifiers: [],
+            isQualifiersExpanded: false,
             isDeleted: false
         };
     }
@@ -4135,12 +4192,17 @@
         let rows = formState[pid];
 
         rows.forEach((row, index) => {
+            let $statement = $('<div>')
+                .addClass('cradle-statement')
+                .attr('id', `cradle-statement-${row.id}`);
+
             let $row = $('<div>')
                 .addClass('cradle-row')
                 .attr('id', `cradle-row-${row.id}`);
 
             if (row.isDeleted) {
                 $row.addClass('deleted');
+                $statement.addClass('deleted');
             }
 
             let $rankSelector = createRankSelector(pid, row);
@@ -4148,19 +4210,47 @@
 
             let $inputElement = createInputForDatatype(pid, row);
             let $indicators = $('<div>').addClass('wikibase-snakview-indicators').attr('id', `cradle-indicators-${row.id}`).css({'margin-left': '6px', 'display': 'inline-flex'});
-            let $inputWithIndicators = $('<div>').css({'display': 'flex', 'align-items': 'center', 'flex': '1'}).append($inputElement).append($indicators);
+            let $inputWithIndicators = $('<div>').css({'display': 'flex', 'align-items': 'center', 'flex': '1', 'min-width': '0'}).append($inputElement).append($indicators);
             $row.append($inputWithIndicators);
+
+            let $statementToolbar = $('<div>').addClass('cradle-statement-toolbar');
+
+            // Qualifier Toggle Button
+            let qualCount = (row.qualifiers || []).filter(q => q.pid && !isEmptyValue(q.value, q.datatype)).length;
+            let $qualBtn = $('<button>')
+                .addClass('cradle-btn-qualifier-toggle')
+                .attr('type', 'button')
+                .attr('title', mw.msg('cradle-qualifiers'))
+                .html(ICONS.qualifier + (qualCount > 0 ? `<span class="cradle-badge-count">${qualCount}</span>` : ''))
+                .on('click', function() {
+                    row.isQualifiersExpanded = !row.isQualifiersExpanded;
+                    renderPropertyRows(pid);
+                });
+            if (row.isQualifiersExpanded) {
+                $qualBtn.addClass('active');
+            }
+            $statementToolbar.append($qualBtn);
 
             let $deleteBtn = $('<button>')
                 .addClass('cradle-btn-delete')
+                .attr('type', 'button')
                 .html(row.isDeleted ? ICONS.undo : ICONS.trash)
                 .attr('title', row.isDeleted ? 'Restore Claim' : 'Delete Claim')
                 .on('click', function() {
                     toggleDeleteRow(pid, row.id);
                 });
+            $statementToolbar.append($deleteBtn);
 
-            $row.append($deleteBtn);
-            $container.append($row);
+            $row.append($statementToolbar);
+            $statement.append($row);
+
+            // Render qualifiers section if expanded or if row has qualifiers
+            if (row.isQualifiersExpanded || (row.qualifiers && row.qualifiers.length > 0)) {
+                let $qualSection = renderQualifiersSection(pid, row);
+                $statement.append($qualSection);
+            }
+
+            $container.append($statement);
         });
 
         // Dynamic Action Bar rendering (Add row button)
@@ -4171,12 +4261,512 @@
         if (showAddButton) {
             let $addBtn = $('<button>')
                 .addClass('cradle-btn-text')
+                .attr('type', 'button')
                 .html(`${ICONS.plus} ${mw.msg('cradle-add-value')}`)
                 .on('click', function() {
                     addRow(pid);
                 });
             $actionsContainer.append($addBtn);
         }
+    }
+
+    /**
+     * Adds a new qualifier to a statement row.
+     */
+    function addQualifierToRow(pid, row, prefillPid) {
+        if (!row.qualifiers) row.qualifiers = [];
+        row.isQualifiersExpanded = true;
+        let pId = prefillPid || '';
+        let meta = pId ? (propertyMetadata[pId] || {}) : {};
+        let dt = meta.datatype || (pId === 'P580' || pId === 'P582' || pId === 'P585' ? 'time' : 'string');
+
+        let newQual = {
+            id: Math.random().toString(36).substring(2, 9),
+            hash: null,
+            pid: pId,
+            propertyLabel: meta.label || (pId ? pId : ''),
+            datatype: dt,
+            snaktype: 'value',
+            value: ''
+        };
+        row.qualifiers.push(newQual);
+        renderPropertyRows(pid);
+        liveUpdateValidation();
+    }
+
+    /**
+     * Removes a qualifier from a statement row.
+     */
+    function removeQualifierFromRow(pid, row, qualId) {
+        if (!row.qualifiers) return;
+        row.qualifiers = row.qualifiers.filter(q => q.id !== qualId);
+        renderPropertyRows(pid);
+        liveUpdateValidation();
+    }
+
+    /**
+     * Renders the qualifiers section container for a statement.
+     */
+    function renderQualifiersSection(pid, row) {
+        let $section = $('<div>')
+            .addClass('cradle-qualifiers-container')
+            .attr('id', `cradle-qualifiers-${row.id}`);
+
+        let $list = $('<div>').addClass('cradle-qualifiers-list');
+
+        let qualifiers = row.qualifiers || [];
+        qualifiers.forEach((qual, qIndex) => {
+            let $qRow = renderQualifierRow(pid, row, qual, qIndex);
+            $list.append($qRow);
+        });
+
+        $section.append($list);
+
+        // Actions bar under qualifiers: "+ Add qualifier" and suggestions
+        let $footer = $('<div>').css({'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between', 'flex-wrap': 'wrap', 'gap': '8px', 'margin-top': '4px'});
+
+        let $addBtn = $('<button>')
+            .addClass('cradle-btn-text cradle-btn-add-qualifier')
+            .attr('type', 'button')
+            .html(`${ICONS.plus} ${mw.msg('cradle-add-qualifier')}`)
+            .on('click', function() {
+                addQualifierToRow(pid, row);
+            });
+        $footer.append($addBtn);
+
+        // Common qualifier suggestions if statement has few/no qualifiers
+        let commonQuals = [
+            { pid: 'P580', label: 'start time' },
+            { pid: 'P582', label: 'end time' },
+            { pid: 'P585', label: 'point in time' },
+            { pid: 'P459', label: 'determination method' }
+        ];
+        let existingPids = qualifiers.map(q => q.pid);
+        let suggestions = commonQuals.filter(cq => !existingPids.includes(cq.pid));
+
+        if (suggestions.length > 0) {
+            let $sugBox = $('<div>').addClass('cradle-qualifier-suggestions');
+            suggestions.forEach(s => {
+                let sLabel = (propertyMetadata[s.pid] && propertyMetadata[s.pid].label) || s.label;
+                let $chip = $('<span>')
+                    .addClass('cradle-qualifier-suggestion-chip')
+                    .text(`+ ${sLabel}`)
+                    .attr('title', s.pid)
+                    .on('click', function() {
+                        addQualifierToRow(pid, row, s.pid);
+                    });
+                $sugBox.append($chip);
+            });
+            $footer.append($sugBox);
+        }
+
+        $section.append($footer);
+        return $section;
+    }
+
+    /**
+     * Renders a single qualifier row.
+     */
+    function renderQualifierRow(pid, row, qual, qIndex) {
+        let $qRow = $('<div>')
+            .addClass('cradle-qualifier-row')
+            .attr('id', `cradle-qualifier-${qual.id}`);
+
+        let $propCol = $('<div>').addClass('cradle-qualifier-property');
+
+        if (qual.pid) {
+            // Display property pill
+            let meta = propertyMetadata[qual.pid] || {};
+            let propLabel = qual.propertyLabel || meta.label || qual.pid;
+            let $pill = $('<div>')
+                .addClass('cradle-qualifier-prop-pill')
+                .attr('data-pid', qual.pid)
+                .attr('title', `${propLabel} (${qual.pid}) - ${mw.msg('cradle-btn-edit')}`);
+
+            $pill.append($('<span>').addClass('cradle-qualifier-prop-name').text(propLabel));
+            $pill.append($('<span>').addClass('cradle-qualifier-prop-id').text(`(${qual.pid})`));
+
+            $pill.on('click', function() {
+                qual.pid = '';
+                renderPropertyRows(pid);
+            });
+            $propCol.append($pill);
+        } else {
+            // Display property autocomplete search input
+            let $propWrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'width': '100%'});
+            let $propInput = $('<input>')
+                .addClass('cradle-input cradle-qualifier-prop-search')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-qualifier-prop-placeholder'))
+                .val('');
+
+            let $propDropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
+            $propWrapper.append($propInput).append($propDropdown);
+
+            let searchTimeout = null;
+            $propInput.on('input', function() {
+                clearTimeout(searchTimeout);
+                let term = $propInput.val().trim();
+                if (term.length < 1) {
+                    $propDropdown.hide().empty();
+                    return;
+                }
+                searchTimeout = setTimeout(function() {
+                    let api = new mw.Api();
+                    api.get({
+                        action: 'wbsearchentities',
+                        search: term,
+                        type: 'property',
+                        language: mw.config.get('wgUserLanguage') || 'en',
+                        format: 'json'
+                    }).done(function(res) {
+                        $propDropdown.empty();
+                        let items = (res && res.search) ? res.search : [];
+                        if (items.length === 0) {
+                            $propDropdown.hide();
+                            return;
+                        }
+                        items.forEach(item => {
+                            let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
+                            let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(item.label || item.id);
+                            $lbl.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${item.id})`));
+                            $r.append($lbl);
+                            if (item.description) {
+                                $r.append($('<div>').addClass('cradle-autocomplete-row-desc').css({'font-size': '0.75rem', 'color': 'var(--color-subtle, #54595d)'}).text(item.description));
+                            }
+                            $r.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                qual.pid = item.id;
+                                qual.propertyLabel = item.label || item.id;
+                                let itemDt = item.datatype;
+                                if (itemDt) {
+                                    qual.datatype = itemDt === 'globecoordinate' ? 'globe-coordinate' : itemDt;
+                                    propertyMetadata[item.id] = propertyMetadata[item.id] || {};
+                                    propertyMetadata[item.id].label = item.label;
+                                    propertyMetadata[item.id].datatype = itemDt;
+                                    renderPropertyRows(pid);
+                                    liveUpdateValidation();
+                                } else {
+                                    loadPropertiesMetadata([item.id]).then(metaMap => {
+                                        Object.assign(propertyMetadata, metaMap);
+                                        let fetchedMeta = metaMap[item.id] || {};
+                                        qual.datatype = fetchedMeta.datatype || 'string';
+                                        if (qual.datatype === 'globecoordinate') qual.datatype = 'globe-coordinate';
+                                        renderPropertyRows(pid);
+                                        liveUpdateValidation();
+                                    });
+                                }
+                            });
+                            $propDropdown.append($r);
+                        });
+                        $propDropdown.show();
+                    }).fail(function() {
+                        $propDropdown.hide();
+                    });
+                }, 250);
+            });
+
+            $(document).on('click.cradleQualProp', function(e) {
+                if (!$propWrapper.is(e.target) && $propWrapper.has(e.target).length === 0) {
+                    $propDropdown.hide();
+                }
+            });
+
+            $propCol.append($propWrapper);
+            setTimeout(() => { $propInput.focus(); }, 50);
+        }
+
+        $qRow.append($propCol);
+
+        // Qualifier value input
+        let $valCol = $('<div>').addClass('cradle-qualifier-value');
+        if (qual.pid) {
+            let $valInput = createQualifierValueInput(qual, function() {
+                liveUpdateValidation();
+            });
+            $valCol.append($valInput);
+        } else {
+            let $dummyInput = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('disabled', true)
+                .attr('placeholder', mw.msg('cradle-search-placeholder'))
+                .css({'opacity': '0.6', 'cursor': 'not-allowed'});
+            $valCol.append($dummyInput);
+        }
+        $qRow.append($valCol);
+
+        // Remove button
+        let $removeBtn = $('<button>')
+            .addClass('cradle-btn-remove-qualifier')
+            .attr('type', 'button')
+            .attr('title', mw.msg('cradle-remove-qualifier'))
+            .html(ICONS.close)
+            .on('click', function() {
+                removeQualifierFromRow(pid, row, qual.id);
+            });
+        $qRow.append($removeBtn);
+
+        return $qRow;
+    }
+
+    /**
+     * Creates an appropriate input element for a qualifier value.
+     */
+    function createQualifierValueInput(qual, onUpdate) {
+        let dt = qual.datatype || 'string';
+
+        // 1. wikibase-item
+        if (dt === 'wikibase-item') {
+            let $wrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'flex': '1'});
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-search-placeholder'))
+                .val('');
+
+            let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
+            $wrapper.append($input).append($dropdown);
+
+            if (qual.value) {
+                loadItemLabels([qual.value]).then(labels => {
+                    let label = labels[qual.value] || qual.value;
+                    $input.val(label !== qual.value ? `${label} (${qual.value})` : qual.value);
+                });
+            }
+
+            let searchTimeout = null;
+            $input.on('input', function() {
+                clearTimeout(searchTimeout);
+                let q = $input.val().trim();
+                qual.value = q;
+                onUpdate();
+
+                if (q.length < 1) {
+                    $dropdown.hide().empty();
+                    return;
+                }
+
+                searchTimeout = setTimeout(function() {
+                    searchWikidataItems(q).then(items => {
+                        $dropdown.empty();
+                        if (items.length === 0) {
+                            $dropdown.hide();
+                            return;
+                        }
+                        items.forEach(item => {
+                            let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
+                            let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(item.label || item.id);
+                            $lbl.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${item.id})`));
+                            $r.append($lbl);
+                            if (item.description) {
+                                $r.append($('<div>').addClass('cradle-autocomplete-row-desc').css({'font-size': '0.75rem', 'color': 'var(--color-subtle, #54595d)'}).text(item.description));
+                            }
+                            $r.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                qual.value = item.id;
+                                $input.val(item.label ? `${item.label} (${item.id})` : item.id);
+                                $dropdown.hide();
+                                onUpdate();
+                            });
+                            $dropdown.append($r);
+                        });
+                        $dropdown.show();
+                    });
+                }, 250);
+            });
+
+            $(document).on('click.cradleQualItem', function(e) {
+                if (!$wrapper.is(e.target) && $wrapper.has(e.target).length === 0) {
+                    $dropdown.hide();
+                }
+            });
+
+            return $wrapper;
+        }
+
+        // 2. time
+        if (dt === 'time') {
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', 'YYYY-MM-DD or YYYY')
+                .val(qual.value || '');
+            $input.on('input', function() {
+                qual.value = $input.val();
+                onUpdate();
+            });
+            return $input;
+        }
+
+        // 3. quantity
+        if (dt === 'quantity') {
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'number')
+                .attr('placeholder', 'Number')
+                .val(qual.value || '');
+            $input.on('input', function() {
+                qual.value = $input.val();
+                onUpdate();
+            });
+            return $input;
+        }
+
+        // 4. monolingualtext
+        if (dt === 'monolingualtext') {
+            let $group = $('<div>').css({'display': 'flex', 'gap': '6px', 'flex': '1'});
+            let valObj = (typeof qual.value === 'object' && qual.value !== null) ? qual.value : {
+                text: typeof qual.value === 'string' ? qual.value : '',
+                language: mw.config.get('wgUserLanguage') || 'en'
+            };
+            qual.value = valObj;
+
+            let $langInput = $('<input>')
+                .addClass('cradle-input cradle-lang-input')
+                .css({'width': '65px', 'flex': 'none'})
+                .attr('placeholder', 'Lang')
+                .val(valObj.language);
+
+            let $textInput = $('<input>')
+                .addClass('cradle-input')
+                .css({'flex': '1'})
+                .attr('placeholder', mw.msg('cradle-monolingual-text-placeholder'))
+                .val(valObj.text);
+
+            $langInput.on('input', function() {
+                valObj.language = $langInput.val().trim();
+                onUpdate();
+            });
+            $textInput.on('input', function() {
+                valObj.text = $textInput.val();
+                onUpdate();
+            });
+
+            $group.append($langInput).append($textInput);
+            return $group;
+        }
+
+        // 5. globe-coordinate
+        if (dt === 'globe-coordinate' || dt === 'globecoordinate') {
+            let coordVal = (typeof qual.value === 'object' && qual.value !== null) ? qual.value : {
+                latitude: '',
+                longitude: '',
+                altitude: null,
+                precision: 0.0001,
+                globe: 'http://www.wikidata.org/entity/Q2'
+            };
+            qual.value = coordVal;
+
+            let initialText = '';
+            if (coordVal.latitude !== '' && coordVal.latitude !== null && coordVal.longitude !== '' && coordVal.longitude !== null && !isNaN(coordVal.latitude) && !isNaN(coordVal.longitude)) {
+                initialText = formatCoordinates(coordVal.latitude, coordVal.longitude);
+            }
+
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr({type: 'text', placeholder: mw.msg('cradle-coord-placeholder')})
+                .val(initialText);
+
+            $input.on('input blur', function() {
+                let parsed = parseCoordinateInput($input.val().trim());
+                if (parsed) {
+                    coordVal.latitude = parsed.latitude;
+                    coordVal.longitude = parsed.longitude;
+                    coordVal.precision = parsed.precision || 0.0001;
+                } else {
+                    coordVal.latitude = $input.val().trim();
+                    coordVal.longitude = '';
+                }
+                onUpdate();
+            });
+            return $input;
+        }
+
+        // 6. commonsMedia
+        if (dt === 'commonsMedia') {
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', 'e.g. File.jpg')
+                .val(qual.value || '');
+            $input.on('input', function() {
+                qual.value = $input.val().trim().replace(/^File:/i, '');
+                onUpdate();
+            });
+            return $input;
+        }
+
+        // 7. wikibase-property
+        if (dt === 'wikibase-property') {
+            let $wrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'flex': '1'});
+            let $input = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-qualifier-prop-placeholder'))
+                .val(qual.value || '');
+            let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
+            $wrapper.append($input).append($dropdown);
+
+            let searchTimeout = null;
+            $input.on('input', function() {
+                clearTimeout(searchTimeout);
+                let q = $input.val().trim();
+                qual.value = q;
+                onUpdate();
+                if (q.length < 1) { $dropdown.hide().empty(); return; }
+                searchTimeout = setTimeout(function() {
+                    let api = new mw.Api();
+                    api.get({
+                        action: 'wbsearchentities',
+                        search: q,
+                        type: 'property',
+                        language: mw.config.get('wgUserLanguage') || 'en',
+                        format: 'json'
+                    }).done(function(res) {
+                        $dropdown.empty();
+                        let items = (res && res.search) ? res.search : [];
+                        if (items.length === 0) { $dropdown.hide(); return; }
+                        items.forEach(item => {
+                            let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
+                            let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(item.label || item.id);
+                            $lbl.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${item.id})`));
+                            $r.append($lbl);
+                            $r.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                qual.value = item.id;
+                                $input.val(item.label ? `${item.label} (${item.id})` : item.id);
+                                $dropdown.hide();
+                                onUpdate();
+                            });
+                            $dropdown.append($r);
+                        });
+                        $dropdown.show();
+                    });
+                }, 250);
+            });
+            return $wrapper;
+        }
+
+        // 8. Fallback text input (string, external-id, url, etc.)
+        let displayVal = qual.value;
+        if (typeof displayVal === 'object' && displayVal !== null) {
+            displayVal = displayVal.text || displayVal.id || displayVal.time || '';
+        }
+        let $input = $('<input>')
+            .addClass('cradle-input')
+            .attr('type', 'text')
+            .attr('placeholder', 'Enter value')
+            .val(displayVal || '');
+
+        $input.on('input', function() {
+            qual.value = $input.val();
+            onUpdate();
+        });
+        return $input;
     }
 
     /**
@@ -5272,13 +5862,70 @@ function searchWikidataItems(term) {
                 let datavalue = constructDataValue(row.value, row.datatype);
                 if (!datavalue) return;
 
+                // Build qualifiers payload
+                let activeRowQuals = (row.qualifiers || []).filter(q => q.pid && !isEmptyValue(q.value, q.datatype));
+                let qualPayload = {};
+                let qualOrder = [];
+
+                activeRowQuals.forEach(q => {
+                    let qDv = constructDataValue(q.value, q.datatype);
+                    if (qDv) {
+                        if (!qualPayload[q.pid]) {
+                            qualPayload[q.pid] = [];
+                            qualOrder.push(q.pid);
+                        }
+                        let snakObj = {
+                            snaktype: 'value',
+                            property: q.pid,
+                            datavalue: qDv
+                        };
+                        if (q.hash) {
+                            snakObj.hash = q.hash;
+                        }
+                        qualPayload[q.pid].push(snakObj);
+                    }
+                });
+
                 if (row.guid) {
                     // Update claim
                     let origClaim = original.find(c => c.id === row.guid);
                     let valChanged = origClaim && isValueChanged(origClaim, datavalue);
                     let rankChanged = origClaim && (origClaim.rank || 'normal') !== (row.rank || 'normal');
 
-                    if (origClaim && (valChanged || rankChanged)) {
+                    // Detect qualifiers change
+                    let origQualList = [];
+                    if (origClaim && origClaim.qualifiers) {
+                        let origOrder = (origClaim['qualifiers-order'] && origClaim['qualifiers-order'].slice()) || Object.keys(origClaim.qualifiers);
+                        Object.keys(origClaim.qualifiers).forEach(k => {
+                            if (!origOrder.includes(k)) origOrder.push(k);
+                        });
+                        origOrder.forEach(qPid => {
+                            (origClaim.qualifiers[qPid] || []).forEach(snak => {
+                                origQualList.push(snak);
+                            });
+                        });
+                    }
+
+                    let qualifiersChanged = false;
+                    if (activeRowQuals.length !== origQualList.length) {
+                        qualifiersChanged = true;
+                    } else if (activeRowQuals.length > 0) {
+                        for (let i = 0; i < activeRowQuals.length; i++) {
+                            let q = activeRowQuals[i];
+                            let origSnak = origQualList[i];
+                            if (!origSnak || origSnak.property !== q.pid) {
+                                qualifiersChanged = true;
+                                break;
+                            }
+                            let qDv = constructDataValue(q.value, q.datatype);
+                            if (!qDv || !origSnak.datavalue || !areDataValuesEqual(origSnak.datavalue, qDv)) {
+                                qualifiersChanged = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (origClaim && (valChanged || rankChanged || qualifiersChanged)) {
                         let claimUpdate = {
                             id: row.guid,
                             mainsnak: {
@@ -5289,12 +5936,19 @@ function searchWikidataItems(term) {
                             type: 'statement',
                             rank: row.rank || 'normal'
                         };
+                        if (qualOrder.length > 0) {
+                            claimUpdate.qualifiers = qualPayload;
+                            claimUpdate['qualifiers-order'] = qualOrder;
+                        } else if (origQualList.length > 0) {
+                            claimUpdate.qualifiers = {};
+                            claimUpdate['qualifiers-order'] = [];
+                        }
                         propertyClaims.push(claimUpdate);
                         hasChanges = true;
                     }
                 } else {
                     // Add new claim
-                    propertyClaims.push({
+                    let newClaim = {
                         mainsnak: {
                             snaktype: 'value',
                             property: pid,
@@ -5302,7 +5956,12 @@ function searchWikidataItems(term) {
                         },
                         type: 'statement',
                         rank: row.rank || 'normal'
-                    });
+                    };
+                    if (qualOrder.length > 0) {
+                        newClaim.qualifiers = qualPayload;
+                        newClaim['qualifiers-order'] = qualOrder;
+                    }
+                    propertyClaims.push(newClaim);
                     hasChanges = true;
                 }
             });
@@ -5472,6 +6131,19 @@ function searchWikidataItems(term) {
                 }
             };
         }
+        if (datatype === 'wikibase-property') {
+            let pid = typeof value === 'string' ? value.trim().toUpperCase() : (value && value.id ? value.id : '');
+            if (!pid.startsWith('P')) return null;
+            let numId = parseInt(pid.substring(1));
+            return {
+                type: 'wikibase-entityid',
+                value: {
+                    'entity-type': 'property',
+                    'numeric-id': numId,
+                    'id': pid
+                }
+            };
+        }
         if (datatype === 'time') {
             return parseNaturalDate(value);
         }
@@ -5479,36 +6151,42 @@ function searchWikidataItems(term) {
     }
 
     /**
+     * Compares two Wikibase datavalue objects for equality.
+     */
+    function areDataValuesEqual(dv1, dv2) {
+        if (!dv1 || !dv2) return false;
+        if (dv1.type !== dv2.type) return false;
+        let v1 = dv1.value;
+        let v2 = dv2.value;
+        if (dv1.type === 'wikibase-entityid') {
+            return v1.id === v2.id;
+        }
+        if (dv1.type === 'string') {
+            return v1 === v2;
+        }
+        if (dv1.type === 'monolingualtext') {
+            return v1.text === v2.text && v1.language === v2.language;
+        }
+        if (dv1.type === 'globecoordinate') {
+            let latMatch = Math.abs(parseFloat(v1.latitude) - parseFloat(v2.latitude)) < 1e-7;
+            let lonMatch = Math.abs(parseFloat(v1.longitude) - parseFloat(v2.longitude)) < 1e-7;
+            return latMatch && lonMatch;
+        }
+        if (dv1.type === 'quantity') {
+            return parseFloat(v1.amount) === parseFloat(v2.amount);
+        }
+        if (dv1.type === 'time') {
+            return v1.time === v2.time;
+        }
+        return JSON.stringify(v1) === JSON.stringify(v2);
+    }
+
+    /**
      * Checks if form input value differs from existing claim value.
      */
     function isValueChanged(origClaim, datavalue) {
         if (!origClaim.mainsnak || !origClaim.mainsnak.datavalue) return true;
-        let origVal = origClaim.mainsnak.datavalue.value;
-        let newVal = datavalue.value;
-        
-        if (datavalue.type !== origClaim.mainsnak.datavalue.type) return true;
-        
-        if (datavalue.type === 'wikibase-entityid') {
-            return origVal.id !== newVal.id;
-        }
-        if (datavalue.type === 'string') {
-            return origVal !== newVal;
-        }
-        if (datavalue.type === 'monolingualtext') {
-            return origVal.text !== newVal.text || origVal.language !== newVal.language;
-        }
-        if (datavalue.type === 'globecoordinate') {
-            let latMatch = Math.abs(parseFloat(origVal.latitude) - parseFloat(newVal.latitude)) < 1e-7;
-            let lonMatch = Math.abs(parseFloat(origVal.longitude) - parseFloat(newVal.longitude)) < 1e-7;
-            return !latMatch || !lonMatch;
-        }
-        if (datavalue.type === 'quantity') {
-            return parseFloat(origVal.amount) !== parseFloat(newVal.amount);
-        }
-        if (datavalue.type === 'time') {
-            return origVal.time !== newVal.time;
-        }
-        return JSON.stringify(origVal) !== JSON.stringify(newVal);
+        return !areDataValuesEqual(origClaim.mainsnak.datavalue, datavalue);
     }
 
     // Load hook
