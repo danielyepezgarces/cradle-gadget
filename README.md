@@ -11,7 +11,7 @@ Inspired by the original [Cradle tool](https://cradle.toolforge.org/) by Magnus 
 To use Cradle on Wikidata, add the following line to your personal [common.js](https://www.wikidata.org/wiki/Special:MyPage/common.js) page:
 
 ```javascript
-mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.57.0');
+mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.58.0');
 ```
 
 *(You can increment the `version` parameter at the end of the URL to bypass browser cache whenever a new release is published).*
@@ -36,14 +36,17 @@ mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadg
 
 ## 🛠️ Automated Deployment
 
-This repository includes `deploy_to_wikidata.py` to deploy script updates and i18n catalogs directly to Wikidata user space:
+This repository includes `deploy_to_wikidata.py` to deploy script updates and i18n catalogs directly to Wikidata (`www.wikidata.org`) or Test Wikidata (`test.wikidata.org`):
 
 ```bash
 # Copy and configure your bot credentials
 cp .env.example .env
 
-# Deploy to production (stable)
+# Deploy to production (stable on www.wikidata.org)
 python3 deploy_to_wikidata.py --target-env stable --upload-i18n
+
+# Deploy development release (dev on test.wikidata.org from 'test' branch)
+python3 deploy_to_wikidata.py --target-env dev --upload-i18n
 ```
 
 ---

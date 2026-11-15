@@ -20,4 +20,9 @@ These rules apply to any AI coding agent developing or modifying the Cradle Wiki
 
 ## 4. Deployment & Target Environments
 - **Separate Environment Deployments**: Do NOT deploy to the `dev` environment (`--target-env dev`) when performing a `stable` environment deployment (`--target-env stable`), unless the user explicitly requests deploying to both environments. Keep deployment targets strictly separated.
+- **Target Environments & Wikibase Instances**:
+  - `stable`: Deployed to production Wikidata (`www.wikidata.org`) from the `stable` Git branch.
+  - `beta`: Deployed to production Wikidata (`www.wikidata.org`) from the `beta` Git branch.
+  - `dev`: Deployed to Test Wikidata (`test.wikidata.org`) from the `test` Git branch.
+  - When working on `dev` / `test` branch, test-specific loader and asset paths must point to `test.wikidata.org`.
 

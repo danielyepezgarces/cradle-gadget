@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.57.0
+ * Version: 1.58.0-dev
  * 
  * Installation:
- * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
+ * Add the following line to your [[Special:MyPage/common.js]] on test.wikidata.org (increment version value to bypass cache)
  * 
- * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.56.0');
+ * Development loader snippet for your common.js on test.wikidata.org:
+ * mw.loader.load('//test.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle-dev.js&action=raw&ctype=text/javascript&version=1.58.0-dev');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.56.0';
+    const CRADLE_VERSION = '1.58.0-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -40,12 +40,12 @@
         }
     }
 
-    // Verify if we are on Wikidata
+    // Verify if we are on Wikidata or Test Wikidata
     if (!mw.config.get('wgServer').includes('wikidata.org')) {
         return;
     }
 
-    mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.css&action=raw&ctype=text/css&version=' + CRADLE_VERSION, 'text/css');
+    mw.loader.load(mw.util.wikiScript('index') + '?title=User:Danielyepezgarces/Gadget-cradle-dev.css&action=raw&ctype=text/css&version=' + CRADLE_VERSION, 'text/css');
 
     const P12861 = 'P12861'; // EntitySchema for this class
     const P31 = 'P31';       // Instance of
@@ -4049,6 +4049,82 @@
     }
 
     /**
+     * Returns an SVG string representing the Wikibase 3-tier rank icon for a given rank.
+     */
+    function getRankSvg(rank) {
+        let preferredColor = (rank === 'preferred') ? 'var(--color-progressive, #36c)' : 'var(--color-subtle, #a2a9b1)';
+        let normalColor = (rank === 'normal') ? 'var(--color-base, #202122)' : 'var(--color-subtle, #a2a9b1)';
+        let deprecatedColor = (rank === 'deprecated') ? 'var(--color-destructive, #d33)' : 'var(--color-subtle, #a2a9b1)';
+
+        return `<svg class="cradle-rank-icon" width="10" height="18" viewBox="0 0 10 18">
+            <path d="M5,1 L1,5.5 L9,5.5 Z" fill="${preferredColor}" stroke="${preferredColor}" stroke-width="0.5"/>
+            <path d="M1,8 L9,8 L9,10 L1,10 Z" fill="${normalColor}"/>
+            <path d="M5,17 L1,12.5 L9,12.5 Z" fill="${deprecatedColor}" stroke="${deprecatedColor}" stroke-width="0.5"/>
+        </svg>`;
+    }
+
+    /**
+     * Creates an interactive Wikibase Rank Selector widget for a statement row.
+     */
+    function createRankSelector(pid, row) {
+        let currentRank = row.rank || 'normal';
+        let $container = $('<div>').addClass('cradle-rank-container');
+
+        let rankTitleMap = {
+            'preferred': mw.msg('cradle-rank-preferred'),
+            'normal': mw.msg('cradle-rank-normal'),
+            'deprecated': mw.msg('cradle-rank-deprecated')
+        };
+
+        let $rankBtn = $('<button>')
+            .attr('type', 'button')
+            .addClass(`cradle-rank-btn rank-${currentRank}`)
+            .attr('title', `${mw.msg('cradle-rank')}: ${rankTitleMap[currentRank] || currentRank}`)
+            .html(getRankSvg(currentRank));
+
+        let $menu = $('<ul>').addClass('cradle-rank-menu').hide();
+
+        ['preferred', 'normal', 'deprecated'].forEach(r => {
+            let $item = $('<li>')
+                .addClass(`cradle-rank-menuitem rank-${r}`)
+                .toggleClass('active', r === currentRank)
+                .html(`${getRankSvg(r)} <span>${rankTitleMap[r]}</span>`)
+                .on('click', function(e) {
+                    e.stopPropagation();
+                    $menu.hide();
+                    if (row.rank !== r) {
+                        row.rank = r;
+                        $rankBtn
+                            .removeClass('rank-preferred rank-normal rank-deprecated')
+                            .addClass(`rank-${r}`)
+                            .attr('title', `${mw.msg('cradle-rank')}: ${rankTitleMap[r]}`)
+                            .html(getRankSvg(r));
+                        $menu.find('.cradle-rank-menuitem').removeClass('active');
+                        $item.addClass('active');
+                        liveUpdateValidation();
+                    }
+                });
+            $menu.append($item);
+        });
+
+        $rankBtn.on('click', function(e) {
+            e.stopPropagation();
+            if (row.isDeleted) return;
+            $('.cradle-rank-menu').not($menu).hide();
+            $menu.toggle();
+        });
+
+        $(document).on('click.cradleRankMenu', function(e) {
+            if (!$container.is(e.target) && $container.has(e.target).length === 0) {
+                $menu.hide();
+            }
+        });
+
+        $container.append($rankBtn).append($menu);
+        return $container;
+    }
+
+    /**
      * Render statement rows for a given property.
      */
     function renderPropertyRows(pid) {
@@ -4066,6 +4142,9 @@
             if (row.isDeleted) {
                 $row.addClass('deleted');
             }
+
+            let $rankSelector = createRankSelector(pid, row);
+            $row.append($rankSelector);
 
             let $inputElement = createInputForDatatype(pid, row);
             let $indicators = $('<div>').addClass('wikibase-snakview-indicators').attr('id', `cradle-indicators-${row.id}`).css({'margin-left': '6px', 'display': 'inline-flex'});
@@ -5196,16 +5275,21 @@ function searchWikidataItems(term) {
                 if (row.guid) {
                     // Update claim
                     let origClaim = original.find(c => c.id === row.guid);
-                    if (origClaim && isValueChanged(origClaim, datavalue)) {
-                        propertyClaims.push({
+                    let valChanged = origClaim && isValueChanged(origClaim, datavalue);
+                    let rankChanged = origClaim && (origClaim.rank || 'normal') !== (row.rank || 'normal');
+
+                    if (origClaim && (valChanged || rankChanged)) {
+                        let claimUpdate = {
                             id: row.guid,
                             mainsnak: {
                                 snaktype: 'value',
                                 property: pid,
                                 datavalue: datavalue
                             },
-                            type: 'statement'
-                        });
+                            type: 'statement',
+                            rank: row.rank || 'normal'
+                        };
+                        propertyClaims.push(claimUpdate);
                         hasChanges = true;
                     }
                 } else {
@@ -5216,7 +5300,8 @@ function searchWikidataItems(term) {
                             property: pid,
                             datavalue: datavalue
                         },
-                        type: 'statement'
+                        type: 'statement',
+                        rank: row.rank || 'normal'
                     });
                     hasChanges = true;
                 }
