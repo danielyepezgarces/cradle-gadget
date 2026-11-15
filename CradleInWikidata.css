@@ -277,8 +277,9 @@
         .cradle-drawer {
             position: fixed;
             top: 0;
-            right: -480px;
-            width: 440px;
+            right: -650px;
+            width: 600px;
+            max-width: 95vw;
             height: 100vh;
             background-color: var(--background-color-base, #ffffff);
             border-left: 1px solid var(--border-color-base, #a2a9b1);
@@ -678,6 +679,357 @@
             font-weight: 600;
             background-color: rgba(51, 102, 204, 0.08);
             color: var(--color-progressive, #36c);
+        }
+
+        /* Multiple values vertical separator / guide line */
+        .cradle-rows-container.cradle-multiple-rows {
+            border-left: 2px solid var(--border-color-subtle, #c8ccd1);
+            padding-left: 10px;
+            margin-left: 4px;
+            position: relative;
+        }
+
+        .cradle-rows-container.cradle-multiple-rows .cradle-statement + .cradle-statement {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border-color-subtle, #eaecf0);
+        }
+
+        /* Statement Container & Toolbar */
+        .cradle-statement {
+            margin-bottom: 8px;
+        }
+        .cradle-statement.deleted {
+            opacity: 0.4;
+        }
+        .cradle-statement-toolbar {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .cradle-btn-qualifier-toggle {
+            position: relative;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 2px;
+            padding: 4px;
+            cursor: pointer;
+            color: var(--color-subtle, #54595d);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 32px;
+            width: 32px;
+            box-sizing: border-box;
+            transition: background-color 0.1s, color 0.1s, border-color 0.1s;
+        }
+        .cradle-btn-qualifier-toggle:hover {
+            background-color: var(--background-color-interactive-subtle, #eaecf0);
+            color: var(--color-base, #202122);
+            border-color: var(--border-color-subtle, #c8ccd1);
+        }
+        .cradle-btn-qualifier-toggle.active {
+            color: var(--color-progressive, #36c);
+            background-color: rgba(51, 102, 204, 0.08);
+            border-color: rgba(51, 102, 204, 0.2);
+        }
+        .cradle-badge-count {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background-color: var(--background-color-progressive, #36c);
+            color: #ffffff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            line-height: 1;
+            padding: 2px 4px;
+            border-radius: 10px;
+            min-width: 12px;
+            text-align: center;
+        }
+
+        /* Qualifiers Container & Rows */
+        .cradle-qualifiers-container {
+            margin-left: 28px;
+            margin-top: 4px;
+            margin-bottom: 8px;
+            padding-left: 12px;
+            border-left: 2px solid var(--border-color-subtle, #eaecf0);
+            position: relative;
+        }
+        .cradle-qualifiers-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .cradle-qualifier-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+        .cradle-qualifier-property {
+            width: 160px;
+            min-width: 140px;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .cradle-qualifier-prop-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background-color: var(--background-color-interactive-subtle, #f8f9fa);
+            border: 1px solid var(--border-color-subtle, #c8ccd1);
+            border-radius: 2px;
+            font-size: 0.775rem;
+            color: var(--color-base, #202122);
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background-color 0.1s, border-color 0.1s;
+        }
+        .cradle-qualifier-prop-pill:hover {
+            background-color: #eaecf0;
+            border-color: var(--border-color-base, #a2a9b1);
+        }
+        .cradle-qualifier-prop-name {
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .cradle-qualifier-prop-id {
+            color: var(--color-subtle, #54595d);
+            font-size: 0.7rem;
+            flex-shrink: 0;
+        }
+        .cradle-qualifier-value {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+        }
+        .cradle-qualifier-value .cradle-input {
+            height: 32px;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+        .cradle-btn-remove-qualifier {
+            background: transparent;
+            border: none;
+            color: var(--color-subtle, #72777d);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 2px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 28px;
+            width: 28px;
+            transition: color 0.1s, background-color 0.1s;
+        }
+        .cradle-btn-remove-qualifier:hover {
+            color: var(--color-destructive, #d33);
+            background-color: rgba(221, 51, 51, 0.08);
+        }
+        .cradle-btn-add-qualifier {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.775rem;
+            color: var(--color-progressive, #36c);
+            background: transparent;
+            border: none;
+            padding: 4px 6px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: background-color 0.1s;
+        }
+        .cradle-btn-add-qualifier:hover {
+            background-color: rgba(51, 102, 204, 0.08);
+        }
+        .cradle-qualifier-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .cradle-qualifier-suggestion-chip {
+            font-size: 0.725rem;
+            padding: 2px 6px;
+            border-radius: 12px;
+            background: #f0f4f8;
+            color: #36c;
+            border: 1px solid #c8d8e8;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.1s, border-color 0.1s;
+        }
+        .cradle-qualifier-suggestion-chip:hover {
+            background: #dceaf8;
+            border-color: #36c;
+        }
+
+        /* References Toggle Button in statement toolbar */
+        .cradle-btn-ref-toggle {
+            position: relative;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 2px;
+            padding: 4px;
+            cursor: pointer;
+            color: var(--color-subtle, #54595d);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 32px;
+            width: 32px;
+            box-sizing: border-box;
+            transition: background-color 0.1s, color 0.1s, border-color 0.1s;
+        }
+        .cradle-btn-ref-toggle:hover {
+            background-color: var(--background-color-interactive-subtle, #eaecf0);
+            color: var(--color-base, #202122);
+            border-color: var(--border-color-subtle, #c8ccd1);
+        }
+        .cradle-btn-ref-toggle.active {
+            color: var(--color-progressive, #36c);
+            background-color: rgba(51, 102, 204, 0.08);
+            border-color: rgba(51, 102, 204, 0.2);
+        }
+
+        /* References Container (Wikibase Statementview References Container) */
+        .cradle-references-container {
+            margin-left: 28px;
+            margin-top: 6px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .cradle-references-heading {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.775rem;
+            color: var(--color-progressive, #36c);
+            cursor: pointer;
+            user-select: none;
+            padding: 3px 6px;
+            border-radius: 2px;
+            transition: background-color 0.1s;
+        }
+        .cradle-references-heading:hover {
+            background-color: var(--background-color-interactive-subtle, #eaecf0);
+        }
+        .cradle-references-heading.cradle-no-refs {
+            color: var(--color-subtle, #72777d);
+        }
+        .cradle-references-heading.cradle-no-refs:hover {
+            color: var(--color-progressive, #36c);
+        }
+
+        .cradle-references-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 6px;
+            padding-left: 12px;
+            border-left: 2px solid var(--border-color-subtle, #eaecf0);
+        }
+
+        .cradle-reference-card {
+            background: var(--background-color-base, #ffffff);
+            border: 1px solid var(--border-color-subtle, #c8ccd1);
+            border-radius: 3px;
+            padding: 10px 12px;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .cradle-reference-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-color-subtle, #eaecf0);
+        }
+
+        .cradle-reference-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-base, #202122);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cradle-citoid-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .cradle-citoid-input {
+            flex: 1;
+            height: 30px;
+            font-size: 0.775rem;
+            padding: 4px 8px;
+        }
+        .cradle-btn-citoid {
+            height: 30px;
+            font-size: 0.75rem;
+            padding: 0 10px;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #f8f9fa;
+            border: 1px solid #a2a9b1;
+            border-radius: 2px;
+            cursor: pointer;
+            color: #202122;
+            transition: background 0.1s, border-color 0.1s;
+        }
+        .cradle-btn-citoid:hover {
+            background: #eaecf0;
+            border-color: #72777d;
+        }
+
+        .cradle-ref-snaks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .cradle-ref-snak-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .cradle-btn-add-ref {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.775rem;
+            color: var(--color-progressive, #36c);
+            background: transparent;
+            border: none;
+            padding: 4px 6px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-top: 4px;
+            transition: background-color 0.1s;
+        }
+        .cradle-btn-add-ref:hover {
+            background-color: rgba(51, 102, 204, 0.08);
         }
         /* Wikibase Quality Constraints (wbqc) status styling */
         .cradle-drawer .wbqc-reports-status {
