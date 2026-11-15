@@ -4145,7 +4145,7 @@
             }
             $card.append($cardHeader);
             // Container for statement input rows
-            let $rowsContainer = $('<div>').attr('id', `cradle-rows-${pid}`);
+            let $rowsContainer = $('<div>').addClass('cradle-rows-container').attr('id', `cradle-rows-${pid}`);
             $card.append($rowsContainer);
 
             // Container for action bar
@@ -4246,6 +4246,13 @@
         let propDef = schemaProperties[pid];
         
         let rows = formState[pid];
+
+        let nonDeletedRows = rows.filter(r => !r.isDeleted);
+        if (nonDeletedRows.length > 1) {
+            $container.addClass('cradle-multiple-rows');
+        } else {
+            $container.removeClass('cradle-multiple-rows');
+        }
 
         rows.forEach((row, index) => {
             let $statement = $('<div>')
