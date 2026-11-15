@@ -217,7 +217,11 @@
         code: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="m5 13-4-3 4-3 1.4 1.4-2.1 1.6 2.1 1.6zm10 0-1.4-1.4 2.1-1.6-2.1-1.6L15 7l4 3zm-6.8 3.5-2.4-.6 6-12 2.4.6z"/></svg>`,
         feedback: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M18 10c0-4.42-3.58-8-8-8s-8 3.58-8 8c0 2.03.76 3.87 2 5.28V19l3.53-1.77C8.41 17.72 9.19 18 10 18c4.42 0 8-3.58 8-8zm-8 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm1-4H9V6h2v4z"/></svg>`,
         mapPin: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M10 2a6 6 0 0 0-6 6c0 4.5 6 10 6 10s6-5.5 6-10a6 6 0 0 0-6-6zm0 8.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>`,
-        qualifier: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M19.41 10.42l-7.83-7.83a2 2 0 0 0-1.41-.59H3a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l7.83 7.82a2 2 0 0 0 2.82 0l7.17-7.17a2 2 0 0 0 0-2.82zM5.5 7A1.5 1.5 0 1 1 7 5.5 1.5 1.5 0 0 1 5.5 7z"/></svg>`
+        qualifier: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M19.41 10.42l-7.83-7.83a2 2 0 0 0-1.41-.59H3a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l7.83 7.82a2 2 0 0 0 2.82 0l7.17-7.17a2 2 0 0 0 0-2.82zM5.5 7A1.5 1.5 0 1 1 7 5.5 1.5 1.5 0 0 1 5.5 7z"/></svg>`,
+        reference: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M15 1H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zm-1 14H6V5h8z"/></svg>`,
+        chevronDown: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20"><path d="m10 13.5 6-6-1.4-1.4-4.6 4.6-4.6-4.6L4 7.5z"/></svg>`,
+        chevronRight: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20"><path d="m7.5 4-1.4 1.4 4.6 4.6-4.6 4.6 1.4 1.4 6-6z"/></svg>`,
+        cite: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20"><path d="M7 5H3v6h4v4h3V5H7zm9 0h-4v6h4v4h3V5h-3z"/></svg>`
     };
 
     /**
@@ -252,6 +256,7 @@
             'cradle-cardinality-req-multi': '1..* / + (Required, multiple)',
             'cradle-change-form': 'Change schema',
             'cradle-change-schema': 'Change schema',
+            'cradle-citoid-error': 'Failed to fetch metadata from Citoid: $1',
             'cradle-citoid-loading': 'Fetching metadata (Citoid)...',
             'cradle-citoid-success': 'Metadata loaded!',
             'cradle-confirm-proceed': 'Do you want to proceed anyway?',
@@ -379,8 +384,10 @@
             'cradle-rank-deprecated': 'Deprecated',
             'cradle-rank-normal': 'Normal',
             'cradle-rank-preferred': 'Preferred',
+            'cradle-ref-heading': 'Reference #$1',
             'cradle-ref-url-placeholder': 'Enter URL, DOI, ISBN or PMID...',
             'cradle-references': 'References',
+            'cradle-references-count': '$1 reference(s)',
             'cradle-remove-qualifier': 'Remove qualifier',
             'cradle-remove-reference': 'Remove reference',
             'cradle-required-checkbox': 'Required',
@@ -2934,6 +2941,46 @@
                             });
                         }
 
+                        // Parse references into normalized array
+                        let normalizedReferences = [];
+                        if (claim.references && Array.isArray(claim.references)) {
+                            claim.references.forEach(ref => {
+                                let snakList = [];
+                                let snaksOrder = (ref['snaks-order'] && ref['snaks-order'].slice()) || Object.keys(ref.snaks || {});
+                                Object.keys(ref.snaks || {}).forEach(k => {
+                                    if (!snaksOrder.includes(k)) snaksOrder.push(k);
+                                });
+                                snaksOrder.forEach(rPid => {
+                                    let snaks = (ref.snaks && ref.snaks[rPid]) || [];
+                                    snaks.forEach(rSnak => {
+                                        let rSnaktype = rSnak.snaktype || 'value';
+                                        let rVal = '';
+                                        if (rSnaktype === 'value' && rSnak.datavalue) {
+                                            rVal = parseClaimValue(rSnak.datavalue);
+                                        } else if (rSnaktype === 'somevalue' || rSnaktype === 'novalue') {
+                                            rVal = rSnaktype;
+                                        }
+                                        let rDt = rSnak.datatype || (rSnak.datavalue && rSnak.datavalue.type) || 'string';
+                                        if (rDt === 'globecoordinate') rDt = 'globe-coordinate';
+                                        snakList.push({
+                                            id: Math.random().toString(36).substring(2, 9),
+                                            hash: rSnak.hash || null,
+                                            pid: rPid,
+                                            propertyLabel: null,
+                                            datatype: rDt,
+                                            snaktype: rSnaktype,
+                                            value: rVal
+                                        });
+                                    });
+                                });
+                                normalizedReferences.push({
+                                    id: Math.random().toString(36).substring(2, 9),
+                                    hash: ref.hash || null,
+                                    snaks: snakList
+                                });
+                            });
+                        }
+
                         if (snaktype === 'value' || snaktype === 'somevalue' || snaktype === 'novalue') {
                             formState[pid].push({
                                 id: Math.random().toString(36).substring(2, 9),
@@ -2942,7 +2989,8 @@
                                 snaktype: snaktype,
                                 datatype: rowDt,
                                 rank: claim.rank || 'normal',
-                                references: claim.references || [],
+                                references: normalizedReferences,
+                                isReferencesExpanded: false,
                                 qualifiers: normalizedQualifiers,
                                 isQualifiersExpanded: normalizedQualifiers.length > 0,
                                 isDeleted: false
@@ -2970,23 +3018,31 @@
             }
         });
 
-        // Preload metadata for any existing qualifier properties
-        let qualifierPids = [];
+        // Preload metadata for any existing qualifier or reference properties
+        let extraPropIds = [];
         Object.keys(formState).forEach(p => {
             formState[p].forEach(r => {
                 (r.qualifiers || []).forEach(q => {
-                    if (q.pid && !propertyMetadata[q.pid] && !qualifierPids.includes(q.pid)) {
-                        qualifierPids.push(q.pid);
+                    if (q.pid && !propertyMetadata[q.pid] && !extraPropIds.includes(q.pid)) {
+                        extraPropIds.push(q.pid);
                     }
+                });
+                (r.references || []).forEach(ref => {
+                    (ref.snaks || []).forEach(s => {
+                        if (s.pid && !propertyMetadata[s.pid] && !extraPropIds.includes(s.pid)) {
+                            extraPropIds.push(s.pid);
+                        }
+                    });
                 });
             });
         });
-        if (qualifierPids.length > 0) {
-            loadPropertiesMetadata(qualifierPids).then(metaMap => {
+        if (extraPropIds.length > 0) {
+            loadPropertiesMetadata(extraPropIds).then(metaMap => {
                 Object.assign(propertyMetadata, metaMap);
-                qualifierPids.forEach(qPid => {
-                    let label = (metaMap[qPid] && metaMap[qPid].label) || qPid;
-                    $(`.cradle-qualifier-prop-pill[data-pid="${qPid}"] .cradle-qualifier-prop-name`).text(label);
+                extraPropIds.forEach(propId => {
+                    let label = (metaMap[propId] && metaMap[propId].label) || propId;
+                    $(`.cradle-qualifier-prop-pill[data-pid="${propId}"] .cradle-qualifier-prop-name`).text(label);
+                    $(`.cradle-ref-prop-pill[data-pid="${propId}"] .cradle-ref-prop-name`).text(label);
                 });
             });
         }
@@ -4231,6 +4287,22 @@
             }
             $statementToolbar.append($qualBtn);
 
+            // References Toggle Button
+            let refCount = (row.references || []).length;
+            let $refBtn = $('<button>')
+                .addClass('cradle-btn-ref-toggle')
+                .attr('type', 'button')
+                .attr('title', mw.msg('cradle-references'))
+                .html(ICONS.reference + (refCount > 0 ? `<span class="cradle-badge-count">${refCount}</span>` : ''))
+                .on('click', function() {
+                    row.isReferencesExpanded = !row.isReferencesExpanded;
+                    renderPropertyRows(pid);
+                });
+            if (row.isReferencesExpanded) {
+                $refBtn.addClass('active');
+            }
+            $statementToolbar.append($refBtn);
+
             let $deleteBtn = $('<button>')
                 .addClass('cradle-btn-delete')
                 .attr('type', 'button')
@@ -4249,6 +4321,10 @@
                 let $qualSection = renderQualifiersSection(pid, row);
                 $statement.append($qualSection);
             }
+
+            // Render references section (Wikibase statementview references container)
+            let $refSection = renderReferencesSection(pid, row);
+            $statement.append($refSection);
 
             $container.append($statement);
         });
@@ -4767,6 +4843,588 @@
             onUpdate();
         });
         return $input;
+    }
+
+    /**
+     * Renders the references section container for a statement.
+     */
+    function renderReferencesSection(pid, row) {
+        let $section = $('<div>')
+            .addClass('cradle-references-container')
+            .attr('id', `cradle-references-${row.id}`);
+
+        let references = row.references || [];
+        let refCount = references.length;
+
+        // References collapsible heading
+        let $heading = $('<div>')
+            .addClass('cradle-references-heading')
+            .toggleClass('cradle-no-refs', refCount === 0);
+
+        let chevronIcon = row.isReferencesExpanded ? ICONS.chevronDown : ICONS.chevronRight;
+        let countText = mw.msg('cradle-references-count', refCount);
+
+        $heading.html(`${chevronIcon} <span>${countText}</span>`);
+        $heading.on('click', function() {
+            row.isReferencesExpanded = !row.isReferencesExpanded;
+            if (row.isReferencesExpanded && references.length === 0) {
+                // If user expands an empty references block, create a blank reference with Citoid
+                addReferenceToRow(pid, row);
+                return;
+            }
+            renderPropertyRows(pid);
+        });
+        $section.append($heading);
+
+        // References list (visible if isReferencesExpanded)
+        if (row.isReferencesExpanded) {
+            let $list = $('<div>').addClass('cradle-references-list');
+
+            references.forEach((ref, refIndex) => {
+                let $refCard = renderReferenceCard(pid, row, ref, refIndex);
+                $list.append($refCard);
+            });
+
+            // Button to add another reference
+            let $addRefBtn = $('<button>')
+                .addClass('cradle-btn-text cradle-btn-add-ref')
+                .attr('type', 'button')
+                .html(`${ICONS.plus} ${mw.msg('cradle-add-reference')}`)
+                .on('click', function() {
+                    addReferenceToRow(pid, row);
+                });
+            $list.append($addRefBtn);
+
+            $section.append($list);
+        }
+
+        return $section;
+    }
+
+    /**
+     * Adds a new empty reference to a statement row.
+     */
+    function addReferenceToRow(pid, row) {
+        if (!row.references) row.references = [];
+        row.isReferencesExpanded = true;
+        let newRef = {
+            id: Math.random().toString(36).substring(2, 9),
+            hash: null,
+            snaks: []
+        };
+        row.references.push(newRef);
+        renderPropertyRows(pid);
+        liveUpdateValidation();
+    }
+
+    /**
+     * Removes a reference from a statement row.
+     */
+    function removeReferenceFromRow(pid, row, refId) {
+        if (!row.references) return;
+        row.references = row.references.filter(r => r.id !== refId);
+        renderPropertyRows(pid);
+        liveUpdateValidation();
+    }
+
+    /**
+     * Infers datatype for common reference properties.
+     */
+    function inferRefPropertyDatatype(pid) {
+        if (!pid) return 'string';
+        let uPid = pid.toUpperCase();
+        if (uPid === 'P248' || uPid === 'P1433' || uPid === 'P407' || uPid === 'P123') return 'wikibase-item';
+        if (uPid === 'P813' || uPid === 'P577') return 'time';
+        if (uPid === 'P854') return 'url';
+        if (uPid === 'P1476') return 'monolingualtext';
+        return 'string';
+    }
+
+    /**
+     * Adds a new snak to a reference.
+     */
+    function addSnakToReference(pid, row, ref, prefillPid, prefillVal) {
+        if (!ref.snaks) ref.snaks = [];
+        let pId = prefillPid || '';
+        let meta = pId ? (propertyMetadata[pId] || {}) : {};
+        let dt = meta.datatype || inferRefPropertyDatatype(pId);
+
+        let newSnak = {
+            id: Math.random().toString(36).substring(2, 9),
+            hash: null,
+            pid: pId,
+            propertyLabel: meta.label || (pId ? pId : ''),
+            datatype: dt,
+            snaktype: 'value',
+            value: prefillVal || ''
+        };
+        ref.snaks.push(newSnak);
+        renderPropertyRows(pid);
+        liveUpdateValidation();
+    }
+
+    /**
+     * Queries Wikimedia Citoid API to retrieve citation metadata and maps it to Wikidata properties.
+     */
+    function fetchCitoidReference(query) {
+        return new Promise((resolve, reject) => {
+            query = query.trim();
+            if (!query) {
+                reject('Empty query');
+                return;
+            }
+
+            let encoded = encodeURIComponent(query);
+            let citoidUrl = 'https://en.wikipedia.org/api/rest_v1/data/citation/mediawiki/' + encoded;
+
+            $.ajax({
+                url: citoidUrl,
+                method: 'GET',
+                dataType: 'json',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).done(function(data) {
+                if (!Array.isArray(data) || data.length === 0) {
+                    reject('No citation data returned');
+                    return;
+                }
+
+                let item = data[0];
+                let snaks = [];
+                let today = new Date().toISOString().slice(0, 10);
+
+                // 1. URL (P854)
+                let refUrl = item.url || (/^https?:\/\//i.test(query) ? query : null);
+                if (refUrl) {
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P854',
+                        propertyLabel: 'reference URL',
+                        datatype: 'url',
+                        snaktype: 'value',
+                        value: refUrl
+                    });
+                }
+
+                // 2. Title (P1476)
+                if (item.title) {
+                    let lang = item.language || mw.config.get('wgUserLanguage') || 'en';
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P1476',
+                        propertyLabel: 'title',
+                        datatype: 'monolingualtext',
+                        snaktype: 'value',
+                        value: { text: item.title, language: lang }
+                    });
+                }
+
+                // 3. Retrieved (P813)
+                let accessDate = item.accessDate ? item.accessDate.slice(0, 10) : today;
+                snaks.push({
+                    id: Math.random().toString(36).substring(2, 9),
+                    hash: null,
+                    pid: 'P813',
+                    propertyLabel: 'retrieved',
+                    datatype: 'time',
+                    snaktype: 'value',
+                    value: accessDate
+                });
+
+                // 4. Publication date (P577)
+                if (item.date) {
+                    let pubDate = item.date.slice(0, 10);
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P577',
+                        propertyLabel: 'publication date',
+                        datatype: 'time',
+                        snaktype: 'value',
+                        value: pubDate
+                    });
+                }
+
+                // 5. Author name string (P2093)
+                if (item.author && Array.isArray(item.author) && item.author.length > 0) {
+                    let firstAuthor = item.author[0];
+                    let authorStr = '';
+                    if (Array.isArray(firstAuthor)) {
+                        authorStr = firstAuthor.filter(Boolean).join(' ');
+                    } else if (typeof firstAuthor === 'object' && firstAuthor !== null) {
+                        authorStr = [firstAuthor.firstName, firstAuthor.lastName].filter(Boolean).join(' ');
+                    } else if (typeof firstAuthor === 'string') {
+                        authorStr = firstAuthor;
+                    }
+                    if (authorStr) {
+                        snaks.push({
+                            id: Math.random().toString(36).substring(2, 9),
+                            hash: null,
+                            pid: 'P2093',
+                            propertyLabel: 'author name string',
+                            datatype: 'string',
+                            snaktype: 'value',
+                            value: authorStr
+                        });
+                    }
+                }
+
+                // 6. DOI (P356)
+                if (item.DOI) {
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P356',
+                        propertyLabel: 'DOI',
+                        datatype: 'external-id',
+                        snaktype: 'value',
+                        value: item.DOI.toUpperCase()
+                    });
+                }
+
+                // 7. ISBN (P212)
+                if (item.ISBN && item.ISBN.length > 0) {
+                    let isbnVal = Array.isArray(item.ISBN) ? item.ISBN[0] : item.ISBN;
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P212',
+                        propertyLabel: 'ISBN-13',
+                        datatype: 'external-id',
+                        snaktype: 'value',
+                        value: isbnVal
+                    });
+                }
+
+                // 8. PMID (P698)
+                if (item.PMID) {
+                    snaks.push({
+                        id: Math.random().toString(36).substring(2, 9),
+                        hash: null,
+                        pid: 'P698',
+                        propertyLabel: 'PubMed ID',
+                        datatype: 'external-id',
+                        snaktype: 'value',
+                        value: item.PMID
+                    });
+                }
+
+                resolve(snaks);
+            }).fail(function(jqXHR, textStatus, errorThrown) {
+                reject(errorThrown || textStatus || 'Citoid request failed');
+            });
+        });
+    }
+
+    /**
+     * Renders a single reference card.
+     */
+    function renderReferenceCard(pid, row, ref, refIndex) {
+        let $card = $('<div>')
+            .addClass('cradle-reference-card')
+            .attr('id', `cradle-ref-${ref.id}`);
+
+        // Reference Header: "Reference #1" + Remove reference button
+        let $header = $('<div>').addClass('cradle-reference-header');
+        let $title = $('<div>')
+            .addClass('cradle-reference-title')
+            .html(`${ICONS.reference} <span>${mw.msg('cradle-ref-heading', refIndex + 1)}</span>`);
+        $header.append($title);
+
+        let $removeRefBtn = $('<button>')
+            .addClass('cradle-btn-remove-qualifier')
+            .attr('type', 'button')
+            .attr('title', mw.msg('cradle-remove-reference'))
+            .html(ICONS.trash)
+            .on('click', function() {
+                removeReferenceFromRow(pid, row, ref.id);
+            });
+        $header.append($removeRefBtn);
+        $card.append($header);
+
+        // Citoid auto-cite bar
+        let $citoidBar = $('<div>').addClass('cradle-citoid-bar');
+        let $citoidInput = $('<input>')
+            .addClass('cradle-input cradle-citoid-input')
+            .attr('type', 'text')
+            .attr('placeholder', mw.msg('cradle-ref-url-placeholder'));
+
+        let $citoidBtn = $('<button>')
+            .addClass('cradle-btn-citoid')
+            .attr('type', 'button')
+            .html(`${ICONS.cite} <span>${mw.msg('cradle-auto-cite')}</span>`);
+
+        function triggerCitoid() {
+            let query = $citoidInput.val().trim();
+            if (!query) return;
+            $citoidBtn.prop('disabled', true).html($('<div>').addClass('cradle-spinner'));
+            fetchCitoidReference(query).then(resultSnaks => {
+                $citoidBtn.prop('disabled', false).html(`${ICONS.cite} <span>${mw.msg('cradle-auto-cite')}</span>`);
+                if (resultSnaks && resultSnaks.length > 0) {
+                    ref.snaks = ref.snaks || [];
+                    resultSnaks.forEach(snak => {
+                        let existing = ref.snaks.find(s => s.pid === snak.pid);
+                        if (!existing) {
+                            ref.snaks.push(snak);
+                        } else {
+                            existing.value = snak.value;
+                        }
+                    });
+                    $citoidInput.val('');
+                    mw.notify(mw.msg('cradle-citoid-success'), { type: 'success' });
+                    renderPropertyRows(pid);
+                    liveUpdateValidation();
+                } else {
+                    mw.notify(mw.msg('cradle-citoid-error', 'No metadata found'), { type: 'warn' });
+                }
+            }).catch(err => {
+                $citoidBtn.prop('disabled', false).html(`${ICONS.cite} <span>${mw.msg('cradle-auto-cite')}</span>`);
+                // Fallback: If it's a URL, create P854 (URL) and P813 (retrieved)
+                if (/^https?:\/\//i.test(query)) {
+                    let today = new Date().toISOString().slice(0, 10);
+                    ref.snaks = ref.snaks || [];
+                    if (!ref.snaks.some(s => s.pid === 'P854')) {
+                        ref.snaks.push({
+                            id: Math.random().toString(36).substring(2, 9),
+                            hash: null,
+                            pid: 'P854',
+                            propertyLabel: 'reference URL',
+                            datatype: 'url',
+                            snaktype: 'value',
+                            value: query
+                        });
+                    }
+                    if (!ref.snaks.some(s => s.pid === 'P813')) {
+                        ref.snaks.push({
+                            id: Math.random().toString(36).substring(2, 9),
+                            hash: null,
+                            pid: 'P813',
+                            propertyLabel: 'retrieved',
+                            datatype: 'time',
+                            snaktype: 'value',
+                            value: today
+                        });
+                    }
+                    $citoidInput.val('');
+                    mw.notify(mw.msg('cradle-citoid-success'), { type: 'success' });
+                    renderPropertyRows(pid);
+                    liveUpdateValidation();
+                } else {
+                    mw.notify(mw.msg('cradle-citoid-error', String(err)), { type: 'error' });
+                }
+            });
+        }
+
+        $citoidBtn.on('click', triggerCitoid);
+        $citoidInput.on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                triggerCitoid();
+            }
+        });
+
+        $citoidBar.append($citoidInput).append($citoidBtn);
+        $card.append($citoidBar);
+
+        // List of snaks in this reference
+        let $snaksList = $('<div>').addClass('cradle-ref-snaks-list');
+        (ref.snaks || []).forEach((snak, sIndex) => {
+            let $snakRow = renderRefSnakRow(pid, row, ref, snak, sIndex);
+            $snaksList.append($snakRow);
+        });
+        $card.append($snaksList);
+
+        // Actions bar under reference snaks: "+ Add property" and suggestions
+        let $footer = $('<div>').css({'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between', 'flex-wrap': 'wrap', 'gap': '8px'});
+        let $addPropBtn = $('<button>')
+            .addClass('cradle-btn-text cradle-btn-add-ref-prop')
+            .attr('type', 'button')
+            .html(`${ICONS.plus} ${mw.msg('cradle-add-ref-property')}`)
+            .on('click', function() {
+                addSnakToReference(pid, row, ref);
+            });
+        $footer.append($addPropBtn);
+
+        // Common reference property suggestions
+        let commonRefProps = [
+            { pid: 'P248', label: 'stated in' },
+            { pid: 'P854', label: 'reference URL' },
+            { pid: 'P813', label: 'retrieved' },
+            { pid: 'P1476', label: 'title' }
+        ];
+        let existingSnakPids = (ref.snaks || []).map(s => s.pid);
+        let refSuggestions = commonRefProps.filter(p => !existingSnakPids.includes(p.pid));
+
+        if (refSuggestions.length > 0) {
+            let $sugBox = $('<div>').addClass('cradle-qualifier-suggestions');
+            refSuggestions.forEach(s => {
+                let sLabel = (propertyMetadata[s.pid] && propertyMetadata[s.pid].label) || s.label;
+                let $chip = $('<span>')
+                    .addClass('cradle-qualifier-suggestion-chip')
+                    .text(`+ ${sLabel}`)
+                    .attr('title', s.pid)
+                    .on('click', function() {
+                        let initVal = (s.pid === 'P813') ? new Date().toISOString().slice(0, 10) : '';
+                        addSnakToReference(pid, row, ref, s.pid, initVal);
+                    });
+                $sugBox.append($chip);
+            });
+            $footer.append($sugBox);
+        }
+
+        $card.append($footer);
+        return $card;
+    }
+
+    /**
+     * Renders a single snak row within a reference card.
+     */
+    function renderRefSnakRow(pid, row, ref, snak, sIndex) {
+        let $sRow = $('<div>')
+            .addClass('cradle-ref-snak-row')
+            .attr('id', `cradle-ref-snak-${snak.id}`);
+
+        let $propCol = $('<div>').addClass('cradle-qualifier-property');
+
+        if (snak.pid) {
+            let meta = propertyMetadata[snak.pid] || {};
+            let propLabel = snak.propertyLabel || meta.label || snak.pid;
+            let $pill = $('<div>')
+                .addClass('cradle-qualifier-prop-pill cradle-ref-prop-pill')
+                .attr('data-pid', snak.pid)
+                .attr('title', `${propLabel} (${snak.pid}) - ${mw.msg('cradle-btn-edit')}`);
+
+            $pill.append($('<span>').addClass('cradle-qualifier-prop-name cradle-ref-prop-name').text(propLabel));
+            $pill.append($('<span>').addClass('cradle-qualifier-prop-id').text(`(${snak.pid})`));
+
+            $pill.on('click', function() {
+                snak.pid = '';
+                renderPropertyRows(pid);
+            });
+            $propCol.append($pill);
+        } else {
+            // Autocomplete property search
+            let $propWrapper = $('<div>').addClass('cradle-autocomplete-wrapper').css({'width': '100%'});
+            let $propInput = $('<input>')
+                .addClass('cradle-input cradle-qualifier-prop-search')
+                .attr('type', 'text')
+                .attr('placeholder', mw.msg('cradle-qualifier-prop-placeholder'))
+                .val('');
+
+            let $propDropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').hide();
+            $propWrapper.append($propInput).append($propDropdown);
+
+            let searchTimeout = null;
+            $propInput.on('input', function() {
+                clearTimeout(searchTimeout);
+                let term = $propInput.val().trim();
+                if (term.length < 1) {
+                    $propDropdown.hide().empty();
+                    return;
+                }
+                searchTimeout = setTimeout(function() {
+                    let api = new mw.Api();
+                    api.get({
+                        action: 'wbsearchentities',
+                        search: term,
+                        type: 'property',
+                        language: mw.config.get('wgUserLanguage') || 'en',
+                        format: 'json'
+                    }).done(function(res) {
+                        $propDropdown.empty();
+                        let items = (res && res.search) ? res.search : [];
+                        if (items.length === 0) {
+                            $propDropdown.hide();
+                            return;
+                        }
+                        items.forEach(item => {
+                            let $r = $('<li>').addClass('cradle-autocomplete-row').css({'padding': '6px 8px', 'cursor': 'pointer'});
+                            let $lbl = $('<div>').addClass('cradle-autocomplete-row-label').text(item.label || item.id);
+                            $lbl.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${item.id})`));
+                            $r.append($lbl);
+                            if (item.description) {
+                                $r.append($('<div>').addClass('cradle-autocomplete-row-desc').css({'font-size': '0.75rem', 'color': 'var(--color-subtle, #54595d)'}).text(item.description));
+                            }
+                            $r.on('click mousedown', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                snak.pid = item.id;
+                                snak.propertyLabel = item.label || item.id;
+                                let itemDt = item.datatype;
+                                if (itemDt) {
+                                    snak.datatype = itemDt === 'globecoordinate' ? 'globe-coordinate' : itemDt;
+                                    propertyMetadata[item.id] = propertyMetadata[item.id] || {};
+                                    propertyMetadata[item.id].label = item.label;
+                                    propertyMetadata[item.id].datatype = itemDt;
+                                    renderPropertyRows(pid);
+                                    liveUpdateValidation();
+                                } else {
+                                    loadPropertiesMetadata([item.id]).then(metaMap => {
+                                        Object.assign(propertyMetadata, metaMap);
+                                        let fetchedMeta = metaMap[item.id] || {};
+                                        snak.datatype = fetchedMeta.datatype || 'string';
+                                        if (snak.datatype === 'globecoordinate') snak.datatype = 'globe-coordinate';
+                                        renderPropertyRows(pid);
+                                        liveUpdateValidation();
+                                    });
+                                }
+                            });
+                            $propDropdown.append($r);
+                        });
+                        $propDropdown.show();
+                    }).fail(function() {
+                        $propDropdown.hide();
+                    });
+                }, 250);
+            });
+
+            $(document).on('click.cradleRefProp', function(e) {
+                if (!$propWrapper.is(e.target) && $propWrapper.has(e.target).length === 0) {
+                    $propDropdown.hide();
+                }
+            });
+
+            $propCol.append($propWrapper);
+            setTimeout(() => { $propInput.focus(); }, 50);
+        }
+
+        $sRow.append($propCol);
+
+        // Snak value input
+        let $valCol = $('<div>').addClass('cradle-qualifier-value');
+        if (snak.pid) {
+            let $valInput = createQualifierValueInput(snak, function() {
+                liveUpdateValidation();
+            });
+            $valCol.append($valInput);
+        } else {
+            let $dummyInput = $('<input>')
+                .addClass('cradle-input')
+                .attr('type', 'text')
+                .attr('disabled', true)
+                .attr('placeholder', mw.msg('cradle-search-placeholder'))
+                .css({'opacity': '0.6', 'cursor': 'not-allowed'});
+            $valCol.append($dummyInput);
+        }
+        $sRow.append($valCol);
+
+        // Remove snak button
+        let $removeBtn = $('<button>')
+            .addClass('cradle-btn-remove-qualifier')
+            .attr('type', 'button')
+            .attr('title', mw.msg('cradle-btn-delete'))
+            .html(ICONS.close)
+            .on('click', function() {
+                ref.snaks = (ref.snaks || []).filter(s => s.id !== snak.id);
+                renderPropertyRows(pid);
+                liveUpdateValidation();
+            });
+        $sRow.append($removeBtn);
+
+        return $sRow;
     }
 
     /**
@@ -5886,6 +6544,40 @@ function searchWikidataItems(term) {
                     }
                 });
 
+                // Build references payload
+                let activeRowRefs = [];
+                (row.references || []).forEach(ref => {
+                    let activeSnaks = (ref.snaks || []).filter(s => s.pid && !isEmptyValue(s.value, s.datatype));
+                    if (activeSnaks.length > 0) {
+                        let snakMap = {};
+                        let snakOrder = [];
+                        activeSnaks.forEach(s => {
+                            let sDv = constructDataValue(s.value, s.datatype);
+                            if (sDv) {
+                                if (!snakMap[s.pid]) {
+                                    snakMap[s.pid] = [];
+                                    snakOrder.push(s.pid);
+                                }
+                                let snakObj = {
+                                    snaktype: 'value',
+                                    property: s.pid,
+                                    datavalue: sDv
+                                };
+                                if (s.hash) snakObj.hash = s.hash;
+                                snakMap[s.pid].push(snakObj);
+                            }
+                        });
+                        if (snakOrder.length > 0) {
+                            let refObj = {
+                                snaks: snakMap,
+                                'snaks-order': snakOrder
+                            };
+                            if (ref.hash) refObj.hash = ref.hash;
+                            activeRowRefs.push(refObj);
+                        }
+                    }
+                });
+
                 if (row.guid) {
                     // Update claim
                     let origClaim = original.find(c => c.id === row.guid);
@@ -5925,7 +6617,42 @@ function searchWikidataItems(term) {
                         }
                     }
 
-                    if (origClaim && (valChanged || rankChanged || qualifiersChanged)) {
+                    // Detect references change
+                    let origRefs = (origClaim && origClaim.references) || [];
+                    let referencesChanged = false;
+                    if (activeRowRefs.length !== origRefs.length) {
+                        referencesChanged = true;
+                    } else if (activeRowRefs.length > 0) {
+                        for (let rIdx = 0; rIdx < activeRowRefs.length; rIdx++) {
+                            let curRef = activeRowRefs[rIdx];
+                            let origRef = origRefs[rIdx];
+                            let curPids = curRef['snaks-order'] || [];
+                            let origPids = (origRef && (origRef['snaks-order'] || Object.keys(origRef.snaks || {}))) || [];
+                            if (curPids.length !== origPids.length) {
+                                referencesChanged = true;
+                                break;
+                            }
+                            for (let pIdx = 0; pIdx < curPids.length; pIdx++) {
+                                let p = curPids[pIdx];
+                                let curSnaks = curRef.snaks[p] || [];
+                                let origSnaks = (origRef && origRef.snaks && origRef.snaks[p]) || [];
+                                if (curSnaks.length !== origSnaks.length) {
+                                    referencesChanged = true;
+                                    break;
+                                }
+                                for (let sIdx = 0; sIdx < curSnaks.length; sIdx++) {
+                                    if (!origSnaks[sIdx] || !areDataValuesEqual(curSnaks[sIdx].datavalue, origSnaks[sIdx].datavalue)) {
+                                        referencesChanged = true;
+                                        break;
+                                    }
+                                }
+                                if (referencesChanged) break;
+                            }
+                            if (referencesChanged) break;
+                        }
+                    }
+
+                    if (origClaim && (valChanged || rankChanged || qualifiersChanged || referencesChanged)) {
                         let claimUpdate = {
                             id: row.guid,
                             mainsnak: {
@@ -5943,6 +6670,13 @@ function searchWikidataItems(term) {
                             claimUpdate.qualifiers = {};
                             claimUpdate['qualifiers-order'] = [];
                         }
+
+                        if (activeRowRefs.length > 0) {
+                            claimUpdate.references = activeRowRefs;
+                        } else if (origRefs.length > 0) {
+                            claimUpdate.references = [];
+                        }
+
                         propertyClaims.push(claimUpdate);
                         hasChanges = true;
                     }
@@ -5960,6 +6694,9 @@ function searchWikidataItems(term) {
                     if (qualOrder.length > 0) {
                         newClaim.qualifiers = qualPayload;
                         newClaim['qualifiers-order'] = qualOrder;
+                    }
+                    if (activeRowRefs.length > 0) {
+                        newClaim.references = activeRowRefs;
                     }
                     propertyClaims.push(newClaim);
                     hasChanges = true;
