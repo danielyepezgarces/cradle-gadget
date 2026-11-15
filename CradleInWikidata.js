@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.59.0
+ * Version: 1.59.1
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.0');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.1');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.59.0';
+    const CRADLE_VERSION = '1.59.1';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -41,7 +41,8 @@
     }
 
     // Verify if we are on Wikidata or Test Wikidata
-    if (!mw.config.get('wgServer').includes('wikidata.org')) {
+    let currentHost = window.location.hostname || '';
+    if (!currentHost.includes('wikidata.org')) {
         return;
     }
 
@@ -67,8 +68,15 @@
         document.head.appendChild(style);
     }
     
-    let isItemPage = (mw.config.get('wgNamespaceNumber') === 0 && mw.config.get('wbEntityId'));
-    let entityId = isItemPage ? mw.config.get('wbEntityId') : null;
+    function checkIsItemPage() {
+        let ns = mw.config.get('wgNamespaceNumber');
+        let title = mw.config.get('wgTitle') || '';
+        let wbId = mw.config.get('wbEntityId');
+        return (ns === 0 && (/^Q\d+$/i.test(title) || !!wbId));
+    }
+
+    let isItemPage = checkIsItemPage();
+    let entityId = isItemPage ? (mw.config.get('wbEntityId') || mw.config.get('wgTitle')) : null;
     
     // State
     let entityData = null;
@@ -839,6 +847,12 @@
             });
         }
 
+        isItemPage = checkIsItemPage();
+        if (isItemPage && !entityId) {
+            entityId = mw.config.get('wbEntityId') || mw.config.get('wgTitle');
+            activeMode = 'edit';
+        }
+
         // Add dedicated 'Esquemas' section to Wikidata sidebar
         setupSidebarSchemasSection();
 
@@ -846,6 +860,10 @@
             setupSpecialPage();
         } else if (isItemPage) {
             createHeadingButton();
+            mw.hook('wikibase.entityPage.entityLoaded').add(createHeadingButton);
+            if (!$('#cradle-heading-edit-btn').length) {
+                setTimeout(createHeadingButton, 500);
+            }
             
             // Scan for schemas if on an item page (uses caching/on-demand loader)
             schemasLoadedPromise = getEntityData().then(data => {
@@ -1159,7 +1177,7 @@
      * Creates the "Editar con Cradle" button inside the main heading.
      */
     function createHeadingButton() {
-        let $heading = $('#firstHeading');
+        let $heading = $('#firstHeading, .mw-first-heading, h1.page-title').first();
         if (!$heading.length) return;
 
         // Prevent adding duplicate buttons
@@ -4337,7 +4355,6 @@
         });
 
         // Dynamic Action Bar rendering (Add row button)
-        let nonDeletedRows = rows.filter(r => !r.isDeleted);
         let maxLimit = propDef.max;
         let showAddButton = (maxLimit === '*' || maxLimit === Infinity || nonDeletedRows.length < maxLimit);
 
@@ -10425,9 +10442,16 @@ function searchWikidataItems(term) {
         $footer.append($buttonsRow);
     }
 
-    $(document).ready(function() {
-        mw.loader.using(['mediawiki.api', 'mediawiki.util', 'mediawiki.storage', 'mediawiki.jqueryMsg']).then(init);
-    });
+    function bootstrapCradle() {
+        if (typeof mw === 'undefined' || !mw.loader || typeof mw.loader.using !== 'function') {
+            setTimeout(bootstrapCradle, 50);
+            return;
+        }
+        mw.loader.using(['jquery', 'mediawiki.api', 'mediawiki.util', 'mediawiki.storage', 'mediawiki.jqueryMsg']).then(function() {
+            $(document).ready(init);
+        });
+    }
+    bootstrapCradle();
 
 })();
 
