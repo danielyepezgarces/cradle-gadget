@@ -10089,7 +10089,16 @@ function searchWikidataItems(term) {
         $editorWrap.append($header);
 
         // Header Fields Row: Row 1 (Title, Description, Aliases) and Row 2 (Target Item, Base Schema)
-        let $headerFieldsRow = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'margin-bottom': '4px'});
+        let $headerFieldsRow = $('<div>').addClass('cradle-schema-metadata-card').css({
+            'display': 'flex',
+            'flex-direction': 'column',
+            'gap': '10px',
+            'padding': '12px',
+            'background': '#f8f9fa',
+            'border': '1px solid #c8ccd1',
+            'border-radius': '4px',
+            'margin-bottom': '6px'
+        });
 
         // Row 1: Title, Description, Aliases (|)
         let $row1 = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap', 'align-items': 'center'});
@@ -10110,10 +10119,6 @@ function searchWikidataItems(term) {
         let $row2 = $('<div>').addClass('cradle-config-row').css({
             'display': 'flex',
             'gap': '12px',
-            'padding': '10px 12px',
-            'background': '#f8f9fa',
-            'border': '1px solid #c8ccd1',
-            'border-radius': '4px',
             'flex-wrap': 'wrap',
             'align-items': 'center'
         });
@@ -11046,11 +11051,11 @@ function searchWikidataItems(term) {
 
                 Promise.all([saveCodePromise, saveMetaPromise]).then(function() {
                     if (savingNotice && savingNotice.close) savingNotice.close();
-                    schema.label = newTitle || schema.label;
-                    schema.description = newDesc;
-                    schema.aliases = newAliases;
                     mw.notify(mw.msg('cradle-save-schema-success', schemaId) || `¡EntitySchema ${schemaId} actualizado con éxito!`, { type: 'success' });
-                    $saveBtn.prop('disabled', false);
+                    // Reload the schema in the editor to refresh all properties and labels freshly from Wikidata
+                    setTimeout(function() {
+                        loadSchemaForEditing(schemaId);
+                    }, 400);
                 }).catch(function(saveErr) {
                     if (savingNotice && savingNotice.close) savingNotice.close();
                     $saveBtn.prop('disabled', false);
