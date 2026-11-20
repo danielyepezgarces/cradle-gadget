@@ -11,10 +11,10 @@ Inspired by the original [Cradle tool](https://cradle.toolforge.org/) by Magnus 
 To use Cradle on Wikidata, add the following line to your personal [common.js](https://www.wikidata.org/wiki/Special:MyPage/common.js) page:
 
 ```javascript
-mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.58.0');
+importScript("User:Danielyepezgarces/Gadget-cradle.js");
 ```
 
-*(You can increment the `version` parameter at the end of the URL to bypass browser cache whenever a new release is published).*
+*(After saving, remember to clear your browser cache with Ctrl+F5 or Cmd+Shift+R).*
 
 ---
 
