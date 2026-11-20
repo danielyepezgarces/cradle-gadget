@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.59.1-dev
+ * Version: 1.59.2-dev
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on test.wikidata.org (increment version value to bypass cache)
  * 
  * Development loader snippet for your common.js on test.wikidata.org:
- * mw.loader.load('//test.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle-dev.js&action=raw&ctype=text/javascript&version=1.59.1-dev');
+ * mw.loader.load('//test.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle-dev.js&action=raw&ctype=text/javascript&version=1.59.2-dev');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.59.1-dev';
+    const CRADLE_VERSION = '1.59.2-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -1227,9 +1227,11 @@
     }
 
     /**
-     * Searches class properties (P12861) on P31, P279, and P106 claims of the entity.
+     * Searches class properties (P12861) on P31, P279, and P106 claims of the entity,
+     * traversing P279 (subclass of) hierarchies recursively up to maxDepth levels.
      */
-    function findAssociatedSchemas(data) {
+    function findAssociatedSchemas(data, maxDepth) {
+        if (typeof maxDepth !== 'number') maxDepth = 3;
         let schemas = [];
         
         // Direct schema on this item
@@ -1247,11 +1249,9 @@
         [P31, P279, P106].forEach(prop => {
             if (data.claims && data.claims[prop]) {
                 data.claims[prop].forEach(claim => {
-                    if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value) {
-                        let classId = claim.mainsnak.datavalue.value.id;
-                        if (classId && !classesToCheck.includes(classId)) {
-                            classesToCheck.push(classId);
-                        }
+                    let classId = claim.mainsnak?.datavalue?.value?.id;
+                    if (classId && !classesToCheck.includes(classId)) {
+                        classesToCheck.push(classId);
                     }
                 });
             }
@@ -1261,33 +1261,80 @@
             return Promise.resolve(schemas);
         }
 
-        return new Promise((resolve) => {
-            let api = new mw.Api();
-            api.get({
-                action: 'wbgetentities',
-                ids: classesToCheck.join('|'),
-                props: 'claims',
-                format: 'json'
-            }).done(function(res) {
-                if (res && res.entities) {
-                    Object.keys(res.entities).forEach(qid => {
-                        let cls = res.entities[qid];
-                        if (cls.claims && cls.claims[P12861]) {
-                            cls.claims[P12861].forEach(claim => {
-                                let schemaId = parseEntitySchemaID(claim.mainsnak?.datavalue);
-                                if (schemaId && !schemas.includes(schemaId)) {
-                                    schemas.push(schemaId);
+        let visitedClasses = new Set(classesToCheck);
+        let api = new mw.Api();
+
+        function traverseClasses(currentClassBatch, depth) {
+            if (currentClassBatch.length === 0 || depth > maxDepth) {
+                return Promise.resolve(schemas);
+            }
+
+            // Chunk in batches of up to 50 entities (MediaWiki API limit)
+            let chunks = [];
+            for (let i = 0; i < currentClassBatch.length; i += 50) {
+                chunks.push(currentClassBatch.slice(i, i + 50));
+            }
+
+            let chunkPromises = chunks.map(chunk => {
+                return new Promise((resolveChunk) => {
+                    api.get({
+                        action: 'wbgetentities',
+                        ids: chunk.join('|'),
+                        props: 'claims',
+                        format: 'json'
+                    }).done(function(res) {
+                        let nextBatch = [];
+                        if (res && res.entities) {
+                            Object.keys(res.entities).forEach(qid => {
+                                let cls = res.entities[qid];
+                                if (!cls || !cls.claims) return;
+
+                                // Check direct P12861 (EntitySchema) on this class
+                                if (cls.claims[P12861]) {
+                                    cls.claims[P12861].forEach(claim => {
+                                        let schemaId = parseEntitySchemaID(claim.mainsnak?.datavalue);
+                                        if (schemaId && !schemas.includes(schemaId)) {
+                                            schemas.push(schemaId);
+                                        }
+                                    });
+                                }
+
+                                // Collect P279 (subclass of) for deeper traversal
+                                if (depth < maxDepth && cls.claims[P279]) {
+                                    cls.claims[P279].forEach(claim => {
+                                        let parentId = claim.mainsnak?.datavalue?.value?.id;
+                                        if (parentId && !visitedClasses.has(parentId)) {
+                                            visitedClasses.add(parentId);
+                                            nextBatch.push(parentId);
+                                        }
+                                    });
                                 }
                             });
                         }
+                        resolveChunk(nextBatch);
+                    }).fail(function(err) {
+                        logError("[Cradle] findAssociatedSchemas traverseClasses failed at depth " + depth + ":", err);
+                        resolveChunk([]);
                     });
-                }
-                resolve(schemas);
-            }).fail(function(err) {
-                logError("[Cradle] findAssociatedSchemas request failed:", err);
-                resolve(schemas);
+                });
             });
-        });
+
+            return Promise.all(chunkPromises).then(results => {
+                let combinedNext = [];
+                results.forEach(arr => {
+                    arr.forEach(id => {
+                        if (!combinedNext.includes(id)) combinedNext.push(id);
+                    });
+                });
+
+                if (combinedNext.length > 0 && depth < maxDepth) {
+                    return traverseClasses(combinedNext, depth + 1);
+                }
+                return schemas;
+            });
+        }
+
+        return traverseClasses(classesToCheck, 1);
     }
 
     /**
