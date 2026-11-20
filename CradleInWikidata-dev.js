@@ -9,20 +9,18 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.59.5-dev
+ * Version: 1.59.6-dev
  * 
  * Installation:
- * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
- * 
- * Development loader snippet for your common.js on test.wikidata.org:
- * mw.loader.load('//test.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle-dev.js//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.5action=raw//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.5ctype=text/javascript//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.5version=1.59.5-dev');
+ * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
+ * importScript("User:Danielyepezgarces/Gadget-cradle.js");
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.59.5-dev';
+    const CRADLE_VERSION = '1.59.6-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -98,6 +96,42 @@
     let customSchemas = {};
     let sortedPropertiesMap = {};
     let sortedPropertiesLoaded = false;
+
+    /**
+     * Maps a Wikibase property datatype (or known property ID) to its canonical ShEx ValueType.
+     * @param {string} datatype - Wikibase datatype (e.g. 'string', 'time', 'quantity', 'globe-coordinate', 'external-id', 'monolingualtext')
+     * @param {string} pid - Property ID (e.g. 'P625', 'P1705', 'P569')
+     * @returns {string} - ShEx ValueType ('IRI', 'xsd:string', 'rdf:langString', 'xsd:dateTime', 'xsd:decimal', 'geo:wktLiteral')
+     */
+    function mapDatatypeToShExValueType(datatype, pid) {
+        let uPid = (pid || '').toUpperCase().trim();
+        if (KNOWN_COORDINATE_PROPERTIES.includes(uPid)) return 'geo:wktLiteral';
+        if (KNOWN_MONOLINGUAL_PROPERTIES.includes(uPid)) return 'rdf:langString';
+
+        let dt = (datatype || (propertyMetadata[uPid] && propertyMetadata[uPid].datatype) || '').toLowerCase().trim();
+        if (!dt) {
+            if (uPid === 'P569' || uPid === 'P570' || uPid === 'P571' || uPid === 'P576' || uPid === 'P577' || uPid === 'P580' || uPid === 'P582' || uPid === 'P585') return 'xsd:dateTime';
+            if (uPid === 'P2046' || uPid === 'P1082' || uPid === 'P2044') return 'xsd:decimal';
+            return 'IRI';
+        }
+
+        if (dt === 'string' || dt === 'external-id' || dt === 'math' || dt === 'musical-notation') {
+            return 'xsd:string';
+        } else if (dt === 'monolingualtext') {
+            return 'rdf:langString';
+        } else if (dt === 'time') {
+            return 'xsd:dateTime';
+        } else if (dt === 'quantity') {
+            return 'xsd:decimal';
+        } else if (dt === 'globe-coordinate' || dt === 'globecoordinate') {
+            return 'geo:wktLiteral';
+        } else if (dt === 'commonsmedia' || dt === 'url' || dt === 'tabular-data' || dt === 'geo-shape') {
+            return 'IRI';
+        } else if (dt === 'wikibase-item' || dt === 'wikibase-property' || dt === 'wikibase-lexeme' || dt === 'wikibase-form' || dt === 'wikibase-sense') {
+            return 'IRI';
+        }
+        return 'IRI';
+    }
 
     /**
      * Fetches MediaWiki:Wikibase-SortedProperties from Wikidata to order statements canonically.
@@ -9169,12 +9203,34 @@ function searchWikidataItems(term) {
 
             // Auto-detect value type based on property metadata
             let propDT = (propertyMetadata[pid] && propertyMetadata[pid].datatype) || '';
-            if (propDT === 'string' || propDT === 'external-id') $valueTypeSelect.val('xsd:string');
-            else if (propDT === 'monolingualtext') $valueTypeSelect.val('rdf:langString');
-            else if (propDT === 'time') $valueTypeSelect.val('xsd:dateTime');
-            else if (propDT === 'quantity') $valueTypeSelect.val('xsd:decimal');
-            else if (propDT === 'globe-coordinate') $valueTypeSelect.val('geo:wktLiteral');
-            else $valueTypeSelect.val('IRI');
+            let autoVType = mapDatatypeToShExValueType(propDT, pid);
+            $valueTypeSelect.val(autoVType);
+
+            // If metadata was not loaded yet, fetch asynchronously and auto-select
+            if (!propDT && /^P\d+$/i.test(pid)) {
+                let api = new mw.Api();
+                api.get({
+                    action: 'wbgetentities',
+                    ids: pid.toUpperCase(),
+                    props: 'datatype|labels',
+                    languages: mw.config.get('wgUserLanguage') || 'en',
+                    format: 'json'
+                }).done(function(res) {
+                    if (res && res.entities && res.entities[pid.toUpperCase()]) {
+                        let ent = res.entities[pid.toUpperCase()];
+                        if (ent.datatype) {
+                            propertyMetadata[pid.toUpperCase()] = propertyMetadata[pid.toUpperCase()] || {};
+                            propertyMetadata[pid.toUpperCase()].datatype = ent.datatype;
+                            if (!$valueTypeSelect.data('user-changed')) {
+                                let detected = mapDatatypeToShExValueType(ent.datatype, pid);
+                                if (detected && detected !== $valueTypeSelect.val()) {
+                                    $valueTypeSelect.val(detected).trigger('change');
+                                }
+                            }
+                        }
+                    }
+                });
+            }
 
             let $valueTypeLabel = $('<label>').css({
                 'display': 'flex',
@@ -9301,6 +9357,9 @@ function searchWikidataItems(term) {
                     $subShapeGroup.css('display', 'none');
                 }
             }
+            $valueTypeSelect.on('change', function() {
+                $(this).data('user-changed', true);
+            });
             $valueTypeSelect.on('change', updateVisibilityBasedOnValueType);
             $subShapeModeSelect.on('change', updateVisibilityBasedOnValueType);
             updateVisibilityBasedOnValueType();
@@ -9580,6 +9639,11 @@ function searchWikidataItems(term) {
                         .on('click', function() {
                             let map = {};
                             map[item.id] = item.label;
+                            if (item.datatype) {
+                                propertyMetadata[item.id] = propertyMetadata[item.id] || {};
+                                propertyMetadata[item.id].label = item.label;
+                                propertyMetadata[item.id].datatype = item.datatype;
+                            }
                             renderPropRow(item.id, false, '', null, null, map);
                             $addPropInput.val('');
                             $autocompleteMenu.hide().empty();
@@ -10311,8 +10375,39 @@ function searchWikidataItems(term) {
             $valueTypeSelect.append($('<option>').val('geo:wktLiteral').text(mw.msg('cradle-valtype-geo')));
             $valueTypeSelect.append($('<option>').val('subshape').text(mw.msg('cradle-valtype-subshape')));
 
-            let initialVType = pData.valueType || 'IRI';
+            let explicitVType = pData.valueType;
+            let autoVType = mapDatatypeToShExValueType(propertyMetadata[pid] && propertyMetadata[pid].datatype, pid);
+            let initialVType = explicitVType;
+            if (!initialVType || initialVType === '.' || (initialVType === 'IRI' && autoVType !== 'IRI' && pData.valueType !== 'subshape')) {
+                initialVType = autoVType || initialVType || 'IRI';
+            }
             $valueTypeSelect.val(initialVType);
+
+            // If metadata was not loaded yet, fetch asynchronously and auto-select
+            if ((!propertyMetadata[pid] || !propertyMetadata[pid].datatype) && /^P\d+$/i.test(pid)) {
+                let api = new mw.Api();
+                api.get({
+                    action: 'wbgetentities',
+                    ids: pid.toUpperCase(),
+                    props: 'datatype|labels',
+                    languages: mw.config.get('wgUserLanguage') || 'en',
+                    format: 'json'
+                }).done(function(res) {
+                    if (res && res.entities && res.entities[pid.toUpperCase()]) {
+                        let ent = res.entities[pid.toUpperCase()];
+                        if (ent.datatype) {
+                            propertyMetadata[pid.toUpperCase()] = propertyMetadata[pid.toUpperCase()] || {};
+                            propertyMetadata[pid.toUpperCase()].datatype = ent.datatype;
+                            if (!$valueTypeSelect.data('user-changed')) {
+                                let detected = mapDatatypeToShExValueType(ent.datatype, pid);
+                                if (detected && detected !== 'IRI' && detected !== $valueTypeSelect.val()) {
+                                    $valueTypeSelect.val(detected).trigger('change');
+                                }
+                            }
+                        }
+                    }
+                });
+            }
 
             let $valueTypeLabel = $('<label>').css({
                 'display': 'flex',
@@ -10420,6 +10515,9 @@ function searchWikidataItems(term) {
                     $subShapeGroup.css('display', 'none');
                 }
             }
+            $valueTypeSelect.on('change', function() {
+                $(this).data('user-changed', true);
+            });
             $valueTypeSelect.on('change', updateVisibilityBasedOnValueType);
             $subShapeModeSelect.on('change', updateVisibilityBasedOnValueType);
             updateVisibilityBasedOnValueType();
@@ -10731,6 +10829,12 @@ function searchWikidataItems(term) {
                     .on('click', function(e) {
                         e.stopPropagation();
                         let inheritedData = inheritedMap[pid] || { cardinality: '?' };
+                        if (!inheritedData.valueType || inheritedData.valueType === 'IRI' || inheritedData.valueType === '.') {
+                            let autoVType = mapDatatypeToShExValueType(propertyMetadata[pid] && propertyMetadata[pid].datatype, pid);
+                            if (autoVType && autoVType !== 'IRI') {
+                                inheritedData = Object.assign({}, inheritedData, { valueType: autoVType });
+                            }
+                        }
                         renderEditorPropCard(pid, inheritedData, labelsMap, itemLabels);
                         currentInheritedPids = currentInheritedPids.filter(p => p !== pid);
                         renderInheritedChips();
@@ -10784,8 +10888,14 @@ function searchWikidataItems(term) {
                         let $li = $('<li>').css({'padding': '8px 12px', 'cursor': 'pointer', 'border-bottom': '1px solid #eaecf0', 'font-size': '13px'})
                             .html(`<strong>${item.id}</strong>: ${item.label}${desc}`)
                             .on('click', function() {
+                                if (item.datatype) {
+                                    propertyMetadata[item.id] = propertyMetadata[item.id] || {};
+                                    propertyMetadata[item.id].label = item.label;
+                                    propertyMetadata[item.id].datatype = item.datatype;
+                                }
                                 labelsMap[item.id] = item.label;
-                                renderEditorPropCard(item.id, { cardinality: '?' }, labelsMap, itemLabels);
+                                let autoVType = mapDatatypeToShExValueType(item.datatype, item.id);
+                                renderEditorPropCard(item.id, { cardinality: '?', valueType: autoVType }, labelsMap, itemLabels);
                                 $addPropInput.val('');
                                 $autocompleteMenu.hide().empty();
                             })
