@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.59.2
+ * Version: 1.59.3
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.2');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.3');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.59.2';
+    const CRADLE_VERSION = '1.59.3';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -58,7 +58,12 @@
     const KNOWN_MONOLINGUAL_PROPERTIES = ['P1705', 'P1448', 'P1476', 'P1559', 'P1813', 'P1814', 'P2093', 'P2704', 'P5061', 'P6333', 'P898'];
 
     let pageName = mw.config.get('wgPageName');
-    let isSpecialCradle = (pageName === 'Special:Cradle' || pageName === 'Special:BlankPage/Cradle');
+    let isSpecialCradle = (
+        pageName === 'Special:Cradle' ||
+        (typeof pageName === 'string' && pageName.startsWith('Special:Cradle/')) ||
+        pageName === 'Special:BlankPage/Cradle' ||
+        (typeof pageName === 'string' && pageName.startsWith('Special:BlankPage/Cradle/'))
+    );
     
     // Inject early hide CSS rules to prevent any default content from flashing before script loads
     if (isSpecialCradle) {
@@ -229,7 +234,8 @@
         reference: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M15 1H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zm-1 14H6V5h8z"/></svg>`,
         chevronDown: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20"><path d="m10 13.5 6-6-1.4-1.4-4.6 4.6-4.6-4.6L4 7.5z"/></svg>`,
         chevronRight: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20"><path d="m7.5 4-1.4 1.4 4.6 4.6-4.6 4.6 1.4 1.4 6-6z"/></svg>`,
-        cite: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20"><path d="M7 5H3v6h4v4h3V5H7zm9 0h-4v6h4v4h3V5h-3z"/></svg>`
+        cite: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20"><path d="M7 5H3v6h4v4h3V5H7zm9 0h-4v6h4v4h3V5h-3z"/></svg>`,
+        link: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="m11.53 14.88 2.83-2.83a3.5 3.5 0 0 0 0-4.95l-1.42-1.41a3.5 3.5 0 0 0-4.95 0L6.58 7.1a3.5 3.5 0 0 0 0 4.95l.71.71 1.41-1.42-.71-.71a1.5 1.5 0 0 1 0-2.12l1.41-1.41a1.5 1.5 0 0 1 2.13 0l1.41 1.41a1.5 1.5 0 0 1 0 2.12l-2.83 2.83a1.5 1.5 0 0 1-2.12 0L6.58 12l-1.41 1.41 1.41 1.42a3.5 3.5 0 0 0 4.95 0z"/></svg>`
     };
 
     /**
@@ -349,6 +355,7 @@
             'cradle-link-p12861-checkbox': 'Link schema to associated class ($1) via P12861 upon creation',
             'cradle-link-p12861-derivation-skip': 'P12861 will not be added to the target class because this schema is a derivation.',
             'cradle-link-p12861-summary': 'Add EntitySchema $1 (P12861) via Cradle',
+            'cradle-link-copied': 'Direct link copied to clipboard!',
             'cradle-load-and-edit-schema': 'Load schema for editing',
             'cradle-load-item-btn': 'Load item',
             'cradle-load-schema': 'Load schema',
@@ -442,6 +449,7 @@
             'cradle-select-predefined': '-- Select a predefined form --',
             'cradle-select-props-to-import': 'Select properties to import:',
             'cradle-set-as-base-schema-btn': 'Set $1 as base schema for derivation',
+            'cradle-share-link': 'Share link',
             'cradle-shex-copied-auto': 'All ShEx code selected and copied to clipboard!',
             'cradle-shex-invalid': 'Invalid ShEx syntax:',
             'cradle-shex-preview': 'Generated ShEx (EntitySchema)',
@@ -670,6 +678,7 @@
                     'cradle-link-p12861-checkbox': 'Vincular esquema a la clase asociada ($1) mediante P12861 al publicar',
                     'cradle-link-p12861-derivation-skip': 'No se añadirá P12861 a la clase asociada porque este esquema es una derivación.',
                     'cradle-link-p12861-summary': 'Añadir EntitySchema $1 (P12861) mediante Cradle',
+                    'cradle-link-copied': '¡Enlace directo copiado al portapapeles!',
                     'cradle-load-and-edit-schema': 'Cargar esquema para editar',
                     'cradle-load-item-btn': 'Cargar elemento',
                     'cradle-load-schema': 'Cargar esquema',
@@ -760,6 +769,7 @@
                     'cradle-select-predefined': '-- Selecciona un formulario predefinido --',
                     'cradle-select-props-to-import': 'Selecciona las propiedades a importar:',
                     'cradle-set-as-base-schema-btn': 'Establecer $1 como esquema base para derivación',
+                    'cradle-share-link': 'Compartir enlace',
                     'cradle-shex-copied-auto': '¡Todo el código ShEx fue seleccionado y copiado al portapapeles!',
                     'cradle-shex-invalid': 'Sintaxis ShEx no válida:',
                     'cradle-shex-preview': 'Código ShEx generado (EntitySchema)',
@@ -876,6 +886,22 @@
                 logError("[Cradle] Error loading claims/schemas:", err);
                 return [];
             });
+
+            // Automatically open editor if schema or cradle flag is present in URL
+            let itemSchemaFromUrl = extractSchemaFromUrl();
+            if (itemSchemaFromUrl || window.location.search.includes('cradle=') || window.location.hash.startsWith('#cradle')) {
+                openEditor();
+                if (itemSchemaFromUrl) {
+                    loadAndDisplaySchema(itemSchemaFromUrl);
+                }
+            }
+        } else if (pageName === 'Special:NewItem') {
+            let schemaFromUrl = extractSchemaFromUrl();
+            if (schemaFromUrl) {
+                // If user accesses Special:NewItem with a schema parameter, redirect seamlessly to Special:Cradle
+                window.location.replace(mw.util.getUrl('Special:Cradle') + '#create?schema=' + encodeURIComponent(schemaFromUrl));
+                return;
+            }
         }
     }
 
@@ -1587,6 +1613,65 @@
     }
 
     /**
+     * Extracts an EntitySchema ID (e.g. E100) from the URL if provided via:
+     * 1. Subpage path: Special:Cradle/E100 or Special:BlankPage/Cradle/E100
+     * 2. Query parameters: ?schema=E100, ?id=E100, ?entityschema=E100, ?shex=E100, ?template=E100
+     * 3. Hash parameters: #create?schema=E100, #create/E100, #schema=E100, #E100, #edit/E100, etc.
+     */
+    function extractSchemaFromUrl() {
+        let cleanSchema = function(raw) {
+            if (!raw) return '';
+            raw = raw.trim().toUpperCase();
+            if (!raw.startsWith('E')) {
+                raw = 'E' + raw.replace(/\D/g, '');
+            }
+            return /^E\d+$/.test(raw) ? raw : '';
+        };
+
+        // 1. Subpage on Special:Cradle or Special:BlankPage/Cradle
+        let page = mw.config.get('wgPageName') || '';
+        if (page.startsWith('Special:Cradle/') || page.startsWith('Special:BlankPage/Cradle/')) {
+            let sub = page.split('/').pop().trim();
+            let parsed = cleanSchema(sub);
+            if (parsed) return parsed;
+        }
+
+        // 2. Query parameters in window.location.search
+        try {
+            let params = new URLSearchParams(window.location.search);
+            let val = params.get('schema') || params.get('id') || params.get('entityschema') || params.get('shex') || params.get('template') || params.get('cradle_schema');
+            if (val) {
+                let parsed = cleanSchema(val);
+                if (parsed) return parsed;
+            }
+        } catch (e) {}
+
+        let qMatch = window.location.search.match(/[?&](?:schema|id|entityschema|shex|template|cradle_schema)=(?:E)?(\d+)/i);
+        if (qMatch) {
+            return 'E' + qMatch[1];
+        }
+
+        // 3. Hash parameters in window.location.hash
+        let hash = window.location.hash || '';
+        let hashParamMatch = hash.match(/[#?&](?:schema|id|entityschema|shex|template|cradle_schema)=(?:E)?(\d+)/i);
+        if (hashParamMatch) {
+            return 'E' + hashParamMatch[1];
+        }
+
+        let hashPathMatch = hash.match(/#(?:create[/:?&-]?)?(?:E)?(\d+)(?:[?&#/]|$)/i);
+        if (hashPathMatch) {
+            return 'E' + hashPathMatch[1];
+        }
+
+        let hashDelimMatch = hash.match(/(?:\/|:|-)(?:E)?(\d+)(?:[?&#/]|$)/i);
+        if (hashDelimMatch) {
+            return 'E' + hashDelimMatch[1];
+        }
+
+        return '';
+    }
+
+    /**
      * Renders selection panel with 3 tabs: 'Crear elementos', 'Diseñar esquemas', and 'Editar esquemas (Experimental)'.
      */
     function renderCreateOptionsSelector() {
@@ -1601,7 +1686,13 @@
         } else if (hash.startsWith('#create') || search.includes('tab=create')) {
             activeTab = 'create';
         } else {
-            activeTab = mw.storage.get('cradle-active-tab');
+            let urlSchema = extractSchemaFromUrl();
+            if (urlSchema) {
+                // When a schema is passed via URL and no explicit tab is set, prioritize create mode
+                activeTab = 'create';
+            } else {
+                activeTab = mw.storage.get('cradle-active-tab');
+            }
         }
 
         if (activeTab !== 'create' && activeTab !== 'design' && activeTab !== 'edit') {
@@ -1630,10 +1721,13 @@
             $loadBox.append($('<p>').css({'margin': '0 0 12px 0', 'font-size': '12px', 'color': '#54595d'})
                 .text(mw.msg('cradle-create-custom-schema-desc') || 'Busca un EntitySchema existente (ej. E10, Humano) para cargar sus declaraciones y crear un nuevo elemento.'));
 
+            let prefillCreateId = extractSchemaFromUrl();
+
             let $schemaInput = $('<input>')
                 .addClass('cradle-input')
                 .attr('type', 'text')
-                .attr('placeholder', mw.msg('cradle-schema-placeholder'));
+                .attr('placeholder', mw.msg('cradle-schema-placeholder'))
+                .val(prefillCreateId);
 
             let $schemaBtn = $('<button>')
                 .addClass('cradle-btn-secondary')
@@ -1644,6 +1738,7 @@
                         if (!schemaId.startsWith('E')) {
                             schemaId = 'E' + schemaId.replace(/\D/g, '');
                         }
+                        userWantsToChangeSchema = false;
                         loadAndDisplaySchema(schemaId);
                     }
                 });
@@ -1654,10 +1749,15 @@
             $loadBox.append($group);
 
             attachEntitySchemaAutocompleter($group, $schemaInput, function(schemaId) {
+                userWantsToChangeSchema = false;
                 loadAndDisplaySchema(schemaId);
             });
 
             $content.append($loadBox);
+
+            if (prefillCreateId && !userWantsToChangeSchema) {
+                loadAndDisplaySchema(prefillCreateId);
+            }
         } else if (activeTab === 'design') {
             // Tab 2: Design New EntitySchema (ShEx)
             let $designBox = $('<div>').addClass('cradle-selector-box');
@@ -1695,12 +1795,7 @@
                 .text(mw.msg('cradle-edit-schema-desc') || 'Busca un EntitySchema existente (ej. E10, Humano) para editar sus declaraciones o código ShEx.'));
 
             // Check if schema was specified in query or hash (e.g. ?schema=E10 or #edit?id=E10 or #edit/E10)
-            let prefillId = '';
-            let qMatch = window.location.search.match(/[?&](?:schema|id)=(E\d+)/i) ||
-                           window.location.hash.match(/[#&?/](E\d+)/i);
-            if (qMatch) {
-                prefillId = qMatch[1].toUpperCase();
-            }
+            let prefillId = extractSchemaFromUrl();
 
             let $schemaInput = $('<input>')
                 .addClass('cradle-input')
@@ -1717,6 +1812,7 @@
                         if (!schemaId.startsWith('E')) {
                             schemaId = 'E' + schemaId.replace(/\D/g, '');
                         }
+                        userWantsToChangeSchema = false;
                         loadSchemaForEditing(schemaId);
                     }
                 });
@@ -1727,6 +1823,7 @@
             $editBox.append($group);
 
             attachEntitySchemaAutocompleter($group, $schemaInput, function(schemaId) {
+                userWantsToChangeSchema = false;
                 loadSchemaForEditing(schemaId);
             });
 
@@ -1918,6 +2015,11 @@
     function loadAndDisplaySchema(schemaId) {
         updateNavigationTabs('create');
         activeSchema = { id: schemaId, label: schemaId };
+        
+        // Update URL hash on Special:Cradle to reflect loaded schema for easy sharing
+        if (isSpecialCradle && history.replaceState) {
+            history.replaceState(null, null, window.location.pathname + '#create?schema=' + encodeURIComponent(schemaId));
+        }
         
         let $content = $('#cradle-content-area').empty();
         updateDrawerFooter(false);
@@ -4004,6 +4106,9 @@
         activeSchema = null;
         activeTemplate = null;
         userWantsToChangeSchema = true;
+        if (isSpecialCradle && history.replaceState) {
+            history.replaceState(null, null, window.location.pathname + '#create');
+        }
         renderActiveView();
     }
 
@@ -4012,9 +4117,29 @@
         let $content = $('#cradle-content-area').empty();
         let propIds = sortPropertyIDs(Object.keys(schemaProperties));
 
-        // Render back button
-        let $headerPanel = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '16px'});
+        // Render back button and share link button
+        let $headerPanel = $('<div>').css({'display': 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '16px', 'flex-wrap': 'wrap', 'gap': '8px'});
         $headerPanel.append($('<button>').addClass('cradle-btn-secondary').html(ICONS.back + ' <span>' + mw.msg('cradle-change-form') + '</span>').on('click', changeActiveForm));
+
+        if (activeSchema && activeSchema.id) {
+            let $shareBtn = $('<button>')
+                .addClass('cdx-button cdx-button--weight-quiet')
+                .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '5px', 'font-size': '13px', 'color': 'var(--color-progressive, #36c)'})
+                .html(ICONS.link + ' <span>' + mw.msg('cradle-share-link') + '</span>')
+                .on('click', function() {
+                    let shareUrl = window.location.origin + mw.util.getUrl('Special:Cradle') + '#create?schema=' + encodeURIComponent(activeSchema.id);
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(shareUrl).then(function() {
+                            mw.notify(mw.msg('cradle-link-copied'), { type: 'success' });
+                        }).catch(function() {
+                            prompt(mw.msg('cradle-share-link'), shareUrl);
+                        });
+                    } else {
+                        prompt(mw.msg('cradle-share-link'), shareUrl);
+                    }
+                });
+            $headerPanel.append($shareBtn);
+        }
         $content.append($headerPanel);
 
         // Display current active schema/template title
@@ -9448,6 +9573,10 @@ function searchWikidataItems(term) {
         let cleanId = (schemaId || '').trim().toUpperCase();
         if (!cleanId.startsWith('E')) {
             cleanId = 'E' + cleanId.replace(/\D/g, '');
+        }
+
+        if (isSpecialCradle && history.replaceState) {
+            history.replaceState(null, null, window.location.pathname + '#edit?schema=' + encodeURIComponent(cleanId));
         }
 
         let $content = $('#cradle-content-area').empty();
