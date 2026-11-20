@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.59.4
+ * Version: 1.59.5
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Production loader snippet for your common.js:
- * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.4');
+ * mw.loader.load('//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.5');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.59.4';
+    const CRADLE_VERSION = '1.59.5';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -2113,15 +2113,32 @@
             let rawContent = pages[pageId].revisions[0].slots.main['*'];
             try {
                 let parsed = JSON.parse(rawContent);
+                let userLang = mw.config.get('wgUserLanguage') || 'en';
+                let baseLang = (userLang && userLang.includes('-')) ? userLang.split('-')[0] : null;
+                let sLabel = (parsed.labels && (parsed.labels[userLang] || (baseLang && parsed.labels[baseLang]) || parsed.labels['en'])) || schemaId;
+                let sDesc = (parsed.descriptions && (parsed.descriptions[userLang] || (baseLang && parsed.descriptions[baseLang]) || parsed.descriptions['en'])) || '';
+                let rawAliases = (parsed.aliases && (parsed.aliases[userLang] || (baseLang && parsed.aliases[baseLang]) || parsed.aliases['en'])) || [];
+                let sAliases = Array.isArray(rawAliases) ? rawAliases.join(' | ') : String(rawAliases || '');
+
                 return {
                     id: schemaId,
-                    label: (parsed.labels && (parsed.labels[mw.config.get('wgUserLanguage')] || parsed.labels['en'])) || schemaId,
+                    label: sLabel,
+                    description: sDesc,
+                    aliases: sAliases,
+                    labels: parsed.labels || {},
+                    descriptions: parsed.descriptions || {},
+                    aliasesMap: parsed.aliases || {},
                     schemaText: parsed.schemaText
                 };
             } catch (e) {
                 return {
                     id: schemaId,
                     label: schemaId,
+                    description: '',
+                    aliases: '',
+                    labels: {},
+                    descriptions: {},
+                    aliasesMap: {},
                     schemaText: rawContent
                 };
             }
@@ -7938,6 +7955,89 @@ function searchWikidataItems(term) {
     }
 
     /**
+     * Updates an EntitySchema's label, description, and aliases via Special:SetEntitySchemaLabelDescriptionAliases.
+     */
+    function saveEntitySchemaMetadata(schemaId, label, description, aliases, langCode) {
+        let cleanId = (schemaId || '').trim().toUpperCase();
+        if (!cleanId.startsWith('E')) {
+            cleanId = 'E' + cleanId.replace(/\D/g, '');
+        }
+        let userLang = langCode || mw.config.get('wgUserLanguage') || 'en';
+        let editUrl = mw.util.getUrl('Special:SetEntitySchemaLabelDescriptionAliases/' + cleanId + '/' + encodeURIComponent(userLang));
+
+        return mw.loader.using(['mediawiki.api', 'mediawiki.util']).then(function() {
+            return new mw.Api().getToken('csrf');
+        }).then(function(csrfToken) {
+            return fetch(editUrl, {
+                credentials: 'same-origin'
+            }).then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Failed to load metadata form for ' + cleanId);
+                }
+                return response.text();
+            }).then(function(html) {
+                let doc = new DOMParser().parseFromString(html, 'text/html');
+                let form = doc.querySelector('form.mw-htmlform') || doc.querySelector('form[action*="SetEntitySchemaLabelDescriptionAliases"]');
+                if (!form) {
+                    throw new Error('Metadata form not found for ' + cleanId);
+                }
+                let actionUrl = new URL(form.getAttribute('action') || editUrl, window.location.origin);
+                let formData = new URLSearchParams();
+
+                let hiddenInputs = form.querySelectorAll('input[type="hidden"]');
+                for (let i = 0; i < hiddenInputs.length; i++) {
+                    let name = hiddenInputs[i].getAttribute('name');
+                    if (name) {
+                        formData.set(name, hiddenInputs[i].value || '');
+                    }
+                }
+
+                formData.set('wpEditToken', csrfToken);
+                formData.set('ID', cleanId);
+                formData.set('languagecode', userLang);
+                formData.set('label', String(label || ''));
+                formData.set('description', String(description || ''));
+                formData.set('aliases', String(aliases || ''));
+                formData.set('submit-edit', 'Submit');
+
+                return fetch(actionUrl.href, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData.toString()
+                });
+            }).then(function(postResponse) {
+                return postResponse.text().then(function(postHtml) {
+                    return {
+                        url: postResponse.url,
+                        html: postHtml
+                    };
+                });
+            }).then(function(result) {
+                let responseDoc = new DOMParser().parseFromString(result.html, 'text/html');
+                let errorNodes = responseDoc.querySelectorAll(
+                    '.permissions-errors, .error, .warning, .cdx-message--error, .oo-ui-messageWidget-error, .mw-htmlform-ooui .oo-ui-fieldLayout-messages'
+                );
+                let errorTexts = [];
+                for (let i = 0; i < errorNodes.length; i++) {
+                    let txt = (errorNodes[i].textContent || '').trim();
+                    if (txt && !txt.includes('Creative Commons') && !txt.includes('Terms of Use') && !txt.includes('By clicking')) {
+                        errorTexts.push(txt);
+                    }
+                }
+
+                if (errorTexts.length > 0) {
+                    throw new Error(errorTexts.join(' | '));
+                }
+
+                return cleanId;
+            });
+        });
+    }
+
+    /**
      * Links an EntitySchema to its target class/item via property P12861 (EntitySchema for this class).
      */
     function linkEntitySchemaToItem(targetQID, schemaId) {
@@ -9757,6 +9857,14 @@ function searchWikidataItems(term) {
             }
         }
 
+        // Update Schema title comment in preamble if provided
+        if (shapeTitle) {
+            let cleanTitle = String(shapeTitle).trim();
+            if (cleanTitle && /#\s*Schema:/i.test(preamble)) {
+                preamble = preamble.replace(/#\s*Schema:.*$/m, `# Schema: ${cleanTitle}`);
+            }
+        }
+
         let bodyLines = shapeBody.split('\n');
         let existingComments = {};
         let preservedStandaloneComments = [];
@@ -9963,9 +10071,10 @@ function searchWikidataItems(term) {
                 renderCreateOptionsSelector();
             });
 
+        let $titleLabelSpan = $('<span>').css({'color': '#54595d'}).text('(' + (schema.label || schemaId) + ')');
         let $titleInfo = $('<div>').css({'display': 'inline-flex', 'align-items': 'center', 'gap': '8px', 'flex-wrap': 'wrap'})
             .append($('<strong>').css({'font-size': '15px'}).text(mw.msg('cradle-editing-schema-title', schemaId)))
-            .append($('<span>').css({'color': '#54595d'}).text('(' + (schema.label || schemaId) + ')'))
+            .append($titleLabelSpan)
             .append($('<a>').attr({href: mw.util.getUrl('EntitySchema:' + schemaId), target: '_blank'}).css({'color': '#36c', 'display': 'inline-flex', 'align-items': 'center', 'gap': '3px'}).html(ICONS.external + ' <span style="font-size:12px;">EntitySchema:' + schemaId + '</span>'));
 
         let $modeSwitcher = $('<div>').addClass('cradle-mode-switcher');
@@ -9979,8 +10088,26 @@ function searchWikidataItems(term) {
         $header.append($leftHeader).append($modeSwitcher);
         $editorWrap.append($header);
 
-        // Configuration Row: Associated class/item & Base schema / derivation (IMPORT)
-        let $configRow = $('<div>').addClass('cradle-config-row').css({
+        // Header Fields Row: Row 1 (Title, Description, Aliases) and Row 2 (Target Item, Base Schema)
+        let $headerFieldsRow = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'margin-bottom': '4px'});
+
+        // Row 1: Title, Description, Aliases (|)
+        let $row1 = $('<div>').css({'display': 'flex', 'gap': '8px', 'flex-wrap': 'wrap', 'align-items': 'center'});
+        let $titleInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-schema-title')).val(schema.label || '');
+        let $descInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-schema-desc')).val(schema.description || '');
+        let $aliasesInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-new-item-aliases')).val(schema.aliases || '');
+
+        $titleInput.on('input change', function() {
+            let t = $(this).val().trim();
+            $titleLabelSpan.text('(' + (t || schemaId) + ')');
+        });
+
+        $row1.append($('<div>').css({'flex': '1', 'min-width': '140px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px', 'font-size': '12px'}).text(mw.msg('cradle-schema-title'))).append($titleInput));
+        $row1.append($('<div>').css({'flex': '1.5', 'min-width': '160px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px', 'font-size': '12px'}).text(mw.msg('cradle-schema-desc'))).append($descInput));
+        $row1.append($('<div>').css({'flex': '1', 'min-width': '130px'}).append($('<label>').css({'display': 'block', 'font-weight': 'bold', 'margin-bottom': '4px', 'font-size': '12px'}).text(mw.msg('cradle-new-item-aliases'))).append($aliasesInput));
+
+        // Row 2: Associated Item & Base Schema (Derivation)
+        let $row2 = $('<div>').addClass('cradle-config-row').css({
             'display': 'flex',
             'gap': '12px',
             'padding': '10px 12px',
@@ -10042,8 +10169,10 @@ function searchWikidataItems(term) {
         updateBaseSchemaLink();
         $baseSchemaCol.append($baseSchemaLabelRow).append($baseSchemaInput);
 
-        $configRow.append($targetItemCol).append($baseSchemaCol);
-        $editorWrap.append($configRow);
+        $row2.append($targetItemCol).append($baseSchemaCol);
+
+        $headerFieldsRow.append($row1).append($row2);
+        $editorWrap.append($headerFieldsRow);
 
         // Visual Mode Container
         let $visualContainer = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px'});
@@ -10818,7 +10947,8 @@ function searchWikidataItems(term) {
             let currentCode = getEditorCode();
             let targetVal = $targetItemInput.val().trim();
             let baseVal = $baseSchemaInput.val().trim();
-            let newCode = mergeVisualPropsIntoShex(currentCode, rows, labelsMap, schema.label || schemaId, targetVal, baseVal);
+            let titleVal = $titleInput.val().trim() || schema.label || schemaId;
+            let newCode = mergeVisualPropsIntoShex(currentCode, rows, labelsMap, titleVal, targetVal, baseVal);
             setEditorCode(newCode);
 
             currentMode = 'code';
@@ -10877,6 +11007,7 @@ function searchWikidataItems(term) {
                 let codeToSave = '';
                 let targetVal = $targetItemInput.val().trim();
                 let baseVal = $baseSchemaInput.val().trim();
+                let titleVal = $titleInput.val().trim() || schema.label || schemaId;
                 if (currentMode === 'code') {
                     codeToSave = getEditorCode();
                 } else {
@@ -10885,7 +11016,7 @@ function searchWikidataItems(term) {
                         mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
                         return;
                     }
-                    codeToSave = mergeVisualPropsIntoShex(getEditorCode(), rows, labelsMap, schema.label || schemaId, targetVal, baseVal);
+                    codeToSave = mergeVisualPropsIntoShex(getEditorCode(), rows, labelsMap, titleVal, targetVal, baseVal);
                 }
 
                 let validation = validateShExSyntax(codeToSave);
@@ -10898,9 +11029,27 @@ function searchWikidataItems(term) {
                 let customSummary = $summaryInput.val().trim();
                 let savingNotice = mw.notify(mw.msg('cradle-saving-schema') || 'Guardando cambios en el EntitySchema...', { autoHide: false });
 
-                saveEntitySchemaToWikidata(schemaId, codeToSave, customSummary).then(function(savedId) {
+                let newTitle = $titleInput.val().trim();
+                let newDesc = $descInput.val().trim();
+                let newAliases = $aliasesInput.val().trim();
+
+                let initialTitle = (schema.label || '').trim();
+                let initialDesc = (schema.description || '').trim();
+                let initialAliases = (schema.aliases || '').trim();
+
+                let metadataChanged = (newTitle !== initialTitle || newDesc !== initialDesc || newAliases !== initialAliases);
+
+                let saveCodePromise = saveEntitySchemaToWikidata(schemaId, codeToSave, customSummary);
+                let saveMetaPromise = metadataChanged
+                    ? saveEntitySchemaMetadata(schemaId, newTitle, newDesc, newAliases)
+                    : Promise.resolve(schemaId);
+
+                Promise.all([saveCodePromise, saveMetaPromise]).then(function() {
                     if (savingNotice && savingNotice.close) savingNotice.close();
-                    mw.notify(mw.msg('cradle-save-schema-success', savedId) || `¡EntitySchema ${savedId} actualizado con éxito!`, { type: 'success' });
+                    schema.label = newTitle || schema.label;
+                    schema.description = newDesc;
+                    schema.aliases = newAliases;
+                    mw.notify(mw.msg('cradle-save-schema-success', schemaId) || `¡EntitySchema ${schemaId} actualizado con éxito!`, { type: 'success' });
                     $saveBtn.prop('disabled', false);
                 }).catch(function(saveErr) {
                     if (savingNotice && savingNotice.close) savingNotice.close();
