@@ -9,20 +9,20 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.59.3-dev
+ * Version: 1.59.4-dev
  * 
  * Installation:
- * Add the following line to your [[Special:MyPage/common.js]] on test.wikidata.org (increment version value to bypass cache)
+ * Add the following line to your [[Special:MyPage/common.js]] on Wikidata (increment version value to bypass cache)
  * 
  * Development loader snippet for your common.js on test.wikidata.org:
- * mw.loader.load('//test.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle-dev.js&action=raw&ctype=text/javascript&version=1.59.3-dev');
+ * mw.loader.load('//test.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle-dev.js//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.4action=raw//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.4ctype=text/javascript//www.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle.js&action=raw&ctype=text/javascript&version=1.59.4version=1.59.4-dev');
  * 
  * Enjoy editing Wikidata entities seamlessly with Cradle!
  */
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.59.3-dev';
+    const CRADLE_VERSION = '1.59.4-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -351,6 +351,9 @@
             'cradle-importer-target-mode-label': 'Schema target type:',
             'cradle-importer-target-p106': 'Occupation specialization (P106)',
             'cradle-importer-target-p31': 'General class (P31)',
+            'cradle-inherited-props-count': '$1 inherited {{PLURAL:$1|property|properties}} via IMPORT',
+            'cradle-inherited-props-note': 'These properties are inherited automatically from the base schema via IMPORT and are not duplicated into this schema.',
+            'cradle-inherited-props-title': 'Inherited properties from base schema ($1)',
             'cradle-label-required': 'New item label is required!',
             'cradle-link-p12861-checkbox': 'Link schema to associated class ($1) via P12861 upon creation',
             'cradle-link-p12861-derivation-skip': 'P12861 will not be added to the target class because this schema is a derivation.',
@@ -385,6 +388,7 @@
             'cradle-open-newentityschema': 'Go to Special:NewEntitySchema',
             'cradle-or-enter-schema': 'Or enter another EntitySchema ID:',
             'cradle-orgroup-label': 'Alternative group (OR):',
+            'cradle-override-prop-btn': 'Customize in this schema',
             'cradle-preset-none': 'No predefined values',
             'cradle-prop-invalid-id': 'Invalid property ID (e.g. P17)!',
             'cradle-prop-placeholder': 'e.g. P17',
@@ -481,6 +485,8 @@
             'cradle-tab-edit-schema-badge': 'Experimental',
             'cradle-tab-predefined': 'Predefined form',
             'cradle-tab-shex': 'EntitySchema (ShEx)',
+            'cradle-toggle-inherited-hide': 'Hide inherited properties',
+            'cradle-toggle-inherited-show': 'Show inherited properties ($1)',
             'cradle-use-base-schema-checkbox': 'Set $1 as base schema for this derivation',
             'cradle-user-menu-btn': 'Create new item with Cradle',
             'cradle-val-err-coords': 'Invalid coordinates (-90 to 90 lat, -180 to 180 lon)',
@@ -674,6 +680,9 @@
                     'cradle-importer-target-mode-label': 'Tipo de objetivo para el esquema:',
                     'cradle-importer-target-p106': 'Especialización por ocupación (P106)',
                     'cradle-importer-target-p31': 'Clase general (P31)',
+                    'cradle-inherited-props-count': '$1 {{PLURAL:$1|propiedad heredada|propiedades heredadas}} vía IMPORT',
+                    'cradle-inherited-props-note': 'Estas propiedades se heredan automáticamente del esquema base mediante IMPORT y no se duplican en este esquema.',
+                    'cradle-inherited-props-title': 'Propiedades heredadas del esquema base ($1)',
                     'cradle-label-required': '¡La etiqueta del nuevo elemento es obligatoria!',
                     'cradle-link-p12861-checkbox': 'Vincular esquema a la clase asociada ($1) mediante P12861 al publicar',
                     'cradle-link-p12861-derivation-skip': 'No se añadirá P12861 a la clase asociada porque este esquema es una derivación.',
@@ -708,6 +717,7 @@
                     'cradle-open-newentityschema': 'Ir a Special:NewEntitySchema',
                     'cradle-or-enter-schema': 'O introduce otro ID de EntitySchema:',
                     'cradle-orgroup-label': 'Grupo alternativo (OR):',
+                    'cradle-override-prop-btn': 'Personalizar en este esquema',
                     'cradle-preset-none': 'Sin valores predefinidos',
                     'cradle-prop-invalid-id': '¡ID de propiedad inválido (ej. P17)!',
                     'cradle-prop-placeholder': 'ej. P17',
@@ -801,6 +811,8 @@
                     'cradle-tab-edit-schema-badge': 'Experimental',
                     'cradle-tab-predefined': 'Formulario predefinido',
                     'cradle-tab-shex': 'EntitySchema (ShEx)',
+                    'cradle-toggle-inherited-hide': 'Ocultar propiedades heredadas',
+                    'cradle-toggle-inherited-show': 'Mostrar propiedades heredadas ($1)',
                     'cradle-use-base-schema-checkbox': 'Establecer $1 como esquema base para esta derivación',
                     'cradle-user-menu-btn': 'Crear elemento nuevo con Cradle',
                     'cradle-val-err-coords': 'Coordenadas geográficas inválidas (-90 a 90 lat, -180 a 180 lon)',
@@ -9587,24 +9599,44 @@ function searchWikidataItems(term) {
         );
 
         fetchSchemaWithImports(cleanId).then(function(schema) {
-            let parsedProps = parseShEx(schema.schemaText, schema.importedSchemas);
-            let pids = Object.keys(parsedProps);
+            // Distinguish local properties from imported base schema properties
+            let localProps = parseShEx(schema.schemaText, {});
+            let allProps = parseShEx(schema.schemaText, schema.importedSchemas || {});
+            let localPids = Object.keys(localProps);
+            let allPids = Object.keys(allProps);
+            let inheritedPids = allPids.filter(pid => !localProps[pid]);
+
+            // Extract baseSchemaId and targetItemId
+            let baseSchemaMatch = (schema.schemaText || '').match(/#\s*Base\s*\/\s*Imported.*?EntitySchema:(E\d+)/i) ||
+                                  (schema.schemaText || '').match(/IMPORT\s+<[^>]*Special:EntitySchemaText\/(E\d+)>/i) ||
+                                  (schema.schemaText || '').match(/IMPORT\s+<[^>]*\b(E\d+)\b[^>]*>/i);
+            let baseSchemaId = baseSchemaMatch ? baseSchemaMatch[1].toUpperCase() : (extractImportIdsFromShEx(schema.schemaText)[0] || '');
+
+            let targetMatch = (schema.schemaText || '').match(/#\s*(?:targetItem|Associated Item.*?):\s*(Q\d+)/i);
+            let targetItemId = targetMatch ? targetMatch[1].toUpperCase() : '';
 
             let qidsToFetch = [];
-            pids.forEach(pid => {
-                let p = parsedProps[pid];
+            localPids.forEach(pid => {
+                let p = localProps[pid];
                 if (p.hardselect && Array.isArray(p.hardselect)) qidsToFetch = qidsToFetch.concat(p.hardselect);
                 if (p.softselect && Array.isArray(p.softselect)) qidsToFetch = qidsToFetch.concat(p.softselect);
             });
+            if (targetItemId) qidsToFetch.push(targetItemId);
             qidsToFetch = [...new Set(qidsToFetch)].filter(id => /^Q\d+$/i.test(id));
 
             return Promise.all([
-                loadPropertiesMetadata(pids),
+                loadPropertiesMetadata(allPids),
                 loadItemLabels(qidsToFetch)
             ]).then(function(results) {
                 let metaMap = results[0] || {};
                 let qidLabelsMap = results[1] || {};
-                renderSchemaEditor(cleanId, schema, parsedProps, metaMap, qidLabelsMap);
+                let baseInfo = {
+                    baseSchemaId: baseSchemaId,
+                    targetItemId: targetItemId,
+                    inheritedProps: allProps,
+                    inheritedPids: inheritedPids
+                };
+                renderSchemaEditor(cleanId, schema, localProps, metaMap, qidLabelsMap, baseInfo);
             });
         }).catch(function(err) {
             console.error('[Cradle] Error loading schema for editing:', err);
@@ -9625,9 +9657,9 @@ function searchWikidataItems(term) {
      * - Existing custom inline comments on properties when unchanged
      * - All postambles (sub-shapes, auxiliary shapes, closing braces, trailing comments)
      */
-    function mergeVisualPropsIntoShex(existingCode, propRows, labelsMap, shapeTitle) {
+    function mergeVisualPropsIntoShex(existingCode, propRows, labelsMap, shapeTitle, targetItem, baseSchema) {
         if (!existingCode || !existingCode.trim()) {
-            return generateShExCode(shapeTitle, propRows, labelsMap, null, null, null);
+            return generateShExCode(shapeTitle, propRows, labelsMap, targetItem, null, baseSchema);
         }
 
         function findMatchingBrace(str, startIdx) {
@@ -9681,17 +9713,49 @@ function searchWikidataItems(term) {
 
         let openBraceIdx = findShapeOpenBrace(existingCode);
         if (openBraceIdx === -1) {
-            return generateShExCode(shapeTitle, propRows, labelsMap, null, null, null);
+            return generateShExCode(shapeTitle, propRows, labelsMap, targetItem, null, baseSchema);
         }
 
         let closeBraceIdx = findMatchingBrace(existingCode, openBraceIdx);
         if (closeBraceIdx === -1) {
-            return generateShExCode(shapeTitle, propRows, labelsMap, null, null, null);
+            return generateShExCode(shapeTitle, propRows, labelsMap, targetItem, null, baseSchema);
         }
 
         let preamble = existingCode.substring(0, openBraceIdx + 1);
         let shapeBody = existingCode.substring(openBraceIdx + 1, closeBraceIdx);
         let postamble = existingCode.substring(closeBraceIdx);
+
+        // Update targetItem in preamble if provided
+        if (targetItem !== undefined && targetItem !== null) {
+            let cleanTarget = (targetItem || '').trim().toUpperCase();
+            if (cleanTarget && /^Q\d+$/i.test(cleanTarget)) {
+                if (/#\s*targetItem:/i.test(preamble)) {
+                    preamble = preamble.replace(/#\s*targetItem:.*$/m, `# targetItem: ${cleanTarget}`);
+                } else {
+                    preamble = `# targetItem: ${cleanTarget}\n` + preamble;
+                }
+                if (/#\s*Associated Item \/ Target Class:/i.test(preamble)) {
+                    preamble = preamble.replace(/#\s*Associated Item \/ Target Class:.*$/m, `# Associated Item \/ Target Class: ${cleanTarget}`);
+                }
+            }
+        }
+
+        // Update baseSchema (IMPORT) in preamble if provided
+        if (baseSchema !== undefined && baseSchema !== null) {
+            let cleanBase = (baseSchema || '').trim().toUpperCase();
+            if (cleanBase && !cleanBase.startsWith('E')) {
+                cleanBase = 'E' + cleanBase.replace(/\D/g, '');
+            }
+            if (cleanBase && /^E\d+$/i.test(cleanBase)) {
+                let importLine = `IMPORT <http://www.wikidata.org/wiki/Special:EntitySchemaText/${cleanBase}>`;
+                if (!new RegExp('Special:EntitySchemaText/' + cleanBase + '\\b', 'i').test(preamble)) {
+                    preamble = importLine + '\n' + preamble;
+                }
+                if (/#\s*Base\s*\/\s*Imported External Schemas:/i.test(preamble)) {
+                    preamble = preamble.replace(/#\s*Base\s*\/\s*Imported External Schemas:.*$/m, `# Base / Imported External Schemas: EntitySchema:${cleanBase}`);
+                }
+            }
+        }
 
         let bodyLines = shapeBody.split('\n');
         let existingComments = {};
@@ -9869,7 +9933,7 @@ function searchWikidataItems(term) {
      * 1. Modo Visual (GUI): rich property-based builder matching Schema Designer.
      * 2. Modo Código (CodeEditor): MediaWiki native Ace editor with ShEx & # comment support and textarea fallback.
      */
-    function renderSchemaEditor(schemaId, schema, parsedProps, metaMap, qidLabelsMap) {
+    function renderSchemaEditor(schemaId, schema, parsedProps, metaMap, qidLabelsMap, baseInfo) {
         updateNavigationTabs('edit');
         let $content = $('#cradle-content-area').empty();
         updateDrawerFooter(false);
@@ -9879,6 +9943,12 @@ function searchWikidataItems(term) {
         let labelsMap = Object.assign({}, metaMap || {});
         let itemLabels = Object.assign({}, qidLabelsMap || {});
         let aceEditorInstance = null;
+
+        baseInfo = baseInfo || {};
+        let currentBaseSchemaId = baseInfo.baseSchemaId || '';
+        let currentTargetItemId = baseInfo.targetItemId || '';
+        let currentInheritedPids = (baseInfo.inheritedPids || []).slice();
+        let inheritedMap = Object.assign({}, baseInfo.inheritedProps || {});
 
         // Container
         let $editorWrap = $('<div>').addClass('cradle-selector-box').css({'display': 'flex', 'flex-direction': 'column', 'gap': '14px'});
@@ -9908,6 +9978,72 @@ function searchWikidataItems(term) {
 
         $header.append($leftHeader).append($modeSwitcher);
         $editorWrap.append($header);
+
+        // Configuration Row: Associated class/item & Base schema / derivation (IMPORT)
+        let $configRow = $('<div>').addClass('cradle-config-row').css({
+            'display': 'flex',
+            'gap': '12px',
+            'padding': '10px 12px',
+            'background': '#f8f9fa',
+            'border': '1px solid #c8ccd1',
+            'border-radius': '4px',
+            'flex-wrap': 'wrap',
+            'align-items': 'center'
+        });
+
+        // Target Item column
+        let $targetItemCol = $('<div>').css({'flex': '1', 'min-width': '200px', 'display': 'flex', 'flex-direction': 'column', 'gap': '4px'});
+        let $targetItemLabelRow = $('<div>').css({'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between'});
+        $targetItemLabelRow.append($('<label>').css({'font-weight': 'bold', 'font-size': '12px'}).text(mw.msg('cradle-schema-target-item-label')));
+        let $targetItemLink = $('<a>').attr({target: '_blank'}).css({'font-size': '11px', 'color': '#36c', 'display': 'none'});
+        $targetItemLabelRow.append($targetItemLink);
+
+        let $targetItemInput = $('<input>').addClass('cradle-input').attr({
+            'placeholder': mw.msg('cradle-schema-target-item-placeholder') || 'e.g. Q483110'
+        }).css({'height': '30px', 'font-size': '12px'}).val(currentTargetItemId);
+
+        function updateTargetItemLink() {
+            let val = $targetItemInput.val().trim().toUpperCase();
+            if (/^Q\d+$/i.test(val)) {
+                let lbl = itemLabels[val] || val;
+                $targetItemLink.attr('href', mw.util.getUrl(val)).html(ICONS.external + ' ' + val + (lbl !== val ? ' (' + lbl + ')' : '')).show();
+            } else {
+                $targetItemLink.hide();
+            }
+        }
+        $targetItemInput.on('input change', updateTargetItemLink);
+        updateTargetItemLink();
+        $targetItemCol.append($targetItemLabelRow).append($targetItemInput);
+
+        // Base Schema column
+        let $baseSchemaCol = $('<div>').css({'flex': '1', 'min-width': '200px', 'display': 'flex', 'flex-direction': 'column', 'gap': '4px'});
+        let $baseSchemaLabelRow = $('<div>').css({'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between'});
+        $baseSchemaLabelRow.append($('<label>').css({'font-weight': 'bold', 'font-size': '12px'}).text(mw.msg('cradle-base-schema-label')));
+        let $baseSchemaLink = $('<a>').attr({target: '_blank'}).css({'font-size': '11px', 'color': '#36c', 'display': 'none'});
+        $baseSchemaLabelRow.append($baseSchemaLink);
+
+        let $baseSchemaInput = $('<input>').addClass('cradle-input').attr({
+            'placeholder': mw.msg('cradle-base-schema-placeholder') || 'e.g. E100'
+        }).css({'height': '30px', 'font-size': '12px'}).val(currentBaseSchemaId);
+
+        function updateBaseSchemaLink() {
+            let val = $baseSchemaInput.val().trim().toUpperCase();
+            if (val && !val.startsWith('E')) val = 'E' + val.replace(/\D/g, '');
+            if (/^E\d+$/i.test(val)) {
+                $baseSchemaLink.attr('href', mw.util.getUrl('EntitySchema:' + val)).html(ICONS.external + ' EntitySchema:' + val).show();
+            } else {
+                $baseSchemaLink.hide();
+            }
+        }
+        $baseSchemaInput.on('input change', function() {
+            updateBaseSchemaLink();
+            if (typeof renderInheritedChips === 'function') renderInheritedChips();
+        });
+        updateBaseSchemaLink();
+        $baseSchemaCol.append($baseSchemaLabelRow).append($baseSchemaInput);
+
+        $configRow.append($targetItemCol).append($baseSchemaCol);
+        $editorWrap.append($configRow);
 
         // Visual Mode Container
         let $visualContainer = $('<div>').css({'display': 'flex', 'flex-direction': 'column', 'gap': '10px'});
@@ -10343,6 +10479,147 @@ function searchWikidataItems(term) {
         });
         $addPropGroup.append($autocompleteMenu);
         $visualContainer.append($addPropGroup);
+
+        // Inherited properties panel (for schemas using IMPORT)
+        let $inheritedSection = $('<div>').addClass('cradle-inherited-section').css({
+            'border': '1px solid #c8ccd1',
+            'border-radius': '4px',
+            'background': '#f8f9fa',
+            'padding': '10px 12px',
+            'margin-top': '12px'
+        });
+
+        let $inheritedHeader = $('<div>').css({
+            'display': 'flex',
+            'justify-content': 'space-between',
+            'align-items': 'center',
+            'cursor': 'pointer',
+            'user-select': 'none'
+        });
+
+        let $inheritedTitleGroup = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '8px', 'flex-wrap': 'wrap'});
+        let $inheritedTitle = $('<strong>').css({'font-size': '13px'});
+        let $countBadge = $('<span>').css({
+            'background': '#eaf3ff',
+            'color': '#36c',
+            'border': '1px solid #36c',
+            'border-radius': '10px',
+            'padding': '1px 8px',
+            'font-size': '11px',
+            'font-weight': 'bold'
+        });
+        $inheritedTitleGroup.append($inheritedTitle).append($countBadge);
+
+        let $toggleBtn = $('<button>').addClass('cdx-button cdx-button--weight-quiet cdx-button--size-small')
+            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '4px', 'font-size': '12px'});
+
+        $inheritedHeader.append($inheritedTitleGroup).append($toggleBtn);
+        $inheritedSection.append($inheritedHeader);
+
+        let $inheritedBody = $('<div>').css({
+            'display': 'none',
+            'flex-direction': 'column',
+            'gap': '8px',
+            'margin-top': '10px',
+            'padding-top': '10px',
+            'border-top': '1px solid #eaecf0'
+        });
+
+        let $inheritedNote = $('<p>').css({
+            'font-size': '12px',
+            'color': '#54595d',
+            'margin': '0 0 6px 0'
+        }).text(mw.msg('cradle-inherited-props-note'));
+        $inheritedBody.append($inheritedNote);
+
+        let $inheritedChipsList = $('<div>').css({
+            'display': 'flex',
+            'flex-wrap': 'wrap',
+            'gap': '6px',
+            'max-height': '220px',
+            'overflow-y': 'auto',
+            'padding': '4px'
+        });
+        $inheritedBody.append($inheritedChipsList);
+        $inheritedSection.append($inheritedBody);
+
+        function renderInheritedChips() {
+            $inheritedChipsList.empty();
+            let baseId = $baseSchemaInput.val().trim().toUpperCase() || 'base';
+            $inheritedTitle.text(mw.msg('cradle-inherited-props-title', baseId));
+
+            if (currentInheritedPids.length === 0) {
+                $inheritedSection.hide();
+                return;
+            }
+            $inheritedSection.show();
+            $countBadge.text(mw.msg('cradle-inherited-props-count', currentInheritedPids.length));
+            if ($inheritedBody.is(':visible')) {
+                $toggleBtn.html(ICONS.up + ' <span>' + mw.msg('cradle-toggle-inherited-hide') + '</span>');
+            } else {
+                $toggleBtn.html(ICONS.down + ' <span>' + mw.msg('cradle-toggle-inherited-show', currentInheritedPids.length) + '</span>');
+            }
+
+            currentInheritedPids.forEach(pid => {
+                let meta = labelsMap[pid] || propertyMetadata[pid] || {};
+                let label = (meta && meta.label) ? meta.label : (typeof meta === 'string' ? meta : pid);
+                let chipTitle = pid + (label && label !== pid ? ` (${label})` : '');
+
+                let $chip = $('<span>').css({
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '6px',
+                    'background': '#fff',
+                    'border': '1px solid #c8ccd1',
+                    'border-radius': '3px',
+                    'padding': '2px 8px',
+                    'font-size': '12px',
+                    'color': '#202122'
+                });
+
+                $chip.append($('<span>').text(chipTitle));
+
+                let $addBtn = $('<button>').addClass('cdx-button cdx-button--weight-quiet cdx-button--size-small')
+                    .attr('title', mw.msg('cradle-override-prop-btn'))
+                    .css({
+                        'display': 'inline-flex',
+                        'align-items': 'center',
+                        'justify-content': 'center',
+                        'padding': '0 4px',
+                        'min-width': '20px',
+                        'height': '20px',
+                        'color': 'var(--color-progressive, #36c)',
+                        'font-size': '11px',
+                        'font-weight': 'bold',
+                        'cursor': 'pointer'
+                    })
+                    .html(ICONS.add)
+                    .on('click', function(e) {
+                        e.stopPropagation();
+                        let inheritedData = inheritedMap[pid] || { cardinality: '?' };
+                        renderEditorPropCard(pid, inheritedData, labelsMap, itemLabels);
+                        currentInheritedPids = currentInheritedPids.filter(p => p !== pid);
+                        renderInheritedChips();
+                        mw.notify(pid + ' ' + (label ? `(${label}) ` : '') + mw.msg('cradle-override-prop-btn'), { type: 'info' });
+                    });
+
+                $chip.append($addBtn);
+                $inheritedChipsList.append($chip);
+            });
+        }
+
+        $inheritedHeader.on('click', function() {
+            if ($inheritedBody.is(':visible')) {
+                $inheritedBody.hide();
+                $toggleBtn.html(ICONS.down + ' <span>' + mw.msg('cradle-toggle-inherited-show', currentInheritedPids.length) + '</span>');
+            } else {
+                $inheritedBody.css('display', 'flex');
+                $toggleBtn.html(ICONS.up + ' <span>' + mw.msg('cradle-toggle-inherited-hide') + '</span>');
+            }
+        });
+
+        renderInheritedChips();
+        $visualContainer.append($inheritedSection);
         $editorWrap.append($visualContainer);
 
         let propSearchDebounce;
@@ -10480,12 +10757,29 @@ function searchWikidataItems(term) {
                 return;
             }
 
-            let newParsed = parseShEx(code, schema.importedSchemas);
-            let newPids = Object.keys(newParsed);
+            let newLocalParsed = parseShEx(code, {});
+            let newAllParsed = parseShEx(code, schema.importedSchemas || {});
+            let newLocalPids = Object.keys(newLocalParsed);
+            let newAllPids = Object.keys(newAllParsed);
+            currentInheritedPids = newAllPids.filter(pid => !newLocalParsed[pid]);
+            inheritedMap = newAllParsed;
+
+            let targetMatch = code.match(/#\s*(?:targetItem|Associated Item.*?):\s*(Q\d+)/i);
+            if (targetMatch) {
+                $targetItemInput.val(targetMatch[1].toUpperCase());
+                updateTargetItemLink();
+            }
+            let baseMatch = code.match(/#\s*Base\s*\/\s*Imported.*?EntitySchema:(E\d+)/i) ||
+                            code.match(/IMPORT\s+<[^>]*Special:EntitySchemaText\/(E\d+)>/i) ||
+                            code.match(/IMPORT\s+<[^>]*\b(E\d+)\b[^>]*>/i);
+            if (baseMatch) {
+                $baseSchemaInput.val(baseMatch[1].toUpperCase());
+                updateBaseSchemaLink();
+            }
 
             let qidsToFetch = [];
-            newPids.forEach(pid => {
-                let p = newParsed[pid];
+            newLocalPids.forEach(pid => {
+                let p = newLocalParsed[pid];
                 if (p.hardselect && Array.isArray(p.hardselect)) qidsToFetch = qidsToFetch.concat(p.hardselect);
                 if (p.softselect && Array.isArray(p.softselect)) qidsToFetch = qidsToFetch.concat(p.softselect);
             });
@@ -10494,7 +10788,7 @@ function searchWikidataItems(term) {
             $propsList.empty();
 
             let p1 = new Promise(resolve => {
-                fetchLabelsInBatches(newPids, function(freshLabels) {
+                fetchLabelsInBatches(newAllPids, function(freshLabels) {
                     resolve(freshLabels);
                 });
             });
@@ -10505,9 +10799,10 @@ function searchWikidataItems(term) {
                 let freshItemLabels = results[1] || {};
                 Object.assign(labelsMap, freshLabels);
                 Object.assign(itemLabels, freshItemLabels);
-                newPids.forEach(pid => {
-                    renderEditorPropCard(pid, newParsed[pid], labelsMap, itemLabels);
+                newLocalPids.forEach(pid => {
+                    renderEditorPropCard(pid, newLocalParsed[pid], labelsMap, itemLabels);
                 });
+                renderInheritedChips();
             });
 
             currentMode = 'visual';
@@ -10521,7 +10816,9 @@ function searchWikidataItems(term) {
             if (currentMode === 'code') return;
             let rows = gatherEditorProps();
             let currentCode = getEditorCode();
-            let newCode = mergeVisualPropsIntoShex(currentCode, rows, labelsMap, schema.label || schemaId);
+            let targetVal = $targetItemInput.val().trim();
+            let baseVal = $baseSchemaInput.val().trim();
+            let newCode = mergeVisualPropsIntoShex(currentCode, rows, labelsMap, schema.label || schemaId, targetVal, baseVal);
             setEditorCode(newCode);
 
             currentMode = 'code';
@@ -10578,6 +10875,8 @@ function searchWikidataItems(term) {
             .html(ICONS.check + ' <span>' + mw.msg('cradle-save-changes') + '</span>')
             .on('click', function() {
                 let codeToSave = '';
+                let targetVal = $targetItemInput.val().trim();
+                let baseVal = $baseSchemaInput.val().trim();
                 if (currentMode === 'code') {
                     codeToSave = getEditorCode();
                 } else {
@@ -10586,7 +10885,7 @@ function searchWikidataItems(term) {
                         mw.notify(mw.msg('cradle-schema-prop-required'), { type: 'error' });
                         return;
                     }
-                    codeToSave = mergeVisualPropsIntoShex(getEditorCode(), rows, labelsMap, schema.label || schemaId);
+                    codeToSave = mergeVisualPropsIntoShex(getEditorCode(), rows, labelsMap, schema.label || schemaId, targetVal, baseVal);
                 }
 
                 let validation = validateShExSyntax(codeToSave);
