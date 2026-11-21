@@ -681,6 +681,105 @@
             color: var(--color-progressive, #36c);
         }
 
+        /* Wikibase SnakType Selector (Value / SomeValue / NoValue) */
+        .cradle-snaktype-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .cradle-snaktype-btn {
+            background: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 32px;
+            width: 28px;
+            color: var(--color-subtle, #72777d);
+            transition: all 0.15s ease;
+        }
+        .cradle-snaktype-btn:hover {
+            background-color: var(--background-color-interactive-subtle, rgba(0, 0, 0, 0.05));
+            border-color: var(--border-color-base, #a2a9b1);
+        }
+        .cradle-snaktype-btn.snaktype-somevalue {
+            color: var(--color-warning, #edab00);
+        }
+        .cradle-snaktype-btn.snaktype-novalue {
+            color: var(--color-destructive, #d33);
+        }
+        .cradle-snaktype-btn.snaktype-value {
+            color: var(--color-base, #202122);
+        }
+        .cradle-snaktype-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 10001;
+            background: var(--background-color-base, #ffffff);
+            border: 1px solid var(--border-color-base, #a2a9b1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 2px;
+            padding: 4px 0;
+            min-width: 155px;
+            list-style: none;
+            margin: 2px 0 0 0;
+        }
+        .cradle-snaktype-menuitem {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            font-size: 0.82rem;
+            color: var(--color-base, #202122);
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .cradle-snaktype-menuitem:hover {
+            background-color: var(--background-color-interactive-subtle, rgba(0, 0, 0, 0.05));
+        }
+        .cradle-snaktype-menuitem.active {
+            font-weight: 600;
+            background-color: rgba(51, 102, 204, 0.08);
+            color: var(--color-progressive, #36c);
+        }
+        .cradle-special-value-display {
+            flex: 1;
+            min-width: 0;
+            height: 32px;
+            box-sizing: border-box;
+            padding: 4px 12px;
+            font-style: italic;
+            color: var(--color-subtle, #72777d);
+            background: var(--background-color-interactive-subtle, #f8f9fa);
+            border: 1px dashed var(--border-color-base, #c8ccd1);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cradle-qualifier-pill.cradle-qualifier-schema-suggested {
+            border-color: var(--color-progressive, #36c) !important;
+            background-color: var(--background-color-progressive-subtle, #eaf3ff) !important;
+            color: var(--color-progressive, #36c) !important;
+            font-weight: 600 !important;
+        }
+        .cradle-ref-required-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background-color: #fff9ea;
+            color: #b36b00;
+            border: 1px solid #ffd885;
+            margin-left: 6px;
+        }
+
         /* Multiple values vertical separator / guide line */
         .cradle-rows-container.cradle-multiple-rows {
             border-left: 2px solid var(--border-color-subtle, #c8ccd1);

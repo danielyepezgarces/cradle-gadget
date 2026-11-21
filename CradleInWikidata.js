@@ -9,7 +9,7 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.59.6
+ * Version: 1.60.0
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
@@ -20,7 +20,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.59.6';
+    const CRADLE_VERSION = '1.60.0';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -269,7 +269,10 @@
         chevronDown: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20"><path d="m10 13.5 6-6-1.4-1.4-4.6 4.6-4.6-4.6L4 7.5z"/></svg>`,
         chevronRight: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20"><path d="m7.5 4-1.4 1.4 4.6 4.6-4.6 4.6 1.4 1.4 6-6z"/></svg>`,
         cite: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20"><path d="M7 5H3v6h4v4h3V5H7zm9 0h-4v6h4v4h3V5h-3z"/></svg>`,
-        link: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="m11.53 14.88 2.83-2.83a3.5 3.5 0 0 0 0-4.95l-1.42-1.41a3.5 3.5 0 0 0-4.95 0L6.58 7.1a3.5 3.5 0 0 0 0 4.95l.71.71 1.41-1.42-.71-.71a1.5 1.5 0 0 1 0-2.12l1.41-1.41a1.5 1.5 0 0 1 2.13 0l1.41 1.41a1.5 1.5 0 0 1 0 2.12l-2.83 2.83a1.5 1.5 0 0 1-2.12 0L6.58 12l-1.41 1.41 1.41 1.42a3.5 3.5 0 0 0 4.95 0z"/></svg>`
+        link: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="m11.53 14.88 2.83-2.83a3.5 3.5 0 0 0 0-4.95l-1.42-1.41a3.5 3.5 0 0 0-4.95 0L6.58 7.1a3.5 3.5 0 0 0 0 4.95l.71.71 1.41-1.42-.71-.71a1.5 1.5 0 0 1 0-2.12l1.41-1.41a1.5 1.5 0 0 1 2.13 0l1.41 1.41a1.5 1.5 0 0 1 0 2.12l-2.83 2.83a1.5 1.5 0 0 1-2.12 0L6.58 12l-1.41 1.41 1.41 1.42a3.5 3.5 0 0 0 4.95 0z"/></svg>`,
+        somevalue: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm0 13a1.25 1.25 0 1 1 1.25-1.25A1.25 1.25 0 0 1 10 15zm1.5-5.5a.5.5 0 0 0-.5.5v1H9v-1.5a1.5 1.5 0 0 1 1.5-1.5 1.5 1.5 0 0 0 0-3 1.5 1.5 0 0 0-1.4 1H7.5A3 3 0 0 1 10.5 4a3 3 0 0 1 0 6z"/></svg>`,
+        novalue: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm0 1.5a6.47 6.47 0 0 1 3.94 1.35L4.85 13.94A6.5 6.5 0 0 1 10 3.5zm0 13a6.47 6.47 0 0 1-3.94-1.35l9.09-9.09A6.5 6.5 0 0 1 10 16.5z"/></svg>`,
+        customvalue: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M16.77 8l1.94-2a1 1 0 0 0 0-1.41l-3.34-3.3a1 1 0 0 0-1.41 0L12 3.23zM1 14.25V19h4.75l9.96-9.96-4.75-4.75z"/></svg>`
     };
 
     /**
@@ -432,6 +435,7 @@
             'cradle-publish-shex-success': 'EntitySchema $1 published successfully on Wikidata!',
             'cradle-publishing-shex': 'Publishing EntitySchema to Wikidata...',
             'cradle-qualifier-prop-placeholder': 'Property (e.g. start time, P580)',
+            'cradle-qualifier-required-badge': 'required',
             'cradle-qualifiers': 'Qualifiers',
             'cradle-rank': 'Rank',
             'cradle-rank-deprecated': 'Deprecated',
@@ -469,6 +473,10 @@
             'cradle-schema-not-found': 'Could not find the schema on the page!',
             'cradle-schema-placeholder': 'Search EntitySchema by name or ID (e.g. E10, Human)...',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
+            'cradle-schema-qualifiers-label': 'Suggested qualifiers:',
+            'cradle-schema-qualifiers-placeholder': 'qualifier PIDs (comma-separated, e.g. P580, P582)',
+            'cradle-schema-ref-required': 'Statement for $1 requires at least one reference according to the schema.',
+            'cradle-schema-require-ref-label': 'Require at least one reference (prov:wasDerivedFrom +)',
             'cradle-schema-saved': 'Schema saved successfully.',
             'cradle-schema-search-placeholder': 'Search EntitySchema by name or ID (e.g. E10, Human)...',
             'cradle-schema-target-item-label': 'Associated class/item',
@@ -500,6 +508,10 @@
             'cradle-sidebar-header': 'Schemas',
             'cradle-sidebar-random-schema': 'Random schema',
             'cradle-sidebar-recent-schemas': 'Recent changes',
+            'cradle-snaktype': 'Value type',
+            'cradle-snaktype-novalue': 'No value',
+            'cradle-snaktype-somevalue': 'Unknown value',
+            'cradle-snaktype-value': 'Custom value',
             'cradle-softselect-label': 'Free suggestions (Softselect)',
             'cradle-softselect-placeholder': 'softselect QIDs (comma-separated, e.g. Q5,Q6)',
             'cradle-special-title': 'Cradle - Wikidata Schema Editor',
@@ -760,6 +772,7 @@
                     'cradle-publish-shex-failed': 'Error al publicar EntitySchema: $1',
                     'cradle-publish-shex-success': '¡EntitySchema $1 publicado con éxito en Wikidata!',
                     'cradle-publishing-shex': 'Publicando EntitySchema en Wikidata...',
+                    'cradle-qualifier-required-badge': 'obligatorio',
                     'cradle-qualifiers': 'Cualificadores',
                     'cradle-rank': 'Rango',
                     'cradle-rank-deprecated': 'En desuso',
@@ -795,6 +808,10 @@
                     'cradle-schema-not-found': '¡No se pudo encontrar el esquema en la página!',
                     'cradle-schema-placeholder': 'Buscar EntitySchema por nombre o ID (ej. E10, Humano)...',
                     'cradle-schema-prop-required': '¡Debe añadir al menos una propiedad al esquema!',
+                    'cradle-schema-qualifiers-label': 'Cualificadores sugeridos:',
+                    'cradle-schema-qualifiers-placeholder': 'PIDs separados por comas (ej. P580, P582)',
+                    'cradle-schema-ref-required': 'La declaración para $1 requiere al menos una referencia según el esquema.',
+                    'cradle-schema-require-ref-label': 'Exigir al menos 1 referencia (prov:wasDerivedFrom +)',
                     'cradle-schema-saved': 'Esquema guardado correctamente.',
                     'cradle-schema-search-placeholder': 'Buscar EntitySchema por nombre o ID (ej. E10, Humano)...',
                     'cradle-schema-target-item-label': 'Elemento asociado',
@@ -826,6 +843,10 @@
                     'cradle-sidebar-header': 'Esquemas',
                     'cradle-sidebar-random-schema': 'Esquema aleatorio',
                     'cradle-sidebar-recent-schemas': 'Cambios recientes',
+                    'cradle-snaktype': 'Tipo de valor',
+                    'cradle-snaktype-novalue': 'Sin valor',
+                    'cradle-snaktype-somevalue': 'Valor desconocido',
+                    'cradle-snaktype-value': 'Valor personalizado',
                     'cradle-softselect-label': 'Sugerencias libres (Softselect)',
                     'cradle-softselect-placeholder': 'sugerencias de QIDs (separados por coma, ej. Q5,Q6)',
                     'cradle-special-title': 'Cradle - Wikidata Schema Editor',
@@ -2436,6 +2457,30 @@
             externalSubShapeHints[hm[1].trim().toLowerCase()] = hm[2].trim().toUpperCase();
         }
 
+        // Extract comment annotations for qualifiers and required references from raw shexText
+        let rawPropQualifiers = {};
+        let rawPropRequireRef = {};
+        (shexText || '').split('\n').forEach(line => {
+            let pMatch = line.match(/(?:wdt|p|ps):(P\d+)/i) || line.match(/#\s*(P\d+)\b/i);
+            if (pMatch) {
+                let pid = pMatch[1].toUpperCase();
+                let qMatch = line.match(/#.*?(?:qualifiers?|pq):\s*([P\d\s,]+)/i);
+                if (qMatch) {
+                    let pids = qMatch[1].match(/P\d+/gi) || [];
+                    rawPropQualifiers[pid] = rawPropQualifiers[pid] || [];
+                    pids.forEach(qp => {
+                        let cleanQP = qp.toUpperCase();
+                        if (!rawPropQualifiers[pid].includes(cleanQP)) {
+                            rawPropQualifiers[pid].push(cleanQP);
+                        }
+                    });
+                }
+                if (/#.*?(?:require-reference|requireReference|min-references?)\b/i.test(line)) {
+                    rawPropRequireRef[pid] = true;
+                }
+            }
+        });
+
         // 1. Remove comments (#...) while preserving IRIs
         let cleaned = stripShExComments(shexText);
         let importIds = extractImportIdsFromShEx(shexText);
@@ -2551,6 +2596,8 @@
                 let subShapeExternalId = '';
                 let hardselect = [];
                 let softselect = [];
+                let suggestedQualifiers = [];
+                let requireReference = false;
                 let langTags = (block.match(/@([a-z]{2,3}(?:-[a-z0-9]+)?)/gi) || []).map(t => t.substring(1).toLowerCase());
                 let hasLangTags = langTags.length > 0 || /@~/i.test(block);
 
@@ -2591,12 +2638,56 @@
                         }
 
                         let resolvedSubObj = (localSub && !localSub.isExternal) ? localSub : (extSub || (subShapeExternalId ? externalShapesMap[subShapeExternalId.toLowerCase()] : null));
+
                         if (resolvedSubObj && resolvedSubObj.content) {
                             let subQids = resolvedSubObj.content.match(/(?:wd:|Q)(Q\d+)/gi) || [];
                             subQids.forEach(q => {
                                 let cleanQ = q.replace(/wd:/i, '').toUpperCase();
                                 if (!softselect.includes(cleanQ)) softselect.push(cleanQ);
                             });
+
+                            let subBlocks = resolvedSubObj.content.split(';');
+                            subBlocks.forEach(sb => {
+                                let sbTrim = sb.trim();
+                                let qMatch = sbTrim.match(/pq:(P\d+)/i);
+                                if (qMatch) {
+                                    let qPid = qMatch[1].toUpperCase();
+                                    let isMandatory = !sbTrim.includes('?') && !sbTrim.includes('*');
+                                    let qValType = 'IRI';
+                                    if (/xsd:string/i.test(sbTrim)) qValType = 'xsd:string';
+                                    else if (/rdf:langString/i.test(sbTrim)) qValType = 'rdf:langString';
+                                    else if (/xsd:dateTime/i.test(sbTrim)) qValType = 'xsd:dateTime';
+                                    else if (/xsd:decimal/i.test(sbTrim)) qValType = 'xsd:decimal';
+                                    else if (/geo:wktLiteral/i.test(sbTrim)) qValType = 'geo:wktLiteral';
+                                    else qValType = mapDatatypeToShExValueType('', qPid);
+                                    if (!suggestedQualifiers.some(sq => sq.pid === qPid)) {
+                                        suggestedQualifiers.push({ pid: qPid, mandatory: isMandatory, valueType: qValType });
+                                    }
+                                }
+                                if (/prov:wasDerivedFrom\b[^;}]*?(?:\+|\{[1-9])/i.test(sbTrim)) {
+                                    requireReference = true;
+                                }
+                            });
+
+                            // If statement sub-shape defines ps:pid, adopt its valueType
+                            let psMatch = resolvedSubObj.content.match(new RegExp(`ps:${pid}\\s+([^;}]+)`, 'i'));
+                            if (psMatch) {
+                                let psExpr = psMatch[1].trim();
+                                if (/xsd:string/i.test(psExpr)) valueType = 'xsd:string';
+                                else if (/rdf:langString/i.test(psExpr)) valueType = 'rdf:langString';
+                                else if (/xsd:dateTime/i.test(psExpr)) valueType = 'xsd:dateTime';
+                                else if (/xsd:decimal/i.test(psExpr)) valueType = 'xsd:decimal';
+                                else if (/geo:wktLiteral/i.test(psExpr)) valueType = 'geo:wktLiteral';
+                                else valueType = 'IRI';
+
+                                let psQids = psExpr.match(/(?:wd:|Q)(Q\d+)/gi) || [];
+                                psQids.forEach(q => {
+                                    let cleanQ = q.replace(/wd:/i, '').toUpperCase();
+                                    if (!hardselect.includes(cleanQ)) hardselect.push(cleanQ);
+                                });
+                                // It is a statement-level shape, not an entity subshape
+                                subShapeName = '';
+                            }
                         }
                     } else {
                         let bracketMatch = block.match(/\[([^\]]+)\]/);
@@ -2618,6 +2709,34 @@
                     }
                 }
 
+                // Check comments for qualifier or reference hints across all statement blocks and raw shexText
+                if (rawPropQualifiers[pid]) {
+                    rawPropQualifiers[pid].forEach(qp => {
+                        if (!suggestedQualifiers.some(sq => sq.pid === qp)) {
+                            suggestedQualifiers.push({ pid: qp, mandatory: false, valueType: mapDatatypeToShExValueType('', qp) });
+                        }
+                    });
+                }
+                if (rawPropRequireRef[pid]) {
+                    requireReference = true;
+                }
+
+                let qCommentMatch = (rawBlock.match(/#\s*(?:qualifiers?|pq):\s*([P\d\s,]+)/i) ||
+                                    (shapeObj.content.match(new RegExp(`#\\s*${pid}\\s*(?:qualifiers?|pq):\\s*([P\\d\\s,]+)`, 'i'))));
+                if (qCommentMatch) {
+                    let pids = qCommentMatch[1].match(/P\d+/gi) || [];
+                    pids.forEach(qp => {
+                        let cleanQP = qp.toUpperCase();
+                        if (!suggestedQualifiers.some(sq => sq.pid === cleanQP)) {
+                            suggestedQualifiers.push({ pid: cleanQP, mandatory: false, valueType: mapDatatypeToShExValueType('', cleanQP) });
+                        }
+                    });
+                }
+                if (/#\s*(?:require-reference|requireReference|min-references?)\b/i.test(rawBlock) ||
+                    new RegExp(`#\\s*${pid}\\s*(?:require-reference|requireReference)`, 'i').test(shapeObj.content)) {
+                    requireReference = true;
+                }
+
                 if (!props[pid] || mandatory || shapeObj === targetShape) {
                     props[pid] = {
                         id: pid,
@@ -2632,7 +2751,9 @@
                         subShapeMode: subShapeMode,
                         subShapeExternalId: subShapeExternalId,
                         hardselect: hardselect,
-                        softselect: softselect.length > 0 ? softselect : hardselect
+                        softselect: softselect.length > 0 ? softselect : hardselect,
+                        suggestedQualifiers: suggestedQualifiers,
+                        requireReference: requireReference
                     };
                 }
             });
@@ -3669,8 +3790,36 @@
             });
         }
 
-        // 2. Property constraints from P2302 claims
+        // Schema Reference Requirement (prov:wasDerivedFrom + or requireReference: true)
         let propDef = schemaProperties[pid] || {};
+        let hasStatementValue = !isEmpty || row.snaktype === 'somevalue' || row.snaktype === 'novalue';
+        if (propDef.requireReference && hasStatementValue && (!row.references || row.references.length === 0)) {
+            violations.push({
+                type: 'warning',
+                name: 'schema reference requirement',
+                message: mw.msg('cradle-schema-ref-required', meta.label || pid) || `Statement for ${meta.label || pid} requires at least one reference according to the schema.`,
+                helpUrl: 'https://www.wikidata.org/wiki/Special:MyLanguage/Help:Sources',
+                talkUrl: `//www.wikidata.org/wiki/Property_talk:${pid}`
+            });
+        }
+
+        // Schema Mandatory Qualifiers check
+        (propDef.suggestedQualifiers || []).forEach(sq => {
+            if (sq && sq.mandatory && hasStatementValue) {
+                let hasQual = (row.qualifiers || []).some(q => q.pid === sq.pid && !isEmptyValue(q.value, q.datatype));
+                if (!hasQual) {
+                    let qMeta = propertyMetadata[sq.pid] || {};
+                    let qLabel = qMeta.label || sq.pid;
+                    violations.push({
+                        type: 'warning',
+                        name: 'schema mandatory qualifier',
+                        message: `Statement for ${meta.label || pid} requires qualifier ${qLabel} (${sq.pid}) according to the schema.`
+                    });
+                }
+            }
+        });
+
+        // 2. Property constraints from P2302 claims
         let isSchemaSingle = (propDef.max === 1);
 
         if (meta.constraints && meta.constraints.length > 0) {
@@ -4491,6 +4640,75 @@
     }
 
     /**
+     * Creates an interactive Wikibase SnakType Selector widget (custom value, somevalue, novalue) for a statement row.
+     */
+    function createSnaktypeSelector(pid, row) {
+        let currentSnaktype = row.snaktype || 'value';
+        let $container = $('<div>').addClass('cradle-snaktype-container');
+
+        let snakTitleMap = {
+            'value': mw.msg('cradle-snaktype-value') || 'Custom value',
+            'somevalue': mw.msg('cradle-snaktype-somevalue') || 'Unknown value',
+            'novalue': mw.msg('cradle-snaktype-novalue') || 'No value'
+        };
+
+        function getSnaktypeSvg(type) {
+            if (type === 'somevalue') return ICONS.somevalue;
+            if (type === 'novalue') return ICONS.novalue;
+            return ICONS.customvalue;
+        }
+
+        let $snakBtn = $('<button>')
+            .attr('type', 'button')
+            .addClass(`cradle-snaktype-btn snaktype-${currentSnaktype}`)
+            .attr('title', `${mw.msg('cradle-snaktype') || 'Value type'}: ${snakTitleMap[currentSnaktype]}`)
+            .html(getSnaktypeSvg(currentSnaktype));
+
+        let $menu = $('<ul>').addClass('cradle-snaktype-menu').hide();
+
+        ['value', 'somevalue', 'novalue'].forEach(st => {
+            let $item = $('<li>')
+                .addClass(`cradle-snaktype-menuitem snaktype-${st}`)
+                .toggleClass('active', st === currentSnaktype)
+                .html(`${getSnaktypeSvg(st)} <span>${snakTitleMap[st]}</span>`)
+                .on('click', function(e) {
+                    e.stopPropagation();
+                    $menu.hide();
+                    if (row.snaktype !== st) {
+                        row.snaktype = st;
+                        $snakBtn
+                            .removeClass('snaktype-value snaktype-somevalue snaktype-novalue')
+                            .addClass(`snaktype-${st}`)
+                            .attr('title', `${mw.msg('cradle-snaktype') || 'Value type'}: ${snakTitleMap[st]}`)
+                            .html(getSnaktypeSvg(st));
+                        $menu.find('.cradle-snaktype-menuitem').removeClass('active');
+                        $item.addClass('active');
+                        renderPropertyRows(pid);
+                        liveUpdateValidation();
+                    }
+                });
+            $menu.append($item);
+        });
+
+        $snakBtn.on('click', function(e) {
+            e.stopPropagation();
+            if (row.isDeleted) return;
+            $('.cradle-snaktype-menu').not($menu).hide();
+            $('.cradle-rank-menu').hide();
+            $menu.toggle();
+        });
+
+        $(document).on('click.cradleSnaktypeMenu', function(e) {
+            if (!$container.is(e.target) && $container.has(e.target).length === 0) {
+                $menu.hide();
+            }
+        });
+
+        $container.append($snakBtn).append($menu);
+        return $container;
+    }
+
+    /**
      * Render statement rows for a given property.
      */
     function renderPropertyRows(pid) {
@@ -4524,7 +4742,21 @@
             let $rankSelector = createRankSelector(pid, row);
             $row.append($rankSelector);
 
-            let $inputElement = createInputForDatatype(pid, row);
+            let $snaktypeSelector = createSnaktypeSelector(pid, row);
+            $row.append($snaktypeSelector);
+
+            let $inputElement;
+            if (row.snaktype === 'somevalue' || row.snaktype === 'novalue') {
+                let specialLabel = row.snaktype === 'somevalue' 
+                    ? (mw.msg('cradle-snaktype-somevalue') || 'Unknown value')
+                    : (mw.msg('cradle-snaktype-novalue') || 'No value');
+                let specialIcon = row.snaktype === 'somevalue' ? ICONS.somevalue : ICONS.novalue;
+                $inputElement = $('<div>').addClass('cradle-special-value-display')
+                    .html(`${specialIcon} <span>${specialLabel}</span>`);
+            } else {
+                $inputElement = createInputForDatatype(pid, row);
+            }
+
             let $indicators = $('<div>').addClass('wikibase-snakview-indicators').attr('id', `cradle-indicators-${row.id}`).css({'margin-left': '6px', 'display': 'inline-flex'});
             let $inputWithIndicators = $('<div>').css({'display': 'flex', 'align-items': 'center', 'flex': '1', 'min-width': '0'}).append($inputElement).append($indicators);
             $row.append($inputWithIndicators);
@@ -4549,6 +4781,7 @@
 
             // References Toggle Button
             let refCount = (row.references || []).length;
+            let hasRefReq = propDef && propDef.requireReference;
             let $refBtn = $('<button>')
                 .addClass('cradle-btn-ref-toggle')
                 .attr('type', 'button')
@@ -4560,6 +4793,9 @@
                 });
             if (row.isReferencesExpanded) {
                 $refBtn.addClass('active');
+            }
+            if (hasRefReq && refCount === 0 && (row.snaktype === 'somevalue' || row.snaktype === 'novalue' || !isEmptyValue(row.value, row.datatype))) {
+                $refBtn.addClass('cradle-ref-needed').css({'color': '#b36b00', 'border': '1px dashed #ffd885'});
             }
             $statementToolbar.append($refBtn);
 
@@ -4669,23 +4905,28 @@
             });
         $footer.append($addBtn);
 
-        // Common qualifier suggestions if statement has few/no qualifiers
-        let commonQuals = [
+        // Common qualifier suggestions if statement has few/no qualifiers, prioritizing schema-suggested qualifiers
+        let propDef = schemaProperties[pid] || {};
+        let schemaQuals = propDef.suggestedQualifiers || [];
+        let qualCandidates = schemaQuals.length > 0 ? schemaQuals.map(sq => typeof sq === 'string' ? { pid: sq, mandatory: false } : sq) : [
             { pid: 'P580', label: 'start time' },
             { pid: 'P582', label: 'end time' },
             { pid: 'P585', label: 'point in time' },
             { pid: 'P459', label: 'determination method' }
         ];
         let existingPids = qualifiers.map(q => q.pid);
-        let suggestions = commonQuals.filter(cq => !existingPids.includes(cq.pid));
+        let suggestions = qualCandidates.filter(cq => !existingPids.includes(cq.pid));
 
         if (suggestions.length > 0) {
             let $sugBox = $('<div>').addClass('cradle-qualifier-suggestions');
             suggestions.forEach(s => {
-                let sLabel = (propertyMetadata[s.pid] && propertyMetadata[s.pid].label) || s.label;
+                let sLabel = (propertyMetadata[s.pid] && propertyMetadata[s.pid].label) || s.label || s.pid;
+                let isSchemaSuggested = schemaQuals.some(sq => (sq.pid || sq) === s.pid);
+                let badge = s.mandatory ? ` (${mw.msg('cradle-qualifier-required-badge') || 'required'})` : '';
                 let $chip = $('<span>')
                     .addClass('cradle-qualifier-suggestion-chip')
-                    .text(`+ ${sLabel}`)
+                    .toggleClass('cradle-qualifier-schema-suggested', isSchemaSuggested)
+                    .text(`+ ${sLabel}${badge}`)
                     .attr('title', s.pid)
                     .on('click', function() {
                         addQualifierToRow(pid, row, s.pid);
@@ -6774,10 +7015,11 @@ function searchWikidataItems(term) {
                     return;
                 }
 
-                if (isEmptyValue(row.value, row.datatype)) return;
+                let isSpecialSnak = (row.snaktype === 'somevalue' || row.snaktype === 'novalue');
+                if (!isSpecialSnak && isEmptyValue(row.value, row.datatype)) return;
 
-                let datavalue = constructDataValue(row.value, row.datatype);
-                if (!datavalue) return;
+                let datavalue = isSpecialSnak ? null : constructDataValue(row.value, row.datatype);
+                if (!isSpecialSnak && !datavalue) return;
 
                 // Build qualifiers payload
                 let activeRowQuals = (row.qualifiers || []).filter(q => q.pid && !isEmptyValue(q.value, q.datatype));
@@ -6840,7 +7082,9 @@ function searchWikidataItems(term) {
                 if (row.guid) {
                     // Update claim
                     let origClaim = original.find(c => c.id === row.guid);
-                    let valChanged = origClaim && isValueChanged(origClaim, datavalue);
+                    let origSnaktype = (origClaim && origClaim.mainsnak && origClaim.mainsnak.snaktype) || 'value';
+                    let snaktypeChanged = origSnaktype !== (row.snaktype || 'value');
+                    let valChanged = snaktypeChanged || (!isSpecialSnak && origClaim && isValueChanged(origClaim, datavalue));
                     let rankChanged = origClaim && (origClaim.rank || 'normal') !== (row.rank || 'normal');
 
                     // Detect qualifiers change
@@ -6914,7 +7158,10 @@ function searchWikidataItems(term) {
                     if (origClaim && (valChanged || rankChanged || qualifiersChanged || referencesChanged)) {
                         let claimUpdate = {
                             id: row.guid,
-                            mainsnak: {
+                            mainsnak: isSpecialSnak ? {
+                                snaktype: row.snaktype,
+                                property: pid
+                            } : {
                                 snaktype: 'value',
                                 property: pid,
                                 datavalue: datavalue
@@ -6942,7 +7189,10 @@ function searchWikidataItems(term) {
                 } else {
                     // Add new claim
                     let newClaim = {
-                        mainsnak: {
+                        mainsnak: isSpecialSnak ? {
+                            snaktype: row.snaktype,
+                            property: pid
+                        } : {
                             snaktype: 'value',
                             property: pid,
                             datavalue: datavalue
@@ -7548,6 +7798,11 @@ function searchWikidataItems(term) {
         lines.push(`PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>`);
         lines.push(`PREFIX wd: <http://www.wikidata.org/entity/>`);
         lines.push(`PREFIX wdt: <http://www.wikidata.org/prop/direct/>`);
+        lines.push(`PREFIX p: <http://www.wikidata.org/prop/>`);
+        lines.push(`PREFIX ps: <http://www.wikidata.org/prop/statement/>`);
+        lines.push(`PREFIX pq: <http://www.wikidata.org/prop/qualifier/>`);
+        lines.push(`PREFIX pr: <http://www.wikidata.org/prop/reference/>`);
+        lines.push(`PREFIX prov: <http://www.w3.org/ns/prov#>`);
         lines.push(`PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>`);
         lines.push(`PREFIX geo: <http://www.opengis.net/ont/geosparql#>`);
         lines.push(``);
@@ -7558,6 +7813,8 @@ function searchWikidataItems(term) {
 
         let propMap = propertyLabels || propertyMetadata || {};
         let orGroups = {};
+        let statementShapeBlocks = [];
+        let requiresReferenceShape = false;
 
         (propRows || []).forEach((row) => {
             let pid = row.pid;
@@ -7604,12 +7861,48 @@ function searchWikidataItems(term) {
 
             let comment = label ? `   # ${label}` : '';
             
-            if (row.orGroup) {
-                let gName = row.orGroup.trim();
-                if (!orGroups[gName]) orGroups[gName] = [];
-                orGroups[gName].push(`  wdt:${pid} ${valueExpr}${comment}`);
+            // Qualifiers and Required Reference
+            let rawQuals = row.suggestedQualifiers || [];
+            let qualPids = (Array.isArray(rawQuals) ? rawQuals : String(rawQuals).split(','))
+                .map(q => (typeof q === 'object' && q.pid) ? q.pid.trim().toUpperCase() : String(q).trim().toUpperCase())
+                .filter(q => /^P\d+$/i.test(q));
+            let reqRef = !!row.requireReference;
+
+            if (qualPids.length > 0 || reqRef) {
+                if (reqRef) requiresReferenceShape = true;
+                let stmtShapeName = `${cleanTitle}_${pid.toLowerCase()}_statement`;
+                let propExpr = `p:${pid} @<${stmtShapeName}>`;
+
+                if (row.orGroup) {
+                    let gName = row.orGroup.trim();
+                    if (!orGroups[gName]) orGroups[gName] = [];
+                    orGroups[gName].push(`  ${propExpr}${comment}`);
+                } else {
+                    lines.push(`  ${propExpr} ${cardSymbol}${comment}`);
+                }
+
+                let stmtLines = [];
+                stmtLines.push(`<${stmtShapeName}> {`);
+                stmtLines.push(`  ps:${pid} ${valueExpr} ;`);
+                qualPids.forEach(qp => {
+                    let qMeta = propMap[qp] || {};
+                    let qLabel = (qMeta && qMeta.label) ? qMeta.label : (typeof qMeta === 'string' ? qMeta : qp);
+                    let qValType = mapDatatypeToShExValueType(qMeta.datatype, qp);
+                    stmtLines.push(`  pq:${qp} ${qValType} ? ;   # ${qLabel}`);
+                });
+                if (reqRef) {
+                    stmtLines.push(`  prov:wasDerivedFrom @<reference> + ;`);
+                }
+                stmtLines.push(`}`);
+                statementShapeBlocks.push(stmtLines.join('\n'));
             } else {
-                lines.push(`  wdt:${pid} ${valueExpr} ${cardSymbol}${comment}`);
+                if (row.orGroup) {
+                    let gName = row.orGroup.trim();
+                    if (!orGroups[gName]) orGroups[gName] = [];
+                    orGroups[gName].push(`  wdt:${pid} ${valueExpr}${comment}`);
+                } else {
+                    lines.push(`  wdt:${pid} ${valueExpr} ${cardSymbol}${comment}`);
+                }
             }
         });
 
@@ -7626,6 +7919,21 @@ function searchWikidataItems(term) {
 
         lines.push(`  rdfs:label rdf:langString+;`);
         lines.push(`}`);
+
+        if (statementShapeBlocks.length > 0) {
+            statementShapeBlocks.forEach(stmtBlock => {
+                lines.push(``);
+                lines.push(stmtBlock);
+            });
+        }
+        if (requiresReferenceShape) {
+            lines.push(``);
+            lines.push(`<reference> {`);
+            lines.push(`  pr:P248 IRI ? ;`);
+            lines.push(`  pr:P854 IRI ? ;`);
+            lines.push(`  pr:P813 xsd:dateTime ? ;`);
+            lines.push(`}`);
+        }
 
         let emittedSubShapes = new Set([cleanTitle.toLowerCase()]);
 
@@ -9259,6 +9567,35 @@ function searchWikidataItems(term) {
             $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
             $row.append($optionsRow);
 
+            // Qualifiers and Required Reference Row
+            let $qualRefRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center', 'flex-wrap': 'wrap', 'margin-top': '4px'});
+            let $qualifiersInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-schema-qualifiers-placeholder')).css({
+                'font-size': '12px',
+                'height': '28px',
+                'width': '180px',
+                'padding': '2px 6px'
+            });
+            let $qualifiersLabel = $('<label>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'font-size': '12px',
+                'color': '#54595d'
+            }).text(mw.msg('cradle-schema-qualifiers-label')).append($qualifiersInput);
+
+            let $requireRefCheckbox = $('<input>').attr('type', 'checkbox').css({'margin': '0 4px 0 0'});
+            let $requireRefLabel = $('<label>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '4px',
+                'font-size': '12px',
+                'cursor': 'pointer',
+                'color': '#202122'
+            }).append($requireRefCheckbox).append(mw.msg('cradle-schema-require-ref-label'));
+
+            $qualRefRow.append($qualifiersLabel).append($requireRefLabel);
+            $row.append($qualRefRow);
+
             // SubShape Container (supports both internal @<SubShape> and external IMPORT EntitySchema)
             let $subShapeGroup = $('<div>').css({'display': 'none', 'flex-direction': 'column', 'gap': '6px', 'margin-top': '4px', 'padding': '8px', 'background': '#fff', 'border': '1px solid #c8ccd1', 'border-radius': '4px'});
             let $subShapeTopRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center', 'flex-wrap': 'wrap'});
@@ -9530,6 +9867,9 @@ function searchWikidataItems(term) {
                 let sExtId = $subShapeExternalInput.val().trim();
                 let sName = $subShapeInput.val().trim();
                 let oGroup = $orGroupInput.val().trim();
+                let qualsVal = $qualifiersInput.val().trim();
+                let qualPids = qualsVal ? qualsVal.split(',').map(s => s.trim().toUpperCase()).filter(s => /^P\d+$/i.test(s)) : [];
+                let reqRef = $requireRefCheckbox.is(':checked');
                 return {
                     pid: pid,
                     cardinality: cardVal,
@@ -9543,7 +9883,9 @@ function searchWikidataItems(term) {
                     orGroup: oGroup,
                     defaultValue: '',
                     hardselect: (vType === 'IRI' && useHard && qidString) ? qidString : '',
-                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ((vType === 'subshape' && sMode === 'internal') ? qidString : '')
+                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ((vType === 'subshape' && sMode === 'internal') ? qidString : ''),
+                    suggestedQualifiers: qualPids,
+                    requireReference: reqRef
                 };
             });
 
@@ -10436,6 +10778,42 @@ function searchWikidataItems(term) {
             $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
             $row.append($optionsRow);
 
+            // Qualifiers and Required Reference Row
+            let $qualRefRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center', 'flex-wrap': 'wrap', 'margin-top': '4px'});
+            let initialQuals = '';
+            if (pData.suggestedQualifiers && Array.isArray(pData.suggestedQualifiers)) {
+                initialQuals = pData.suggestedQualifiers.map(sq => (typeof sq === 'object' && sq.pid) ? sq.pid : sq).filter(Boolean).join(', ');
+            }
+            let $qualifiersInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-schema-qualifiers-placeholder')).css({
+                'font-size': '12px',
+                'height': '28px',
+                'width': '180px',
+                'padding': '2px 6px'
+            }).val(initialQuals);
+            let $qualifiersLabel = $('<label>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'font-size': '12px',
+                'color': '#54595d'
+            }).text(mw.msg('cradle-schema-qualifiers-label')).append($qualifiersInput);
+
+            let $requireRefCheckbox = $('<input>').attr('type', 'checkbox').css({'margin': '0 4px 0 0'});
+            if (pData.requireReference) {
+                $requireRefCheckbox.prop('checked', true);
+            }
+            let $requireRefLabel = $('<label>').css({
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '4px',
+                'font-size': '12px',
+                'cursor': 'pointer',
+                'color': '#202122'
+            }).append($requireRefCheckbox).append(mw.msg('cradle-schema-require-ref-label'));
+
+            $qualRefRow.append($qualifiersLabel).append($requireRefLabel);
+            $row.append($qualRefRow);
+
             // SubShape input (supports both internal @<SubShape> and external IMPORT EntitySchema)
             let $subShapeGroup = $('<div>').css({'display': 'none', 'flex-direction': 'column', 'gap': '6px', 'margin-top': '4px', 'padding': '8px', 'background': '#fff', 'border': '1px solid #c8ccd1', 'border-radius': '4px'});
             let $subShapeTopRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center', 'flex-wrap': 'wrap'});
@@ -10672,6 +11050,9 @@ function searchWikidataItems(term) {
                 let sExtId = $subShapeExternalInput.val().trim();
                 let sName = $subShapeInput.val().trim();
                 let oGroup = $orGroupInput.val().trim();
+                let qualsVal = $qualifiersInput.val().trim();
+                let qualPids = qualsVal ? qualsVal.split(',').map(s => s.trim().toUpperCase()).filter(s => /^P\d+$/i.test(s)) : [];
+                let reqRef = $requireRefCheckbox.is(':checked');
                 return {
                     pid: pid,
                     cardinality: cardVal,
@@ -10685,7 +11066,9 @@ function searchWikidataItems(term) {
                     orGroup: oGroup,
                     defaultValue: '',
                     hardselect: (vType === 'IRI' && useHard && qidString) ? qidString : '',
-                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ((vType === 'subshape' && sMode === 'internal') ? qidString : '')
+                    softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ((vType === 'subshape' && sMode === 'internal') ? qidString : ''),
+                    suggestedQualifiers: qualPids,
+                    requireReference: reqRef
                 };
             });
 
