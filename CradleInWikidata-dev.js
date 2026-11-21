@@ -1322,58 +1322,100 @@
     }
 
     /**
-     * Creates the "Editar con Cradle" button inside the main heading on EntitySchema pages (e.g. EntitySchema:E540).
+     * Creates the "Editar con Cradle" button inside the main heading and content on EntitySchema pages (e.g. EntitySchema:E540).
      */
     function createSchemaHeadingButton(schemaId) {
-        let $heading = $('#firstHeading, .mw-first-heading, h1.page-title').first();
-        if (!$heading.length) return;
-
-        // Prevent adding duplicate buttons
-        if ($('#cradle-schema-heading-edit-btn').length) return;
-
         let editUrl = mw.util.getUrl('Special:Cradle') + '#edit?schema=' + encodeURIComponent(schemaId);
+        let btnText = mw.msg('cradle-btn-edit-with-cradle') || 'Editar con Cradle';
 
-        let $editBtn = $('<a>')
-            .attr('id', 'cradle-schema-heading-edit-btn')
-            .attr('href', editUrl)
-            .addClass('cradle-edit-heading-btn')
-            .css({
-                'display': 'inline-flex',
-                'align-items': 'center',
-                'text-decoration': 'none',
-                'vertical-align': 'middle',
-                'font-size': '0.85rem'
-            })
-            .text(mw.msg('cradle-btn-edit-with-cradle'))
-            .on('click', function() {
-                mw.storage.set('cradle-active-tab', 'edit');
-            });
+        // 1. Heading button
+        let $heading = $('#firstHeading, .mw-first-heading, h1.page-title').first();
+        if ($heading.length && !$('#cradle-schema-heading-edit-btn').length) {
+            let $editBtn = $('<a>')
+                .attr('id', 'cradle-schema-heading-edit-btn')
+                .attr('href', editUrl)
+                .addClass('cradle-edit-heading-btn')
+                .css({
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'text-decoration': 'none',
+                    'vertical-align': 'middle',
+                    'font-size': '0.85rem'
+                })
+                .text(btnText)
+                .on('click', function() {
+                    mw.storage.set('cradle-active-tab', 'edit');
+                });
 
-        // Adjust margin-right dynamically if mw-indicators is present and populated
-        let $indicators = $('.mw-indicators');
-        if ($indicators.length && $indicators.children().length > 0) {
-            let indicatorsWidth = $indicators.outerWidth() || 0;
-            if (indicatorsWidth > 0) {
-                $editBtn.css('margin-right', (indicatorsWidth + 16) + 'px');
-            } else {
-                $editBtn.css('margin-right', '48px');
+            let $indicators = $('.mw-indicators');
+            if ($indicators.length && $indicators.children().length > 0) {
+                let indicatorsWidth = $indicators.outerWidth() || 0;
+                if (indicatorsWidth > 0) {
+                    $editBtn.css('margin-right', (indicatorsWidth + 16) + 'px');
+                } else {
+                    $editBtn.css('margin-right', '48px');
+                }
             }
+
+            $heading.append($editBtn);
         }
 
-        $heading.append($editBtn);
+        // 2. Banner right at top of content (above label table / ShEx code)
+        let $contentContainer = $('#mw-content-text .mw-parser-output, #mw-content-text').first();
+        if ($contentContainer.length && !$('#cradle-schema-content-banner').length) {
+            let $banner = $('<div>')
+                .attr('id', 'cradle-schema-content-banner')
+                .css({
+                    'display': 'flex',
+                    'align-items': 'center',
+                    'justify-content': 'space-between',
+                    'background': '#f8f9fa',
+                    'border': '1px solid #a2a9b1',
+                    'border-left': '4px solid #36c',
+                    'border-radius': '4px',
+                    'padding': '10px 14px',
+                    'margin': '12px 0 16px 0',
+                    'box-sizing': 'border-box'
+                });
 
-        // Also add a tab in the page views (p-views / cactions / vector-menu)
+            let $bannerLeft = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '10px', 'flex-wrap': 'wrap'});
+            $bannerLeft.append($('<strong>').css({'font-size': '14px', 'color': '#202122'}).text(`EntitySchema:${schemaId}`));
+            $bannerLeft.append($('<span>').css({'font-size': '12px', 'color': '#54595d'}).text(mw.msg('cradle-edit-schema-desc') || 'Edit statements, properties, and ShEx code in Cradle.'));
+
+            let $bannerBtn = $('<a>')
+                .attr('href', editUrl)
+                .addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
+                .css({
+                    'text-decoration': 'none',
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '6px',
+                    'height': '32px',
+                    'font-weight': 'bold',
+                    'padding': '0 14px',
+                    'color': '#ffffff !important'
+                })
+                .html(ICONS.customvalue + ' <span>' + btnText + '</span>')
+                .on('click', function() {
+                    mw.storage.set('cradle-active-tab', 'edit');
+                });
+
+            $banner.append($bannerLeft).append($bannerBtn);
+            $contentContainer.prepend($banner);
+        }
+
+        // 3. Also add a tab in the page views (p-views / cactions / vector-menu)
         mw.util.addPortletLink(
             'p-views',
             editUrl,
-            mw.msg('cradle-btn-edit-with-cradle'),
+            btnText,
             'ca-cradle-edit-schema',
             mw.msg('cradle-edit-schema-desc') || 'Edit this schema in Cradle'
         );
         mw.util.addPortletLink(
             'p-cactions',
             editUrl,
-            mw.msg('cradle-btn-edit-with-cradle'),
+            btnText,
             'ca-cradle-edit-schema-actions',
             mw.msg('cradle-edit-schema-desc') || 'Edit this schema in Cradle'
         );
