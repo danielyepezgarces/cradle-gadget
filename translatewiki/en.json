@@ -73,6 +73,7 @@
   "cradle-editor-unsaved-warning": "You have unsaved changes in this schema. Are you sure you want to leave?",
   "cradle-enter-schema-title": "Enter or select an EntitySchema to edit this item:",
   "cradle-error-at-least-one-language": "There must be at least one language.",
+  "cradle-language-already-added": "This language has already been added.",
   "cradle-export-shex": "Export ShEx (EntitySchema)",
   "cradle-feedback-btn": "Feedback & bug reports",
   "cradle-feedback-desc": "Have a suggestion, improvement, or found a bug in Cradle? Your report will be published as a new discussion topic on Wikidata talk:Cradle-gadget.",
