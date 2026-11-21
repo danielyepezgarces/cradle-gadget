@@ -9,7 +9,7 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.60.3-dev
+ * Version: 1.60.4-dev
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
@@ -20,7 +20,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.60.3-dev';
+    const CRADLE_VERSION = '1.60.4-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -484,7 +484,7 @@
             'cradle-schema-placeholder': 'Search EntitySchema by name or ID (e.g. E10, Human)...',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
             'cradle-schema-qualifiers-label': 'Suggested qualifiers:',
-            'cradle-schema-qualifiers-placeholder': 'qualifier PIDs (comma-separated, e.g. P580, P582)',
+            'cradle-schema-qualifiers-placeholder': 'Search qualifier property (e.g. start time, P580)',
             'cradle-schema-ref-required': 'Statement for $1 requires at least one reference according to the schema.',
             'cradle-schema-require-ref-label': 'Require at least one reference (prov:wasDerivedFrom +)',
             'cradle-schema-saved': 'Schema saved successfully.',
@@ -819,7 +819,7 @@
                     'cradle-schema-placeholder': 'Buscar EntitySchema por nombre o ID (ej. E10, Humano)...',
                     'cradle-schema-prop-required': '¡Debe añadir al menos una propiedad al esquema!',
                     'cradle-schema-qualifiers-label': 'Cualificadores sugeridos:',
-                    'cradle-schema-qualifiers-placeholder': 'PIDs separados por comas (ej. P580, P582)',
+                    'cradle-schema-qualifiers-placeholder': 'Buscar propiedad cualificadora (ej. hora de inicio, P580)',
                     'cradle-schema-ref-required': 'La declaración para $1 requiere al menos una referencia según el esquema.',
                     'cradle-schema-require-ref-label': 'Exigir al menos 1 referencia (prov:wasDerivedFrom +)',
                     'cradle-schema-saved': 'Esquema guardado correctamente.',
@@ -9504,7 +9504,7 @@ function searchWikidataItems(term) {
             });
         }
 
-        function renderPropRow(pid, mandatory, defaultValue, hardselectQIDs, softselectQIDs, labelsMap, recoinFreqMap) {
+        function renderPropRow(pid, mandatory, defaultValue, hardselectQIDs, softselectQIDs, labelsMap, recoinFreqMap, existingPropData) {
             labelsMap = labelsMap || {};
             recoinFreqMap = recoinFreqMap || {};
             let propLabel = labelsMap[pid] ? ` (${labelsMap[pid]})` : '';
@@ -9630,35 +9630,6 @@ function searchWikidataItems(term) {
 
             $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
             $row.append($optionsRow);
-
-            // Qualifiers and Required Reference Row
-            let $qualRefRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center', 'flex-wrap': 'wrap', 'margin-top': '4px'});
-            let $qualifiersInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-schema-qualifiers-placeholder')).css({
-                'font-size': '12px',
-                'height': '28px',
-                'width': '180px',
-                'padding': '2px 6px'
-            });
-            let $qualifiersLabel = $('<label>').css({
-                'display': 'flex',
-                'align-items': 'center',
-                'gap': '6px',
-                'font-size': '12px',
-                'color': '#54595d'
-            }).text(mw.msg('cradle-schema-qualifiers-label')).append($qualifiersInput);
-
-            let $requireRefCheckbox = $('<input>').attr('type', 'checkbox').css({'margin': '0 4px 0 0'});
-            let $requireRefLabel = $('<label>').css({
-                'display': 'flex',
-                'align-items': 'center',
-                'gap': '4px',
-                'font-size': '12px',
-                'cursor': 'pointer',
-                'color': '#202122'
-            }).append($requireRefCheckbox).append(mw.msg('cradle-schema-require-ref-label'));
-
-            $qualRefRow.append($qualifiersLabel).append($requireRefLabel);
-            $row.append($qualRefRow);
 
             // SubShape Container (supports both internal @<SubShape> and external IMPORT EntitySchema)
             let $subShapeGroup = $('<div>').css({'display': 'none', 'flex-direction': 'column', 'gap': '6px', 'margin-top': '4px', 'padding': '8px', 'background': '#fff', 'border': '1px solid #c8ccd1', 'border-radius': '4px'});
@@ -9920,6 +9891,181 @@ function searchWikidataItems(term) {
                 }
             });
 
+            // Advanced / Statements Section (Suggested Qualifiers & Require Reference)
+            let $advancedSection = $('<div>').css({
+                'display': 'flex',
+                'flex-direction': 'column',
+                'gap': '6px',
+                'margin-top': '8px',
+                'padding-top': '8px',
+                'border-top': '1px dashed #c8ccd1'
+            });
+
+            let $qualifiersHeader = $('<label>').css({
+                'font-size': '12px',
+                'font-weight': 'bold',
+                'color': '#54595d'
+            }).text(mw.msg('cradle-schema-qualifiers-label'));
+
+            let selectedQualifiers = []; // Array of { pid, label }
+            let $qualChipsDiv = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px'});
+
+            function addQualifierChip(qPid, qLabel) {
+                qPid = (qPid || '').trim().toUpperCase();
+                if (!qPid || !/^P\d+$/i.test(qPid)) return;
+                if (selectedQualifiers.some(item => item.pid === qPid)) return;
+                qLabel = qLabel || (propertyMetadata[qPid] && propertyMetadata[qPid].label) || (labelsMap[qPid]) || qPid;
+                selectedQualifiers.push({ pid: qPid, label: qLabel });
+
+                let $chip = $('<span>').css({
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '6px',
+                    'background': '#eaf3ff',
+                    'border': '1px solid #a3c2e0',
+                    'border-radius': '3px',
+                    'padding': '2px 8px',
+                    'font-size': '12px',
+                    'color': '#0645ad'
+                }).text(`${qLabel} (${qPid})`);
+
+                let $removeChip = $('<span>').css({
+                    'cursor': 'pointer',
+                    'color': '#72777d',
+                    'font-weight': 'bold',
+                    'margin-left': '4px'
+                }).html(ICONS.close).on('click', function() {
+                    selectedQualifiers = selectedQualifiers.filter(item => item.pid !== qPid);
+                    $chip.remove();
+                });
+
+                $chip.append($removeChip);
+                $qualChipsDiv.append($chip);
+            }
+
+            let $qualSearchGroup = $('<div>').css({'position': 'relative'});
+            let $qualSearchInput = $('<input>').addClass('cradle-input').css({
+                'height': '32px',
+                'padding': '2px 8px',
+                'font-size': '12px',
+                'width': '100%',
+                'box-sizing': 'border-box'
+            }).attr('placeholder', mw.msg('cradle-schema-qualifiers-placeholder'));
+
+            let $qualAutocompleteMenu = $('<ul>').css({
+                'position': 'absolute',
+                'top': '100%',
+                'left': '0',
+                'right': '0',
+                'background': '#fff',
+                'border': '1px solid #a2a9b1',
+                'border-radius': '0 0 4px 4px',
+                'box-shadow': '0 2px 4px rgba(0,0,0,0.15)',
+                'max-height': '150px',
+                'overflow-y': 'auto',
+                'z-index': '1020',
+                'list-style': 'none',
+                'margin': '0',
+                'padding': '0',
+                'display': 'none'
+            });
+
+            $qualSearchGroup.append($qualSearchInput).append($qualAutocompleteMenu);
+
+            let qualDebounce;
+            $qualSearchInput.on('input', function() {
+                clearTimeout(qualDebounce);
+                let val = $qualSearchInput.val().trim();
+                if (val.length < 2) {
+                    $qualAutocompleteMenu.hide().empty();
+                    return;
+                }
+                qualDebounce = setTimeout(function() {
+                    let api = new mw.Api();
+                    api.get({
+                        action: 'wbsearchentities',
+                        search: val,
+                        language: mw.config.get('wgUserLanguage') || 'en',
+                        type: 'property',
+                        format: 'json'
+                    }).done(function(res) {
+                        $qualAutocompleteMenu.empty();
+                        let items = res.search || [];
+                        if (items.length === 0) {
+                            $qualAutocompleteMenu.hide();
+                            return;
+                        }
+                        items.forEach(item => {
+                            let desc = item.description ? ` - ${item.description}` : '';
+                            let $li = $('<li>').css({
+                                'padding': '6px 10px',
+                                'cursor': 'pointer',
+                                'border-bottom': '1px solid #eaecf0',
+                                'font-size': '12px'
+                            })
+                            .html(`<strong>${item.id}</strong>: ${item.label}${desc}`)
+                            .on('click', function() {
+                                addQualifierChip(item.id, item.label);
+                                $qualSearchInput.val('');
+                                $qualAutocompleteMenu.hide().empty();
+                            })
+                            .on('mouseenter', function() { $(this).css('background', '#f8f9fa'); })
+                            .on('mouseleave', function() { $(this).css('background', '#fff'); });
+                            $qualAutocompleteMenu.append($li);
+                        });
+                        $qualAutocompleteMenu.show();
+                    });
+                }, 300);
+            });
+
+            $qualSearchInput.on('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    let val = $qualSearchInput.val().trim().toUpperCase();
+                    if (/^P\d+$/i.test(val)) {
+                        addQualifierChip(val, (propertyMetadata[val] && propertyMetadata[val].label) || labelsMap[val] || val);
+                        $qualSearchInput.val('');
+                        $qualAutocompleteMenu.hide().empty();
+                    }
+                }
+            });
+
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest($qualSearchGroup).length) {
+                    $qualAutocompleteMenu.hide();
+                }
+            });
+
+            let $requireRefCheckbox = $('<input>').attr('type', 'checkbox').css({'margin': '0 4px 0 0'});
+            let $requireRefLabel = $('<label>').css({
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'font-size': '12px',
+                'cursor': 'pointer',
+                'color': '#202122',
+                'margin-top': '4px'
+            }).append($requireRefCheckbox).append(mw.msg('cradle-schema-require-ref-label'));
+
+            $advancedSection.append($qualifiersHeader).append($qualChipsDiv).append($qualSearchGroup).append($requireRefLabel);
+            $row.append($advancedSection);
+
+            if (existingPropData) {
+                if (existingPropData.suggestedQualifiers) {
+                    let initialQuals = Array.isArray(existingPropData.suggestedQualifiers) ? existingPropData.suggestedQualifiers : String(existingPropData.suggestedQualifiers).split(',');
+                    initialQuals.forEach(sq => {
+                        let qp = (typeof sq === 'object' && sq.pid) ? sq.pid : String(sq).trim().toUpperCase();
+                        if (qp && /^P\d+$/i.test(qp)) {
+                            let qLabel = labelsMap[qp] || (propertyMetadata[qp] && propertyMetadata[qp].label) || qp;
+                            addQualifierChip(qp, qLabel);
+                        }
+                    });
+                }
+                if (existingPropData.requireReference) {
+                    $requireRefCheckbox.prop('checked', true);
+                }
+            }
+
             $row.data('pid', pid);
             $row.data('get_data', function() {
                 let qidString = selectedItems.map(i => i.qid).join(',');
@@ -9931,8 +10077,7 @@ function searchWikidataItems(term) {
                 let sExtId = $subShapeExternalInput.val().trim();
                 let sName = $subShapeInput.val().trim();
                 let oGroup = $orGroupInput.val().trim();
-                let qualsVal = $qualifiersInput.val().trim();
-                let qualPids = qualsVal ? qualsVal.split(',').map(s => s.trim().toUpperCase()).filter(s => /^P\d+$/i.test(s)) : [];
+                let qualPids = selectedQualifiers.map(q => q.pid);
                 let reqRef = $requireRefCheckbox.is(':checked');
                 return {
                     pid: pid,
@@ -9966,6 +10111,13 @@ function searchWikidataItems(term) {
                 if (p.defaultValue && p.defaultValue.startsWith('Q')) qidsToFetch.push(p.defaultValue);
                 if (p.hardselect) qidsToFetch = qidsToFetch.concat(p.hardselect);
                 if (p.softselect) qidsToFetch = qidsToFetch.concat(p.softselect);
+                if (p.suggestedQualifiers) {
+                    let quals = Array.isArray(p.suggestedQualifiers) ? p.suggestedQualifiers : String(p.suggestedQualifiers).split(',');
+                    quals.forEach(sq => {
+                        let qp = (typeof sq === 'object' && sq.pid) ? sq.pid : sq;
+                        if (qp && /^P\d+$/i.test(qp)) qidsToFetch.push(qp.toUpperCase());
+                    });
+                }
             });
         }
         qidsToFetch = [...new Set(qidsToFetch)].filter(id => /^[QP]\d+$/.test(id));
@@ -9978,7 +10130,7 @@ function searchWikidataItems(term) {
                     let defVal = p.defaultValue || '';
                     let hSel = p.hardselect || null;
                     let sSel = p.softselect || null;
-                    renderPropRow(pid, isMandatory, defVal, hSel, sSel, labelsMap);
+                    renderPropRow(pid, isMandatory, defVal, hSel, sSel, labelsMap, null, p);
                 });
             }
         });
@@ -10190,6 +10342,15 @@ function searchWikidataItems(term) {
                 let p = localProps[pid];
                 if (p.hardselect && Array.isArray(p.hardselect)) qidsToFetch = qidsToFetch.concat(p.hardselect);
                 if (p.softselect && Array.isArray(p.softselect)) qidsToFetch = qidsToFetch.concat(p.softselect);
+                if (p.suggestedQualifiers) {
+                    let quals = Array.isArray(p.suggestedQualifiers) ? p.suggestedQualifiers : String(p.suggestedQualifiers).split(',');
+                    quals.forEach(sq => {
+                        let qp = (typeof sq === 'object' && sq.pid) ? sq.pid : sq;
+                        if (qp && /^P\d+$/i.test(qp) && !allPids.includes(qp.toUpperCase())) {
+                            allPids.push(qp.toUpperCase());
+                        }
+                    });
+                }
             });
             if (targetItemId) qidsToFetch.push(targetItemId);
             qidsToFetch = [...new Set(qidsToFetch)].filter(id => /^Q\d+$/i.test(id));
@@ -10390,6 +10551,9 @@ function searchWikidataItems(term) {
         let propLines = [];
         let orGroups = {};
         let propMap = labelsMap || propertyMetadata || {};
+        let statementShapeBlocks = [];
+        let requiresReferenceShape = false;
+        let cleanTitle = (shapeTitle || 'item').toLowerCase().replace(/[^a-z0-9_]/g, '_');
 
         propRows.forEach(row => {
             let pid = row.pid;
@@ -10433,12 +10597,47 @@ function searchWikidataItems(term) {
             else if (row.mandatory) cardSymbol = row.allowMultiple ? '+ ;' : ';';
             else cardSymbol = row.allowMultiple ? '* ;' : '? ;';
 
-            if (row.orGroup) {
-                let gName = row.orGroup.trim();
-                if (!orGroups[gName]) orGroups[gName] = [];
-                orGroups[gName].push(`  wdt:${pid} ${valueExpr}${comment}`);
+            let rawQuals = row.suggestedQualifiers || [];
+            let qualPids = (Array.isArray(rawQuals) ? rawQuals : String(rawQuals).split(','))
+                .map(q => (typeof q === 'object' && q.pid) ? q.pid.trim().toUpperCase() : String(q).trim().toUpperCase())
+                .filter(q => /^P\d+$/i.test(q));
+            let reqRef = !!row.requireReference;
+
+            if (qualPids.length > 0 || reqRef) {
+                if (reqRef) requiresReferenceShape = true;
+                let stmtShapeName = `${cleanTitle}_${pid.toLowerCase()}_statement`;
+                let propExpr = `p:${pid} @<${stmtShapeName}>`;
+
+                if (row.orGroup) {
+                    let gName = row.orGroup.trim();
+                    if (!orGroups[gName]) orGroups[gName] = [];
+                    orGroups[gName].push(`  ${propExpr}${comment}`);
+                } else {
+                    propLines.push(`  ${propExpr} ${cardSymbol}${comment}`);
+                }
+
+                let stmtLines = [];
+                stmtLines.push(`<${stmtShapeName}> {`);
+                stmtLines.push(`  ps:${pid} ${valueExpr} ;`);
+                qualPids.forEach(qp => {
+                    let qMeta = propMap[qp] || {};
+                    let qLabel = (qMeta && qMeta.label) ? qMeta.label : (typeof qMeta === 'string' ? qMeta : qp);
+                    let qValType = mapDatatypeToShExValueType(qMeta.datatype, qp);
+                    stmtLines.push(`  pq:${qp} ${qValType} ? ;   # ${qLabel}`);
+                });
+                if (reqRef) {
+                    stmtLines.push(`  prov:wasDerivedFrom @<reference> + ;`);
+                }
+                stmtLines.push(`}`);
+                statementShapeBlocks.push(stmtLines.join('\n'));
             } else {
-                propLines.push(`  wdt:${pid} ${valueExpr} ${cardSymbol}${comment}`);
+                if (row.orGroup) {
+                    let gName = row.orGroup.trim();
+                    if (!orGroups[gName]) orGroups[gName] = [];
+                    orGroups[gName].push(`  wdt:${pid} ${valueExpr}${comment}`);
+                } else {
+                    propLines.push(`  wdt:${pid} ${valueExpr} ${cardSymbol}${comment}`);
+                }
             }
         });
 
@@ -10501,6 +10700,26 @@ function searchWikidataItems(term) {
                 }
             }
         });
+
+        if (statementShapeBlocks.length > 0) {
+            statementShapeBlocks.forEach(stmtBlock => {
+                let match = stmtBlock.match(/<([^>]+)>\s*\{/);
+                if (match && match[1]) {
+                    let sName = match[1];
+                    let regex = new RegExp(`<${escapeRegex(sName)}>\\s*\\{[\\s\\S]*?\\}`, 'i');
+                    if (regex.test(postamble)) {
+                        postamble = postamble.replace(regex, stmtBlock);
+                    } else {
+                        postamble = postamble + '\n\n' + stmtBlock;
+                    }
+                } else {
+                    postamble = postamble + '\n\n' + stmtBlock;
+                }
+            });
+        }
+        if (requiresReferenceShape && !/<reference>\s*\{/i.test(postamble)) {
+            postamble = postamble + '\n\n<reference> {\n  pr:P248 IRI ? ;\n  pr:P854 IRI ? ;\n  pr:P813 xsd:dateTime ? ;\n}';
+        }
 
         return preamble + '\n' + newBody.join('\n') + '\n' + postamble;
     }
@@ -10842,42 +11061,6 @@ function searchWikidataItems(term) {
             $optionsRow.append($cardinalityLabel).append($valueTypeLabel).append($orGroupLabel);
             $row.append($optionsRow);
 
-            // Qualifiers and Required Reference Row
-            let $qualRefRow = $('<div>').css({'display': 'flex', 'gap': '12px', 'align-items': 'center', 'flex-wrap': 'wrap', 'margin-top': '4px'});
-            let initialQuals = '';
-            if (pData.suggestedQualifiers && Array.isArray(pData.suggestedQualifiers)) {
-                initialQuals = pData.suggestedQualifiers.map(sq => (typeof sq === 'object' && sq.pid) ? sq.pid : sq).filter(Boolean).join(', ');
-            }
-            let $qualifiersInput = $('<input>').addClass('cradle-input').attr('placeholder', mw.msg('cradle-schema-qualifiers-placeholder')).css({
-                'font-size': '12px',
-                'height': '28px',
-                'width': '180px',
-                'padding': '2px 6px'
-            }).val(initialQuals);
-            let $qualifiersLabel = $('<label>').css({
-                'display': 'flex',
-                'align-items': 'center',
-                'gap': '6px',
-                'font-size': '12px',
-                'color': '#54595d'
-            }).text(mw.msg('cradle-schema-qualifiers-label')).append($qualifiersInput);
-
-            let $requireRefCheckbox = $('<input>').attr('type', 'checkbox').css({'margin': '0 4px 0 0'});
-            if (pData.requireReference) {
-                $requireRefCheckbox.prop('checked', true);
-            }
-            let $requireRefLabel = $('<label>').css({
-                'display': 'flex',
-                'align-items': 'center',
-                'gap': '4px',
-                'font-size': '12px',
-                'cursor': 'pointer',
-                'color': '#202122'
-            }).append($requireRefCheckbox).append(mw.msg('cradle-schema-require-ref-label'));
-
-            $qualRefRow.append($qualifiersLabel).append($requireRefLabel);
-            $row.append($qualRefRow);
-
             // SubShape input (supports both internal @<SubShape> and external IMPORT EntitySchema)
             let $subShapeGroup = $('<div>').css({'display': 'none', 'flex-direction': 'column', 'gap': '6px', 'margin-top': '4px', 'padding': '8px', 'background': '#fff', 'border': '1px solid #c8ccd1', 'border-radius': '4px'});
             let $subShapeTopRow = $('<div>').css({'display': 'flex', 'gap': '8px', 'align-items': 'center', 'flex-wrap': 'wrap'});
@@ -11103,6 +11286,181 @@ function searchWikidataItems(term) {
                 }
             });
 
+            // Advanced / Statements Section (Suggested Qualifiers & Require Reference)
+            let $advancedSection = $('<div>').css({
+                'display': 'flex',
+                'flex-direction': 'column',
+                'gap': '6px',
+                'margin-top': '8px',
+                'padding-top': '8px',
+                'border-top': '1px dashed #c8ccd1'
+            });
+
+            let $qualifiersHeader = $('<label>').css({
+                'font-size': '12px',
+                'font-weight': 'bold',
+                'color': '#54595d'
+            }).text(mw.msg('cradle-schema-qualifiers-label'));
+
+            let selectedQualifiers = []; // Array of { pid, label }
+            let $qualChipsDiv = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px'});
+
+            function addQualifierChip(qPid, qLabel) {
+                qPid = (qPid || '').trim().toUpperCase();
+                if (!qPid || !/^P\d+$/i.test(qPid)) return;
+                if (selectedQualifiers.some(item => item.pid === qPid)) return;
+                qLabel = qLabel || (mergedLabels[qPid] && mergedLabels[qPid].label) || mergedLabels[qPid] || (propertyMetadata[qPid] && propertyMetadata[qPid].label) || qPid;
+                selectedQualifiers.push({ pid: qPid, label: qLabel });
+
+                let $chip = $('<span>').css({
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '6px',
+                    'background': '#eaf3ff',
+                    'border': '1px solid #a3c2e0',
+                    'border-radius': '3px',
+                    'padding': '2px 8px',
+                    'font-size': '12px',
+                    'color': '#0645ad'
+                }).text(`${qLabel} (${qPid})`);
+
+                let $removeChip = $('<span>').css({
+                    'cursor': 'pointer',
+                    'color': '#72777d',
+                    'font-weight': 'bold',
+                    'margin-left': '4px'
+                }).html(ICONS.close).on('click', function() {
+                    selectedQualifiers = selectedQualifiers.filter(item => item.pid !== qPid);
+                    $chip.remove();
+                });
+
+                $chip.append($removeChip);
+                $qualChipsDiv.append($chip);
+            }
+
+            let $qualSearchGroup = $('<div>').css({'position': 'relative'});
+            let $qualSearchInput = $('<input>').addClass('cradle-input').css({
+                'height': '32px',
+                'padding': '2px 8px',
+                'font-size': '12px',
+                'width': '100%',
+                'box-sizing': 'border-box'
+            }).attr('placeholder', mw.msg('cradle-schema-qualifiers-placeholder'));
+
+            let $qualAutocompleteMenu = $('<ul>').css({
+                'position': 'absolute',
+                'top': '100%',
+                'left': '0',
+                'right': '0',
+                'background': '#fff',
+                'border': '1px solid #a2a9b1',
+                'border-radius': '0 0 4px 4px',
+                'box-shadow': '0 2px 4px rgba(0,0,0,0.15)',
+                'max-height': '150px',
+                'overflow-y': 'auto',
+                'z-index': '1020',
+                'list-style': 'none',
+                'margin': '0',
+                'padding': '0',
+                'display': 'none'
+            });
+
+            $qualSearchGroup.append($qualSearchInput).append($qualAutocompleteMenu);
+
+            let qualDebounce;
+            $qualSearchInput.on('input', function() {
+                clearTimeout(qualDebounce);
+                let val = $qualSearchInput.val().trim();
+                if (val.length < 2) {
+                    $qualAutocompleteMenu.hide().empty();
+                    return;
+                }
+                qualDebounce = setTimeout(function() {
+                    let api = new mw.Api();
+                    api.get({
+                        action: 'wbsearchentities',
+                        search: val,
+                        language: mw.config.get('wgUserLanguage') || 'en',
+                        type: 'property',
+                        format: 'json'
+                    }).done(function(res) {
+                        $qualAutocompleteMenu.empty();
+                        let items = res.search || [];
+                        if (items.length === 0) {
+                            $qualAutocompleteMenu.hide();
+                            return;
+                        }
+                        items.forEach(item => {
+                            let desc = item.description ? ` - ${item.description}` : '';
+                            let $li = $('<li>').css({
+                                'padding': '6px 10px',
+                                'cursor': 'pointer',
+                                'border-bottom': '1px solid #eaecf0',
+                                'font-size': '12px'
+                            })
+                            .html(`<strong>${item.id}</strong>: ${item.label}${desc}`)
+                            .on('click', function() {
+                                addQualifierChip(item.id, item.label);
+                                $qualSearchInput.val('');
+                                $qualAutocompleteMenu.hide().empty();
+                            })
+                            .on('mouseenter', function() { $(this).css('background', '#f8f9fa'); })
+                            .on('mouseleave', function() { $(this).css('background', '#fff'); });
+                            $qualAutocompleteMenu.append($li);
+                        });
+                        $qualAutocompleteMenu.show();
+                    });
+                }, 300);
+            });
+
+            $qualSearchInput.on('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    let val = $qualSearchInput.val().trim().toUpperCase();
+                    if (/^P\d+$/i.test(val)) {
+                        let qLabel = (mergedLabels[val] && mergedLabels[val].label) || mergedLabels[val] || (propertyMetadata[val] && propertyMetadata[val].label) || val;
+                        addQualifierChip(val, qLabel);
+                        $qualSearchInput.val('');
+                        $qualAutocompleteMenu.hide().empty();
+                    }
+                }
+            });
+
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest($qualSearchGroup).length) {
+                    $qualAutocompleteMenu.hide();
+                }
+            });
+
+            let $requireRefCheckbox = $('<input>').attr('type', 'checkbox').css({'margin': '0 4px 0 0'});
+            if (pData.requireReference) {
+                $requireRefCheckbox.prop('checked', true);
+            }
+            let $requireRefLabel = $('<label>').css({
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'font-size': '12px',
+                'cursor': 'pointer',
+                'color': '#202122',
+                'margin-top': '4px'
+            }).append($requireRefCheckbox).append(mw.msg('cradle-schema-require-ref-label'));
+
+            $advancedSection.append($qualifiersHeader).append($qualChipsDiv).append($qualSearchGroup).append($requireRefLabel);
+            $row.append($advancedSection);
+
+            // Pre-populate initial qualifiers
+            if (pData.suggestedQualifiers) {
+                let initialQuals = Array.isArray(pData.suggestedQualifiers) ? pData.suggestedQualifiers : String(pData.suggestedQualifiers).split(',');
+                initialQuals.forEach(sq => {
+                    let qp = (typeof sq === 'object' && sq.pid) ? sq.pid : String(sq).trim().toUpperCase();
+                    if (qp && /^P\d+$/i.test(qp)) {
+                        let qLabel = (mergedLabels[qp] && mergedLabels[qp].label) ? mergedLabels[qp].label : (mergedLabels[qp] || (propertyMetadata[qp] && propertyMetadata[qp].label) || qp);
+                        addQualifierChip(qp, qLabel);
+                    }
+                });
+            }
+
             $row.data('pid', pid);
             $row.data('get_data', function() {
                 let qidString = selectedItems.map(i => i.qid).join(',');
@@ -11114,8 +11472,7 @@ function searchWikidataItems(term) {
                 let sExtId = $subShapeExternalInput.val().trim();
                 let sName = $subShapeInput.val().trim();
                 let oGroup = $orGroupInput.val().trim();
-                let qualsVal = $qualifiersInput.val().trim();
-                let qualPids = qualsVal ? qualsVal.split(',').map(s => s.trim().toUpperCase()).filter(s => /^P\d+$/i.test(s)) : [];
+                let qualPids = selectedQualifiers.map(q => q.pid);
                 let reqRef = $requireRefCheckbox.is(':checked');
                 return {
                     pid: pid,
