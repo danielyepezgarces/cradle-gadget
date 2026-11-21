@@ -9,7 +9,7 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.60.2-dev
+ * Version: 1.60.3-dev
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
@@ -20,7 +20,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.60.2-dev';
+    const CRADLE_VERSION = '1.60.3-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -1359,22 +1359,6 @@
 
             $heading.append($editBtn);
         }
-
-        // Also add a tab in the page views (p-views / cactions / vector-menu)
-        mw.util.addPortletLink(
-            'p-views',
-            editUrl,
-            btnText,
-            'ca-cradle-edit-schema',
-            mw.msg('cradle-edit-schema-desc') || 'Edit this schema in Cradle'
-        );
-        mw.util.addPortletLink(
-            'p-cactions',
-            editUrl,
-            btnText,
-            'ca-cradle-edit-schema-actions',
-            mw.msg('cradle-edit-schema-desc') || 'Edit this schema in Cradle'
-        );
     }
 
     /**
