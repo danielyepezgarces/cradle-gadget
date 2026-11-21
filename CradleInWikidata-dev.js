@@ -9,7 +9,7 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.60.5-dev
+ * Version: 1.60.6-dev
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
@@ -20,7 +20,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.60.5-dev';
+    const CRADLE_VERSION = '1.60.6-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -280,6 +280,7 @@
         chevronRight: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20"><path d="m7.5 4-1.4 1.4 4.6 4.6-4.6 4.6 1.4 1.4 6-6z"/></svg>`,
         cite: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20"><path d="M7 5H3v6h4v4h3V5H7zm9 0h-4v6h4v4h3V5h-3z"/></svg>`,
         link: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="m11.53 14.88 2.83-2.83a3.5 3.5 0 0 0 0-4.95l-1.42-1.41a3.5 3.5 0 0 0-4.95 0L6.58 7.1a3.5 3.5 0 0 0 0 4.95l.71.71 1.41-1.42-.71-.71a1.5 1.5 0 0 1 0-2.12l1.41-1.41a1.5 1.5 0 0 1 2.13 0l1.41 1.41a1.5 1.5 0 0 1 0 2.12l-2.83 2.83a1.5 1.5 0 0 1-2.12 0L6.58 12l-1.41 1.41 1.41 1.42a3.5 3.5 0 0 0 4.95 0z"/></svg>`,
+        share: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M16.5 13a2.5 2.5 0 0 0-2 1l-7.1-3.6a2.6 2.6 0 0 0 0-1.8L14.5 6a2.5 2.5 0 1 0-.7-1.7l-7.1 3.6a2.5 2.5 0 1 0 0 4.2l7.1 3.6a2.5 2.5 0 1 0 2.7-2.7Z"/></svg>`,
         somevalue: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm0 13a1.25 1.25 0 1 1 1.25-1.25A1.25 1.25 0 0 1 10 15zm1.5-5.5a.5.5 0 0 0-.5.5v1H9v-1.5a1.5 1.5 0 0 1 1.5-1.5 1.5 1.5 0 0 0 0-3 1.5 1.5 0 0 0-1.4 1H7.5A3 3 0 0 1 10.5 4a3 3 0 0 1 0 6z"/></svg>`,
         novalue: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm0 1.5a6.47 6.47 0 0 1 3.94 1.35L4.85 13.94A6.5 6.5 0 0 1 10 3.5zm0 13a6.47 6.47 0 0 1-3.94-1.35l9.09-9.09A6.5 6.5 0 0 1 10 16.5z"/></svg>`,
         customvalue: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path d="M16.77 8l1.94-2a1 1 0 0 0 0-1.41l-3.34-3.3a1 1 0 0 0-1.41 0L12 3.23zM1 14.25V19h4.75l9.96-9.96-4.75-4.75z"/></svg>`
@@ -4405,7 +4406,7 @@
             let $shareBtn = $('<button>')
                 .addClass('cdx-button cdx-button--weight-quiet')
                 .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '5px', 'font-size': '13px', 'color': 'var(--color-progressive, #36c)'})
-                .html(ICONS.link + ' <span>' + mw.msg('cradle-share-link') + '</span>')
+                .html(ICONS.share + ' <span>' + mw.msg('cradle-share-link') + '</span>')
                 .on('click', function() {
                     let shareUrl = window.location.origin + mw.util.getUrl('Special:Cradle') + '#create?schema=' + encodeURIComponent(activeSchema.id);
                     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -10822,6 +10823,24 @@ function searchWikidataItems(term) {
             .append($('<strong>').css({'font-size': '15px'}).text(mw.msg('cradle-editing-schema-title', schemaId)))
             .append($titleLabelSpan)
             .append($('<a>').attr({href: mw.util.getUrl('EntitySchema:' + schemaId), target: '_blank'}).css({'color': '#36c', 'display': 'inline-flex', 'align-items': 'center', 'gap': '3px'}).html(ICONS.external + ' <span style="font-size:12px;">EntitySchema:' + schemaId + '</span>'));
+
+        let $shareEditorBtn = $('<button>')
+            .addClass('cdx-button cdx-button--weight-quiet cdx-button--size-small')
+            .css({'display': 'inline-flex', 'align-items': 'center', 'gap': '4px', 'font-size': '12px', 'color': 'var(--color-progressive, #36c)', 'padding': '2px 6px', 'cursor': 'pointer'})
+            .html(ICONS.share + ' <span>' + mw.msg('cradle-share-link') + '</span>')
+            .on('click', function() {
+                let shareUrl = window.location.origin + mw.util.getUrl('Special:Cradle') + '#edit?schema=' + encodeURIComponent(schemaId);
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(shareUrl).then(function() {
+                        mw.notify(mw.msg('cradle-link-copied'), { type: 'success' });
+                    }).catch(function() {
+                        prompt(mw.msg('cradle-share-link'), shareUrl);
+                    });
+                } else {
+                    prompt(mw.msg('cradle-share-link'), shareUrl);
+                }
+            });
+        $titleInfo.append($shareEditorBtn);
 
         let $modeSwitcher = $('<div>').addClass('cradle-mode-switcher');
         let $btnVisual = $('<button>').addClass('cradle-mode-btn active').html(ICONS.edit + ' <span>' + (mw.msg('cradle-mode-visual') || 'Modo visual (GUI)') + '</span>');
