@@ -9,7 +9,7 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.60.1
+ * Version: 1.60.2
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
@@ -20,7 +20,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.60.1';
+    const CRADLE_VERSION = '1.60.2';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -1322,13 +1322,13 @@
     }
 
     /**
-     * Creates the "Editar con Cradle" button inside the main heading and content on EntitySchema pages (e.g. EntitySchema:E540).
+     * Creates the "Editar con Cradle" button inside the main heading on EntitySchema pages (e.g. EntitySchema:E540).
      */
     function createSchemaHeadingButton(schemaId) {
         let editUrl = mw.util.getUrl('Special:Cradle') + '#edit?schema=' + encodeURIComponent(schemaId);
         let btnText = mw.msg('cradle-btn-edit-with-cradle') || 'Editar con Cradle';
 
-        // 1. Heading button
+        // Heading button
         let $heading = $('#firstHeading, .mw-first-heading, h1.page-title').first();
         if ($heading.length && !$('#cradle-schema-heading-edit-btn').length) {
             let $editBtn = $('<a>')
@@ -1360,51 +1360,7 @@
             $heading.append($editBtn);
         }
 
-        // 2. Banner right at top of content (above label table / ShEx code)
-        let $contentContainer = $('#mw-content-text .mw-parser-output, #mw-content-text').first();
-        if ($contentContainer.length && !$('#cradle-schema-content-banner').length) {
-            let $banner = $('<div>')
-                .attr('id', 'cradle-schema-content-banner')
-                .css({
-                    'display': 'flex',
-                    'align-items': 'center',
-                    'justify-content': 'space-between',
-                    'background': '#f8f9fa',
-                    'border': '1px solid #a2a9b1',
-                    'border-left': '4px solid #36c',
-                    'border-radius': '4px',
-                    'padding': '10px 14px',
-                    'margin': '12px 0 16px 0',
-                    'box-sizing': 'border-box'
-                });
-
-            let $bannerLeft = $('<div>').css({'display': 'flex', 'align-items': 'center', 'gap': '10px', 'flex-wrap': 'wrap'});
-            $bannerLeft.append($('<strong>').css({'font-size': '14px', 'color': '#202122'}).text(`EntitySchema:${schemaId}`));
-            $bannerLeft.append($('<span>').css({'font-size': '12px', 'color': '#54595d'}).text(mw.msg('cradle-edit-schema-desc') || 'Edit statements, properties, and ShEx code in Cradle.'));
-
-            let $bannerBtn = $('<a>')
-                .attr('href', editUrl)
-                .addClass('cdx-button cdx-button--action-progressive cdx-button--weight-primary')
-                .css({
-                    'text-decoration': 'none',
-                    'display': 'inline-flex',
-                    'align-items': 'center',
-                    'gap': '6px',
-                    'height': '32px',
-                    'font-weight': 'bold',
-                    'padding': '0 14px',
-                    'color': '#ffffff !important'
-                })
-                .html(ICONS.customvalue + ' <span>' + btnText + '</span>')
-                .on('click', function() {
-                    mw.storage.set('cradle-active-tab', 'edit');
-                });
-
-            $banner.append($bannerLeft).append($bannerBtn);
-            $contentContainer.prepend($banner);
-        }
-
-        // 3. Also add a tab in the page views (p-views / cactions / vector-menu)
+        // Also add a tab in the page views (p-views / cactions / vector-menu)
         mw.util.addPortletLink(
             'p-views',
             editUrl,
