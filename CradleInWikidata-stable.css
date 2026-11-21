@@ -5,7 +5,7 @@
  */
 
 /* Heading edit button styled to sit nicely at the right of #firstHeading */
-        .cradle-edit-heading-btn {
+        .cradle-edit-heading-btn, a.cradle-edit-heading-btn {
             float: right;
             font-size: 0.85rem;
             font-weight: normal;
@@ -20,10 +20,14 @@
             transition: background-color 0.1s;
             height: 28px;
             line-height: 18px;
+            text-decoration: none !important;
+            box-sizing: border-box;
         }
-        .cradle-edit-heading-btn:hover {
+        .cradle-edit-heading-btn:hover, a.cradle-edit-heading-btn:hover {
             background-color: var(--background-color-progressive-hover, #447ff5);
             border-color: var(--border-color-progressive-hover, #447ff5);
+            color: #ffffff !important;
+            text-decoration: none !important;
         }
 
         /* Cradle Portlet Button in User Personal Menu (p-personal) & Vector 2022 Dropdown */

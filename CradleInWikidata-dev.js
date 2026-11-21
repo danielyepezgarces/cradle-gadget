@@ -9,7 +9,7 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.60.0-dev
+ * Version: 1.60.1-dev
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
@@ -20,7 +20,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.60.0-dev';
+    const CRADLE_VERSION = '1.60.1-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -76,6 +76,16 @@
         let title = mw.config.get('wgTitle') || '';
         let wbId = mw.config.get('wbEntityId');
         return (ns === 0 && (/^Q\d+$/i.test(title) || !!wbId));
+    }
+
+    function checkIsEntitySchemaPage() {
+        let pageName = mw.config.get('wgPageName') || '';
+        let ns = mw.config.get('wgNamespaceNumber');
+        let title = mw.config.get('wgTitle') || '';
+        let match = pageName.match(/^EntitySchema:(E\d+)$/i);
+        if (match) return match[1].toUpperCase();
+        if (ns === 640 && /^E\d+$/i.test(title)) return title.toUpperCase();
+        return null;
     }
 
     let isItemPage = checkIsItemPage();
@@ -970,6 +980,20 @@
                 return;
             }
         }
+
+        // On EntitySchema pages (e.g. EntitySchema:E540), display a direct "Editar con Cradle" button
+        let entitySchemaId = checkIsEntitySchemaPage();
+        if (entitySchemaId) {
+            createSchemaHeadingButton(entitySchemaId);
+            mw.hook('wikipage.content').add(function() {
+                createSchemaHeadingButton(entitySchemaId);
+            });
+            if (!$('#cradle-schema-heading-edit-btn').length) {
+                setTimeout(function() {
+                    createSchemaHeadingButton(entitySchemaId);
+                }, 500);
+            }
+        }
     }
 
     /**
@@ -1295,6 +1319,64 @@
         }
 
         $heading.append($editBtn);
+    }
+
+    /**
+     * Creates the "Editar con Cradle" button inside the main heading on EntitySchema pages (e.g. EntitySchema:E540).
+     */
+    function createSchemaHeadingButton(schemaId) {
+        let $heading = $('#firstHeading, .mw-first-heading, h1.page-title').first();
+        if (!$heading.length) return;
+
+        // Prevent adding duplicate buttons
+        if ($('#cradle-schema-heading-edit-btn').length) return;
+
+        let editUrl = mw.util.getUrl('Special:Cradle') + '#edit?schema=' + encodeURIComponent(schemaId);
+
+        let $editBtn = $('<a>')
+            .attr('id', 'cradle-schema-heading-edit-btn')
+            .attr('href', editUrl)
+            .addClass('cradle-edit-heading-btn')
+            .css({
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'text-decoration': 'none',
+                'vertical-align': 'middle',
+                'font-size': '0.85rem'
+            })
+            .text(mw.msg('cradle-btn-edit-with-cradle'))
+            .on('click', function() {
+                mw.storage.set('cradle-active-tab', 'edit');
+            });
+
+        // Adjust margin-right dynamically if mw-indicators is present and populated
+        let $indicators = $('.mw-indicators');
+        if ($indicators.length && $indicators.children().length > 0) {
+            let indicatorsWidth = $indicators.outerWidth() || 0;
+            if (indicatorsWidth > 0) {
+                $editBtn.css('margin-right', (indicatorsWidth + 16) + 'px');
+            } else {
+                $editBtn.css('margin-right', '48px');
+            }
+        }
+
+        $heading.append($editBtn);
+
+        // Also add a tab in the page views (p-views / cactions / vector-menu)
+        mw.util.addPortletLink(
+            'p-views',
+            editUrl,
+            mw.msg('cradle-btn-edit-with-cradle'),
+            'ca-cradle-edit-schema',
+            mw.msg('cradle-edit-schema-desc') || 'Edit this schema in Cradle'
+        );
+        mw.util.addPortletLink(
+            'p-cactions',
+            editUrl,
+            mw.msg('cradle-btn-edit-with-cradle'),
+            'ca-cradle-edit-schema-actions',
+            mw.msg('cradle-edit-schema-desc') || 'Edit this schema in Cradle'
+        );
     }
 
     /**
