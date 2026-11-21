@@ -9,7 +9,7 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.60.7-dev
+ * Version: 1.60.8-dev
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
@@ -20,7 +20,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.60.7-dev';
+    const CRADLE_VERSION = '1.60.8-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -44,7 +44,7 @@
         return;
     }
 
-    mw.loader.load(mw.util.wikiScript('index') + '?title=User:Danielyepezgarces/Gadget-cradle-dev.css&action=raw&ctype=text/css&version=' + CRADLE_VERSION, 'text/css');
+    mw.loader.load('//test.wikidata.org/w/index.php?title=User:Danielyepezgarces/Gadget-cradle-dev.css&action=raw&ctype=text/css&version=' + CRADLE_VERSION, 'text/css');
 
     const P12861 = 'P12861'; // EntitySchema for this class
     const P31 = 'P31';       // Instance of
@@ -4561,8 +4561,22 @@
                     return getUsedLanguageCodes().filter(c => c !== currentVal);
                 });
 
-                $langInput.on('blur change', function() {
-                    validateNoDuplicateLang($langInput);
+                $langInput.on('blur', function() {
+                    let rawVal = $langInput.val().trim();
+                    if (!rawVal) return;
+                    let vNorm = normalizeLangStr(rawVal);
+                    fetchSupportedLanguages().then(langs => {
+                        let match = langs.find(l => {
+                            return l.code.toLowerCase() === rawVal.toLowerCase() ||
+                                   normalizeLangStr(l.autonym) === vNorm ||
+                                   normalizeLangStr(l.englishName) === vNorm ||
+                                   l.searchStrNorm.split(' ').includes(vNorm);
+                        });
+                        if (match && match.code.toLowerCase() !== rawVal.toLowerCase()) {
+                            $langInput.val(match.code);
+                        }
+                        validateNoDuplicateLang($langInput);
+                    });
                 });
 
                 // 2. Label input
@@ -4625,7 +4639,12 @@
                     let userLang = (mw.config.get('wgUserLanguage') || 'es').toLowerCase();
                     let candidates = [userLang, 'en', 'es', 'fr', 'de', 'pt', 'it', 'ca', 'gl', 'eu', 'ru', 'zh', 'ja', 'ar', 'nl', 'sv', 'pl'];
                     let nextLang = candidates.find(c => !used.includes(c)) || '';
-                    $langRowsContainer.append(createLanguageRow(nextLang));
+                    let $newRow = createLanguageRow(nextLang);
+                    $langRowsContainer.append($newRow);
+                    let $newInput = $newRow.find('.cradle-lang-input');
+                    setTimeout(function() {
+                        $newInput.focus();
+                    }, 50);
                 });
 
             $metaCard.append($langRowsContainer).append($addLangBtn);
@@ -7032,38 +7051,79 @@
             $containerWrapper.css('position', 'relative');
         }
 
+        let $chevron = $('<span>')
+            .addClass('cradle-lang-chevron')
+            .html(ICONS.chevronDown)
+            .css({
+                'position': 'absolute',
+                'right': '8px',
+                'top': '50%',
+                'transform': 'translateY(-50%)',
+                'pointer-events': 'none',
+                'color': 'var(--color-subtle, #72777d)',
+                'display': 'flex',
+                'align-items': 'center'
+            });
+        $input.css({'padding-right': '24px'});
+        $containerWrapper.append($chevron);
+
         let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').css({
             'position': 'absolute',
             'top': '100%',
             'left': '0',
-            'min-width': '230px',
-            'max-height': '200px',
+            'min-width': '250px',
+            'max-height': '220px',
             'overflow-y': 'auto',
-            'z-index': '10010',
+            'z-index': '10050',
             'background-color': 'var(--background-color-base, #ffffff)',
             'border': '1px solid var(--border-color-base, #a2a9b1)',
             'border-radius': '2px',
-            'box-shadow': '0 4px 12px rgba(0,0,0,0.15)',
+            'box-shadow': '0 4px 12px rgba(0,0,0,0.2)',
             'margin': '2px 0 0 0',
             'padding': '0',
             'list-style': 'none'
         }).hide();
         $containerWrapper.append($dropdown);
 
-        function updateDropdown() {
-            let q = $input.val().trim();
+        let activeIndex = -1;
+
+        function openDropdown(showAll) {
+            $containerWrapper.css('z-index', '10040');
+            $input.closest('.cradle-identity-lang-row').css('z-index', '10030');
+            updateDropdown(showAll);
+        }
+
+        function closeDropdown() {
+            $dropdown.hide();
+            $containerWrapper.css('z-index', '');
+            $input.closest('.cradle-identity-lang-row').css('z-index', '');
+            activeIndex = -1;
+        }
+
+        function chooseItem(code) {
+            $input.val(code);
+            closeDropdown();
+            $input.trigger('input').trigger('change');
+            if (typeof onSelect === 'function') {
+                onSelect(code);
+            }
+        }
+
+        function updateDropdown(showAll) {
+            let q = showAll ? '' : $input.val().trim();
             let qLower = q.toLowerCase();
             let qNorm = normalizeLangStr(q);
 
             fetchSupportedLanguages().then(langs => {
                 let excluded = (typeof getExcludedLangs === 'function') ? (getExcludedLangs() || []) : [];
-                let available = langs.filter(l => !excluded.includes(l.code.toLowerCase()));
+                let currentVal = $input.val().trim().toLowerCase();
+                let available = langs.filter(l => !excluded.includes(l.code.toLowerCase()) || l.code.toLowerCase() === currentVal);
 
                 let filtered = [];
                 if (!q) {
-                    let priorityCodes = ['es', 'en', 'fr', 'de', 'pt', 'it', 'ca', 'ru', 'zh', 'ja', 'ar', 'nl', 'sv', 'pl'];
+                    let priorityCodes = ['es', 'en', 'fr', 'de', 'pt', 'it', 'ca', 'gl', 'eu', 'ru', 'zh', 'ja', 'ar', 'nl', 'sv', 'pl'];
                     let topLangs = priorityCodes.map(c => available.find(l => l.code === c)).filter(Boolean);
-                    let rest = available.filter(l => !priorityCodes.includes(l.code)).slice(0, Math.max(0, 15 - topLangs.length));
+                    let rest = available.filter(l => !priorityCodes.includes(l.code)).slice(0, Math.max(0, 18 - topLangs.length));
                     filtered = [...topLangs, ...rest];
                 } else {
                     filtered = available.filter(l => {
@@ -7075,13 +7135,10 @@
                     filtered.sort((a, b) => {
                         let aCode = a.code.toLowerCase();
                         let bCode = b.code.toLowerCase();
-                        // 1. Exact code match
                         if (aCode === qLower && bCode !== qLower) return -1;
                         if (bCode === qLower && aCode !== qLower) return 1;
-                        // 2. Code starts with
                         if (aCode.startsWith(qLower) && !bCode.startsWith(qLower)) return -1;
                         if (bCode.startsWith(qLower) && !aCode.startsWith(qLower)) return 1;
-                        // 3. Normalized autonym or englishName starts with query
                         let aStart = normalizeLangStr(a.autonym).startsWith(qNorm) || normalizeLangStr(a.englishName).startsWith(qNorm);
                         let bStart = normalizeLangStr(b.autonym).startsWith(qNorm) || normalizeLangStr(b.englishName).startsWith(qNorm);
                         if (aStart && !bStart) return -1;
@@ -7089,49 +7146,98 @@
                         return aCode.localeCompare(bCode);
                     });
 
-                    filtered = filtered.slice(0, 20);
+                    filtered = filtered.slice(0, 25);
                 }
 
                 $dropdown.empty();
                 if (filtered.length === 0) {
-                    $dropdown.hide();
+                    closeDropdown();
                     return;
                 }
 
-                filtered.forEach(item => {
+                filtered.forEach((item, idx) => {
+                    let isCurrent = (item.code.toLowerCase() === currentVal);
                     let $li = $('<li>').addClass('cradle-autocomplete-row').css({
-                        'padding': '6px 10px',
-                        'font-size': '0.8rem',
+                        'padding': '8px 12px',
+                        'font-size': '0.82rem',
                         'cursor': 'pointer',
                         'display': 'flex',
                         'justify-content': 'space-between',
-                        'align-items': 'center'
+                        'align-items': 'center',
+                        'border-bottom': '1px solid var(--border-color-subtle, #eaecf0)',
+                        'background-color': isCurrent ? 'var(--background-color-progressive-subtle, #eaf3ff)' : ''
                     });
-                    $li.append($('<span>').css({'font-weight': 'bold'}).text(item.name));
-                    $li.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '6px'}).text(`(${item.code})`));
+                    $li.append($('<span>').css({'font-weight': isCurrent ? 'bold' : 'normal'}).text(item.name));
+                    $li.append($('<small>').css({'color': 'var(--color-subtle, #54595d)', 'margin-left': '8px', 'font-family': 'monospace'}).text(item.code));
 
-                    $li.on('click mousedown', function(e) {
+                    $li.on('mouseenter', function() {
+                        $dropdown.find('.cradle-autocomplete-row').css('background-color', '');
+                        $(this).css('background-color', 'var(--background-color-interactive-subtle, #f8f9fa)');
+                        activeIndex = idx;
+                    });
+
+                    $li.on('mousedown', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        $input.val(item.code);
-                        $dropdown.hide();
-                        if (typeof onSelect === 'function') {
-                            onSelect(item.code);
-                        }
+                        chooseItem(item.code);
                     });
+
                     $dropdown.append($li);
                 });
+
+                $containerWrapper.css('z-index', '10040');
+                $input.closest('.cradle-identity-lang-row').css('z-index', '10030');
                 $dropdown.show();
             });
         }
 
-        $input.on('focus input', function() {
-            updateDropdown();
+        $input.on('focus', function() {
+            $input.select();
+            openDropdown(true);
+        });
+
+        $input.on('click', function() {
+            if ($dropdown.is(':hidden')) {
+                $input.select();
+                openDropdown(true);
+            }
+        });
+
+        $input.on('input', function() {
+            openDropdown(false);
+        });
+
+        $input.on('keydown', function(e) {
+            if ($dropdown.is(':visible')) {
+                let $items = $dropdown.find('.cradle-autocomplete-row');
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex + 1) % $items.length;
+                    $items.css('background-color', '');
+                    $items.eq(activeIndex).css('background-color', 'var(--background-color-interactive-subtle, #f8f9fa)');
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex - 1 + $items.length) % $items.length;
+                    $items.css('background-color', '');
+                    $items.eq(activeIndex).css('background-color', 'var(--background-color-interactive-subtle, #f8f9fa)');
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                    if (activeIndex >= 0 && activeIndex < $items.length) {
+                        e.preventDefault();
+                        $items.eq(activeIndex).trigger('mousedown');
+                    } else if ($items.length > 0 && e.key === 'Enter') {
+                        e.preventDefault();
+                        $items.eq(0).trigger('mousedown');
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeDropdown();
+                }
+            }
         });
 
         $(document).on('click.cradleLangAutocomplete', function(e) {
             if (!$(e.target).closest('.cradle-lang-autocomplete-wrapper').is($containerWrapper)) {
-                $dropdown.hide();
+                closeDropdown();
             }
         });
     }
