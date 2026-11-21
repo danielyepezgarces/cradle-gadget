@@ -263,6 +263,8 @@
   "cradle-validation-tab": "Tab label for the schema validation panel in the Cradle drawer.",
   "cradle-validation-title": "Section title for the schema validation status overview.",
   "cradle-qualifier-required-badge": "Badge text indicating that a suggested qualifier is mandatory according to the schema.",
+  "cradle-qualifier-optional": "Option in the qualifier selector of the Schema Designer/Editor indicating the qualifier is optional (? in ShEx).",
+  "cradle-qualifier-required": "Option in the qualifier selector of the Schema Designer/Editor indicating the qualifier is mandatory (1 in ShEx).",
   "cradle-schema-qualifiers-label": "Field label in the Schema Designer and Editor for specifying suggested qualifier properties for a statement.",
   "cradle-schema-qualifiers-placeholder": "Placeholder text for the qualifier properties search autocomplete input in the Schema Designer and Editor.",
   "cradle-schema-ref-required": "Validation warning message indicating that a statement must have at least one reference according to the schema.\nParameters:\n* $1 - Property label or ID.",

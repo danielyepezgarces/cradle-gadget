@@ -9,7 +9,7 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.60.4-dev
+ * Version: 1.60.5-dev
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
@@ -20,7 +20,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.60.4-dev';
+    const CRADLE_VERSION = '1.60.5-dev';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -483,6 +483,8 @@
             'cradle-schema-not-found': 'Could not find the schema on the page!',
             'cradle-schema-placeholder': 'Search EntitySchema by name or ID (e.g. E10, Human)...',
             'cradle-schema-prop-required': 'You must add at least one property to the schema!',
+            'cradle-qualifier-optional': 'Optional',
+            'cradle-qualifier-required': 'Required',
             'cradle-schema-qualifiers-label': 'Suggested qualifiers:',
             'cradle-schema-qualifiers-placeholder': 'Search qualifier property (e.g. start time, P580)',
             'cradle-schema-ref-required': 'Statement for $1 requires at least one reference according to the schema.',
@@ -818,6 +820,8 @@
                     'cradle-schema-not-found': '¡No se pudo encontrar el esquema en la página!',
                     'cradle-schema-placeholder': 'Buscar EntitySchema por nombre o ID (ej. E10, Humano)...',
                     'cradle-schema-prop-required': '¡Debe añadir al menos una propiedad al esquema!',
+                    'cradle-qualifier-optional': 'Opcional',
+                    'cradle-qualifier-required': 'Obligatorio',
                     'cradle-schema-qualifiers-label': 'Cualificadores sugeridos:',
                     'cradle-schema-qualifiers-placeholder': 'Buscar propiedad cualificadora (ej. hora de inicio, P580)',
                     'cradle-schema-ref-required': 'La declaración para $1 requiere al menos una referencia según el esquema.',
@@ -7952,7 +7956,9 @@ function searchWikidataItems(term) {
                     let qMeta = propMap[qp] || {};
                     let qLabel = (qMeta && qMeta.label) ? qMeta.label : (typeof qMeta === 'string' ? qMeta : qp);
                     let qValType = mapDatatypeToShExValueType(qMeta.datatype, qp);
-                    stmtLines.push(`  pq:${qp} ${qValType} ? ;   # ${qLabel}`);
+                    let isMand = Array.isArray(rawQuals) && rawQuals.some(q => (typeof q === 'object' && q.pid === qp && q.mandatory));
+                    let qCard = isMand ? ';' : '? ;';
+                    stmtLines.push(`  pq:${qp} ${qValType} ${qCard}   # ${qLabel}`);
                 });
                 if (reqRef) {
                     stmtLines.push(`  prov:wasDerivedFrom @<reference> + ;`);
@@ -9907,39 +9913,87 @@ function searchWikidataItems(term) {
                 'color': '#54595d'
             }).text(mw.msg('cradle-schema-qualifiers-label'));
 
-            let selectedQualifiers = []; // Array of { pid, label }
+            let selectedQualifiers = []; // Array of { pid, label, mandatory }
             let $qualChipsDiv = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px'});
 
-            function addQualifierChip(qPid, qLabel) {
+            function addQualifierChip(qPid, qLabel, isMandatory) {
                 qPid = (qPid || '').trim().toUpperCase();
                 if (!qPid || !/^P\d+$/i.test(qPid)) return;
                 if (selectedQualifiers.some(item => item.pid === qPid)) return;
                 qLabel = qLabel || (propertyMetadata[qPid] && propertyMetadata[qPid].label) || (labelsMap[qPid]) || qPid;
-                selectedQualifiers.push({ pid: qPid, label: qLabel });
+                isMandatory = !!isMandatory;
+                let qualObj = { pid: qPid, label: qLabel, mandatory: isMandatory };
+                selectedQualifiers.push(qualObj);
 
                 let $chip = $('<span>').css({
                     'display': 'inline-flex',
                     'align-items': 'center',
                     'gap': '6px',
-                    'background': '#eaf3ff',
-                    'border': '1px solid #a3c2e0',
                     'border-radius': '3px',
                     'padding': '2px 8px',
                     'font-size': '12px',
-                    'color': '#0645ad'
-                }).text(`${qLabel} (${qPid})`);
+                    'transition': 'all 0.2s ease'
+                });
+
+                let $labelSpan = $('<span>').text(`${qLabel} (${qPid})`);
+
+                let $modeSelect = $('<select>').addClass('cradle-qual-mode-select').css({
+                    'font-size': '11px',
+                    'height': '22px',
+                    'padding': '0 4px',
+                    'border': '1px solid #c8ccd1',
+                    'border-radius': '2px',
+                    'background': '#fff',
+                    'cursor': 'pointer'
+                });
+                $modeSelect.append($('<option>').val('optional').text(mw.msg('cradle-qualifier-optional')));
+                $modeSelect.append($('<option>').val('mandatory').text(mw.msg('cradle-qualifier-required')));
+                $modeSelect.val(isMandatory ? 'mandatory' : 'optional');
+
+                function updateChipVisual(mand) {
+                    if (mand) {
+                        $chip.css({
+                            'background': '#fef6e7',
+                            'border': '1px solid #f0c27b',
+                            'color': '#7a4b00'
+                        });
+                        $modeSelect.css({
+                            'border-color': '#f0c27b',
+                            'color': '#7a4b00',
+                            'font-weight': 'bold'
+                        });
+                    } else {
+                        $chip.css({
+                            'background': '#eaf3ff',
+                            'border': '1px solid #a3c2e0',
+                            'color': '#0645ad'
+                        });
+                        $modeSelect.css({
+                            'border-color': '#a3c2e0',
+                            'color': '#54595d',
+                            'font-weight': 'normal'
+                        });
+                    }
+                }
+                updateChipVisual(isMandatory);
+
+                $modeSelect.on('change', function() {
+                    let mand = ($(this).val() === 'mandatory');
+                    qualObj.mandatory = mand;
+                    updateChipVisual(mand);
+                });
 
                 let $removeChip = $('<span>').css({
                     'cursor': 'pointer',
                     'color': '#72777d',
                     'font-weight': 'bold',
-                    'margin-left': '4px'
+                    'margin-left': '2px'
                 }).html(ICONS.close).on('click', function() {
                     selectedQualifiers = selectedQualifiers.filter(item => item.pid !== qPid);
                     $chip.remove();
                 });
 
-                $chip.append($removeChip);
+                $chip.append($labelSpan).append($modeSelect).append($removeChip);
                 $qualChipsDiv.append($chip);
             }
 
@@ -10055,9 +10109,10 @@ function searchWikidataItems(term) {
                     let initialQuals = Array.isArray(existingPropData.suggestedQualifiers) ? existingPropData.suggestedQualifiers : String(existingPropData.suggestedQualifiers).split(',');
                     initialQuals.forEach(sq => {
                         let qp = (typeof sq === 'object' && sq.pid) ? sq.pid : String(sq).trim().toUpperCase();
+                        let isMand = (typeof sq === 'object' && sq.mandatory) ? true : false;
                         if (qp && /^P\d+$/i.test(qp)) {
                             let qLabel = labelsMap[qp] || (propertyMetadata[qp] && propertyMetadata[qp].label) || qp;
-                            addQualifierChip(qp, qLabel);
+                            addQualifierChip(qp, qLabel, isMand);
                         }
                     });
                 }
@@ -10077,7 +10132,7 @@ function searchWikidataItems(term) {
                 let sExtId = $subShapeExternalInput.val().trim();
                 let sName = $subShapeInput.val().trim();
                 let oGroup = $orGroupInput.val().trim();
-                let qualPids = selectedQualifiers.map(q => q.pid);
+                let qualObjects = selectedQualifiers.map(q => ({ pid: q.pid, mandatory: !!q.mandatory }));
                 let reqRef = $requireRefCheckbox.is(':checked');
                 return {
                     pid: pid,
@@ -10093,7 +10148,7 @@ function searchWikidataItems(term) {
                     defaultValue: '',
                     hardselect: (vType === 'IRI' && useHard && qidString) ? qidString : '',
                     softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ((vType === 'subshape' && sMode === 'internal') ? qidString : ''),
-                    suggestedQualifiers: qualPids,
+                    suggestedQualifiers: qualObjects,
                     requireReference: reqRef
                 };
             });
@@ -10623,7 +10678,9 @@ function searchWikidataItems(term) {
                     let qMeta = propMap[qp] || {};
                     let qLabel = (qMeta && qMeta.label) ? qMeta.label : (typeof qMeta === 'string' ? qMeta : qp);
                     let qValType = mapDatatypeToShExValueType(qMeta.datatype, qp);
-                    stmtLines.push(`  pq:${qp} ${qValType} ? ;   # ${qLabel}`);
+                    let isMand = Array.isArray(rawQuals) && rawQuals.some(q => (typeof q === 'object' && q.pid === qp && q.mandatory));
+                    let qCard = isMand ? ';' : '? ;';
+                    stmtLines.push(`  pq:${qp} ${qValType} ${qCard}   # ${qLabel}`);
                 });
                 if (reqRef) {
                     stmtLines.push(`  prov:wasDerivedFrom @<reference> + ;`);
@@ -11302,39 +11359,87 @@ function searchWikidataItems(term) {
                 'color': '#54595d'
             }).text(mw.msg('cradle-schema-qualifiers-label'));
 
-            let selectedQualifiers = []; // Array of { pid, label }
+            let selectedQualifiers = []; // Array of { pid, label, mandatory }
             let $qualChipsDiv = $('<div>').css({'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px'});
 
-            function addQualifierChip(qPid, qLabel) {
+            function addQualifierChip(qPid, qLabel, isMandatory) {
                 qPid = (qPid || '').trim().toUpperCase();
                 if (!qPid || !/^P\d+$/i.test(qPid)) return;
                 if (selectedQualifiers.some(item => item.pid === qPid)) return;
                 qLabel = qLabel || (mergedLabels[qPid] && mergedLabels[qPid].label) || mergedLabels[qPid] || (propertyMetadata[qPid] && propertyMetadata[qPid].label) || qPid;
-                selectedQualifiers.push({ pid: qPid, label: qLabel });
+                isMandatory = !!isMandatory;
+                let qualObj = { pid: qPid, label: qLabel, mandatory: isMandatory };
+                selectedQualifiers.push(qualObj);
 
                 let $chip = $('<span>').css({
                     'display': 'inline-flex',
                     'align-items': 'center',
                     'gap': '6px',
-                    'background': '#eaf3ff',
-                    'border': '1px solid #a3c2e0',
                     'border-radius': '3px',
                     'padding': '2px 8px',
                     'font-size': '12px',
-                    'color': '#0645ad'
-                }).text(`${qLabel} (${qPid})`);
+                    'transition': 'all 0.2s ease'
+                });
+
+                let $labelSpan = $('<span>').text(`${qLabel} (${qPid})`);
+
+                let $modeSelect = $('<select>').addClass('cradle-qual-mode-select').css({
+                    'font-size': '11px',
+                    'height': '22px',
+                    'padding': '0 4px',
+                    'border': '1px solid #c8ccd1',
+                    'border-radius': '2px',
+                    'background': '#fff',
+                    'cursor': 'pointer'
+                });
+                $modeSelect.append($('<option>').val('optional').text(mw.msg('cradle-qualifier-optional')));
+                $modeSelect.append($('<option>').val('mandatory').text(mw.msg('cradle-qualifier-required')));
+                $modeSelect.val(isMandatory ? 'mandatory' : 'optional');
+
+                function updateChipVisual(mand) {
+                    if (mand) {
+                        $chip.css({
+                            'background': '#fef6e7',
+                            'border': '1px solid #f0c27b',
+                            'color': '#7a4b00'
+                        });
+                        $modeSelect.css({
+                            'border-color': '#f0c27b',
+                            'color': '#7a4b00',
+                            'font-weight': 'bold'
+                        });
+                    } else {
+                        $chip.css({
+                            'background': '#eaf3ff',
+                            'border': '1px solid #a3c2e0',
+                            'color': '#0645ad'
+                        });
+                        $modeSelect.css({
+                            'border-color': '#a3c2e0',
+                            'color': '#54595d',
+                            'font-weight': 'normal'
+                        });
+                    }
+                }
+                updateChipVisual(isMandatory);
+
+                $modeSelect.on('change', function() {
+                    let mand = ($(this).val() === 'mandatory');
+                    qualObj.mandatory = mand;
+                    updateChipVisual(mand);
+                });
 
                 let $removeChip = $('<span>').css({
                     'cursor': 'pointer',
                     'color': '#72777d',
                     'font-weight': 'bold',
-                    'margin-left': '4px'
+                    'margin-left': '2px'
                 }).html(ICONS.close).on('click', function() {
                     selectedQualifiers = selectedQualifiers.filter(item => item.pid !== qPid);
                     $chip.remove();
                 });
 
-                $chip.append($removeChip);
+                $chip.append($labelSpan).append($modeSelect).append($removeChip);
                 $qualChipsDiv.append($chip);
             }
 
@@ -11454,9 +11559,10 @@ function searchWikidataItems(term) {
                 let initialQuals = Array.isArray(pData.suggestedQualifiers) ? pData.suggestedQualifiers : String(pData.suggestedQualifiers).split(',');
                 initialQuals.forEach(sq => {
                     let qp = (typeof sq === 'object' && sq.pid) ? sq.pid : String(sq).trim().toUpperCase();
+                    let isMand = (typeof sq === 'object' && sq.mandatory) ? true : false;
                     if (qp && /^P\d+$/i.test(qp)) {
                         let qLabel = (mergedLabels[qp] && mergedLabels[qp].label) ? mergedLabels[qp].label : (mergedLabels[qp] || (propertyMetadata[qp] && propertyMetadata[qp].label) || qp);
-                        addQualifierChip(qp, qLabel);
+                        addQualifierChip(qp, qLabel, isMand);
                     }
                 });
             }
@@ -11472,7 +11578,7 @@ function searchWikidataItems(term) {
                 let sExtId = $subShapeExternalInput.val().trim();
                 let sName = $subShapeInput.val().trim();
                 let oGroup = $orGroupInput.val().trim();
-                let qualPids = selectedQualifiers.map(q => q.pid);
+                let qualObjects = selectedQualifiers.map(q => ({ pid: q.pid, mandatory: !!q.mandatory }));
                 let reqRef = $requireRefCheckbox.is(':checked');
                 return {
                     pid: pid,
@@ -11488,7 +11594,7 @@ function searchWikidataItems(term) {
                     defaultValue: '',
                     hardselect: (vType === 'IRI' && useHard && qidString) ? qidString : '',
                     softselect: (vType === 'IRI' && useSoft && qidString) ? qidString : ((vType === 'subshape' && sMode === 'internal') ? qidString : ''),
-                    suggestedQualifiers: qualPids,
+                    suggestedQualifiers: qualObjects,
                     requireReference: reqRef
                 };
             });
