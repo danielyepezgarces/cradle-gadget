@@ -264,7 +264,7 @@
   "cradle-validation-title": "Schema validation status",
   "cradle-qualifier-required-badge": "required",
   "cradle-schema-qualifiers-label": "Suggested qualifiers:",
-  "cradle-schema-qualifiers-placeholder": "qualifier PIDs (comma-separated, e.g. P580, P582)",
+  "cradle-schema-qualifiers-placeholder": "Search qualifier property (e.g. start time, P580)",
   "cradle-schema-ref-required": "Statement for $1 requires at least one reference according to the schema.",
   "cradle-schema-require-ref-label": "Require at least one reference (prov:wasDerivedFrom +)",
   "cradle-snaktype": "Value type",
