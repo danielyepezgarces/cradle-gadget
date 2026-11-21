@@ -263,6 +263,8 @@
   "cradle-validation-tab": "Validation",
   "cradle-validation-title": "Schema validation status",
   "cradle-qualifier-required-badge": "required",
+  "cradle-qualifier-optional": "Optional",
+  "cradle-qualifier-required": "Required",
   "cradle-schema-qualifiers-label": "Suggested qualifiers:",
   "cradle-schema-qualifiers-placeholder": "Search qualifier property (e.g. start time, P580)",
   "cradle-schema-ref-required": "Statement for $1 requires at least one reference according to the schema.",
