@@ -220,6 +220,7 @@
   "cradle-shex-syntax-invalid": "Invalid ShEx syntax: $1",
   "cradle-shex-syntax-valid": "Valid ShEx syntax",
   "cradle-shex-valid": "Valid ShEx syntax for Wikidata",
+  "cradle-sidebar-create-item": "Create item",
   "cradle-sidebar-create-schema": "Create a new schema",
   "cradle-sidebar-edit-schema": "Edit a schema",
   "cradle-sidebar-feedback": "Feedback & bug reports",

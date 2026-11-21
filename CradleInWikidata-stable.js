@@ -9,7 +9,7 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.60.8
+ * Version: 1.60.9
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
@@ -20,7 +20,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.60.8';
+    const CRADLE_VERSION = '1.60.9';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -516,6 +516,7 @@
             'cradle-shex-syntax-invalid': 'Invalid ShEx syntax: $1',
             'cradle-shex-syntax-valid': 'Valid ShEx syntax',
             'cradle-shex-valid': 'Valid ShEx syntax for Wikidata',
+            'cradle-sidebar-create-item': 'Create item',
             'cradle-sidebar-create-schema': 'Create a new schema',
             'cradle-sidebar-edit-schema': 'Edit a schema',
             'cradle-sidebar-feedback': 'Feedback & bug reports',
@@ -1009,12 +1010,14 @@
         if ($('#p-cradle-schemas').length || $('#p-cradle-schemas-mobile').length) return;
 
         let sectionHeader = mw.msg('cradle-sidebar-header') || 'Esquemas';
+        let createItemText = mw.msg('cradle-sidebar-create-item') || 'Crear elemento';
         let createText = mw.msg('cradle-sidebar-create-schema') || 'Crear un esquema nuevo';
         let editText = mw.msg('cradle-sidebar-edit-schema') || 'Editar un esquema';
         let recentText = mw.msg('cradle-sidebar-recent-schemas') || 'Cambios recientes';
         let randomText = mw.msg('cradle-sidebar-random-schema') || 'Esquema aleatorio';
         let feedbackText = mw.msg('cradle-sidebar-feedback') || 'Sugerencias y errores';
 
+        let createItemUrl = mw.util.getUrl('Special:Cradle') + '#create';
         let createUrl = mw.util.getUrl('Special:Cradle') + '#design';
         let editUrl = mw.util.getUrl('Special:Cradle') + '#edit';
         let recentUrl = mw.util.getUrl('Special:RecentChanges', { namespace: 640 });
@@ -1064,7 +1067,7 @@
                     return $li;
                 };
 
-                let $mCradle = createMobileItem('n-cradle-home-m', mw.util.getUrl('Special:Cradle') + '#create', 'Cradle', 'minerva-icon--specialPages', 'create');
+                let $mCreateItem = createMobileItem('n-cradle-create-item-m', createItemUrl, createItemText, 'minerva-icon--specialPages', 'create');
                 let $mCreate = createMobileItem('n-cradle-newschema-m', createUrl, createText, 'minerva-icon--articleRedirect', 'design');
                 let $mEdit = createMobileItem('n-cradle-editschema-m', editUrl, editText, 'minerva-icon--edit', 'edit');
                 let $mRecent = createMobileItem('n-cradle-recentchanges-schemas-m', recentUrl, recentText, 'minerva-icon--recentChanges', false);
@@ -1076,7 +1079,7 @@
                     openFeedbackModal();
                 });
 
-                $cradleUl.append($mCradle).append($mCreate).append($mEdit).append($mRecent).append($mRandom).append($mFeedback);
+                $cradleUl.append($mCreateItem).append($mCreate).append($mEdit).append($mRecent).append($mRandom).append($mFeedback);
 
                 if ($('#p-interaction').length) {
                     $cradleUl.insertAfter('#p-interaction');
@@ -1108,6 +1111,17 @@
                     $p.children('div').last().addClass('vector-menu-content');
                     $p.find('ul').addClass('vector-menu-content-list');
 
+                    let createItemLink = mw.util.addPortletLink('p-cradle-schemas', createItemUrl, createItemText, 'n-cradle-create-item');
+                    if (createItemLink) {
+                        $(createItemLink).find('a').addBack('a').on('click', function(e) {
+                            mw.storage.set('cradle-active-tab', 'create');
+                            if (isSpecialCradle) {
+                                e.preventDefault();
+                                window.location.hash = 'create';
+                                renderCreateOptionsSelector();
+                            }
+                        });
+                    }
                     let createLink = mw.util.addPortletLink('p-cradle-schemas', createUrl, createText, 'n-cradle-newschema');
                     if (createLink) {
                         $(createLink).find('a').addBack('a').on('click', function(e) {
@@ -1199,6 +1213,16 @@
                 $ul = $('<ul>').addClass('vector-menu-content-list');
             }
 
+            let $liCreateItem = $('<li>').attr('id', 'n-cradle-create-item').addClass('mw-list-item')
+                .append($('<a>').attr('href', createItemUrl).append($('<span>').text(createItemText)).on('click', function(e) {
+                    mw.storage.set('cradle-active-tab', 'create');
+                    if (isSpecialCradle) {
+                        e.preventDefault();
+                        window.location.hash = 'create';
+                        renderCreateOptionsSelector();
+                    }
+                }));
+
             let $liCreate = $('<li>').attr('id', 'n-cradle-newschema').addClass('mw-list-item')
                 .append($('<a>').attr('href', createUrl).append($('<span>').text(createText)).on('click', function(e) {
                     mw.storage.set('cradle-active-tab', 'design');
@@ -1231,7 +1255,7 @@
                     openFeedbackModal();
                 }));
 
-            $ul.append($liCreate).append($liEdit).append($liRecent).append($liRandom).append($liFeedback);
+            $ul.append($liCreateItem).append($liCreate).append($liEdit).append($liRecent).append($liRandom).append($liFeedback);
             $body.append($ul);
             $portlet.append($heading).append($body);
 
