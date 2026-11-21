@@ -73,6 +73,7 @@
   "cradle-editor-unsaved-warning": "Warning dialog message displayed when the user attempts to close or leave the editor with unsaved changes.",
   "cradle-enter-schema-title": "Instructional prompt asking the user to select or enter an EntitySchema ID to edit the current item.",
   "cradle-error-at-least-one-language": "Error notification shown when the user tries to remove the last remaining language block from the item identity form.",
+  "cradle-language-already-added": "Warning message displayed when a user attempts to add or select a language code that is already present in another language row.",
   "cradle-export-shex": "Button label to export or view the generated ShEx schema code.",
   "cradle-feedback-btn": "Button label opening the feedback and bug report form.",
   "cradle-feedback-desc": "Descriptive text in the feedback modal explaining that comments and bug reports will be posted to Wikidata talk:Cradle-gadget.",
