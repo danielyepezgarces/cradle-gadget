@@ -220,6 +220,7 @@
   "cradle-shex-syntax-invalid": "Validation error alert indicating that ShEx code has syntax errors.\nParameters:\n* $1 - Specific syntax error description.",
   "cradle-shex-syntax-valid": "Validation success notice confirming that the ShEx code conforms to Wikidata ShEx specifications.",
   "cradle-shex-valid": "Status text confirming that ShEx syntax is valid for Wikidata.",
+  "cradle-sidebar-create-item": "Sidebar portlet link label to create a new Wikidata item using Cradle.\n{{Identical|Create item}}",
   "cradle-sidebar-create-schema": "Sidebar portlet link label to open the Schema Designer.",
   "cradle-sidebar-edit-schema": "Sidebar portlet link label to open the EntitySchema editor.",
   "cradle-sidebar-feedback": "Sidebar portlet link label to open the feedback and bug reporting dialog.",
