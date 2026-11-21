@@ -9,7 +9,7 @@
  * Authors: [[User:Danielyepezgarces|Daniel Yepez Garces]], [[User:Olea|Ismael Olea]]
  * Based on: Cradle (https://cradle.toolforge.org/) by [[User:Magnus Manske|Magnus Manske]]
  * License: MIT (https://opensource.org/licenses/MIT)
- * Version: 1.60.6
+ * Version: 1.60.7
  * 
  * Installation:
  * Add the following line to your [[Special:MyPage/common.js]] on Wikidata:
@@ -20,7 +20,7 @@
 
 (function() {
     'use strict';
-    const CRADLE_VERSION = '1.60.6';
+    const CRADLE_VERSION = '1.60.7';
     let debugMode = false;
     try {
         debugMode = new URLSearchParams(window.location.search).has('cradledebug');
@@ -362,6 +362,7 @@
             'cradle-editor-unsaved-warning': 'You have unsaved changes in this schema. Are you sure you want to leave?',
             'cradle-enter-schema-title': 'Enter or select an EntitySchema to edit this item:',
             'cradle-error-at-least-one-language': 'There must be at least one language.',
+            'cradle-language-already-added': 'This language has already been added.',
             'cradle-export-shex': 'Export ShEx (EntitySchema)',
             'cradle-feedback-btn': 'Feedback & bug reports',
             'cradle-feedback-desc': 'Have a suggestion, improvement, or found a bug in Cradle? Your report will be published as a new discussion topic on Wikidata talk:Cradle-gadget.',
@@ -4495,6 +4496,39 @@
                 'margin-bottom': '8px'
             });
 
+            function getUsedLanguageCodes() {
+                let used = [];
+                $langRowsContainer.find('.cradle-lang-input').each(function() {
+                    let val = $(this).val().trim().toLowerCase();
+                    if (val) {
+                        used.push(val);
+                    }
+                });
+                return used;
+            }
+
+            function validateNoDuplicateLang($inputEl) {
+                let val = $inputEl.val().trim().toLowerCase();
+                if (!val) return true;
+
+                let count = 0;
+                $langRowsContainer.find('.cradle-lang-input').each(function() {
+                    if ($(this).val().trim().toLowerCase() === val) {
+                        count++;
+                    }
+                });
+
+                if (count > 1) {
+                    mw.notify(mw.msg('cradle-language-already-added'), { type: 'warn' });
+                    $inputEl.val('');
+                    setTimeout(function() {
+                        $inputEl.focus();
+                    }, 50);
+                    return false;
+                }
+                return true;
+            }
+
             function createLanguageRow(defaultLang) {
                 let $row = $('<div>').addClass('cradle-identity-lang-row').css({
                     'display': 'flex',
@@ -4504,7 +4538,10 @@
                 });
 
                 // 1. Language search input
-                let $langWrapper = $('<div>').css({'flex': '0 0 95px', 'position': 'relative'});
+                let $langWrapper = $('<div>')
+                    .addClass('cradle-lang-autocomplete-wrapper')
+                    .css({'flex': '0 0 110px', 'min-width': '95px', 'position': 'relative'});
+
                 let $langInput = $('<input>')
                     .addClass('cradle-input')
                     .addClass('cradle-lang-input')
@@ -4513,10 +4550,20 @@
                         'placeholder': 'Lang'
                     })
                     .css({'width': '100%'})
-                    .val(defaultLang || mw.config.get('wgUserLanguage') || 'en');
-                    
-                setupLanguageAutocomplete($langInput);
+                    .val(defaultLang || '');
+
                 $langWrapper.append($langInput);
+
+                setupLanguageAutocomplete($langInput, function(selectedCode) {
+                    validateNoDuplicateLang($langInput);
+                }, function() {
+                    let currentVal = $langInput.val().trim().toLowerCase();
+                    return getUsedLanguageCodes().filter(c => c !== currentVal);
+                });
+
+                $langInput.on('blur change', function() {
+                    validateNoDuplicateLang($langInput);
+                });
 
                 // 2. Label input
                 let $labelInput = $('<input>')
@@ -4574,7 +4621,10 @@
                 .html(ICONS.plus + ' <span>' + mw.msg('cradle-add-language') + '</span>')
                 .on('click', function(e) {
                     e.preventDefault();
-                    let nextLang = $langRowsContainer.children().length === 1 ? (mw.config.get('wgUserLanguage') === 'es' ? 'en' : 'es') : '';
+                    let used = getUsedLanguageCodes();
+                    let userLang = (mw.config.get('wgUserLanguage') || 'es').toLowerCase();
+                    let candidates = [userLang, 'en', 'es', 'fr', 'de', 'pt', 'it', 'ca', 'gl', 'eu', 'ru', 'zh', 'ja', 'ar', 'nl', 'sv', 'pl'];
+                    let nextLang = candidates.find(c => !used.includes(c)) || '';
                     $langRowsContainer.append(createLanguageRow(nextLang));
                 });
 
@@ -5283,6 +5333,10 @@
 
             $langInput.on('input', function() {
                 valObj.language = $langInput.val().trim();
+                onUpdate();
+            });
+            setupLanguageAutocomplete($langInput, function(selectedCode) {
+                valObj.language = selectedCode;
                 onUpdate();
             });
             $textInput.on('input', function() {
@@ -6759,62 +6813,99 @@
 
     let cachedLanguageList = null;
     let commonLanguageNames = {
-        'en': 'English inglés',
-        'es': 'Spanish español',
-        'fr': 'French francés',
-        'de': 'German alemán',
+        'en': 'English inglés ingles',
+        'es': 'Spanish español espanol castellano',
+        'fr': 'French francés frances',
+        'de': 'German alemán aleman',
         'it': 'Italian italiano',
-        'pt': 'Portuguese portugués',
-        'pt-br': 'Brazilian Portuguese portugués brasileño',
+        'pt': 'Portuguese portugués portugues',
+        'pt-br': 'Brazilian Portuguese portugués brasileño brasileno',
         'ru': 'Russian ruso',
         'zh': 'Chinese chino',
         'zh-hans': 'Simplified Chinese chino simplificado',
         'zh-hant': 'Traditional Chinese chino tradicional',
-        'ja': 'Japanese japonés',
+        'ja': 'Japanese japonés japones',
         'ko': 'Korean coreano',
-        'ar': 'Arabic árabe',
+        'ar': 'Arabic árabe arabe',
         'hi': 'Hindi hindi',
-        'bn': 'Bengali bengalí',
-        'nl': 'Dutch holandés neerlandés',
+        'bn': 'Bengali bengalí bengali',
+        'nl': 'Dutch holandés holandes neerlandés neerlandes',
         'sv': 'Swedish sueco',
         'pl': 'Polish polaco',
         'uk': 'Ukrainian ucraniano',
         'tr': 'Turkish turco',
         'vi': 'Vietnamese vietnamita',
-        'ca': 'Catalan catalán',
+        'ca': 'Catalan catalán catalan valencià valenciano',
         'gl': 'Galician gallego',
         'eu': 'Basque euskera vasco',
         'ast': 'Asturian asturiano',
         'qu': 'Quechua quechua',
         'ay': 'Aymara aimara',
-        'gn': 'Guarani guaraní',
+        'gn': 'Guarani guaraní guarani',
         'eo': 'Esperanto esperanto',
-        'la': 'Latin latín',
+        'la': 'Latin latín latin',
         'grc': 'Ancient Greek griego antiguo',
         'el': 'Greek griego',
         'he': 'Hebrew hebreo',
-        'fa': 'Persian persa',
-        'th': 'Thai tailandés',
+        'fa': 'Persian persa farsi',
+        'th': 'Thai tailandés tailandes',
         'id': 'Indonesian indonesio',
         'ms': 'Malay malayo',
         'sw': 'Swahili suajili',
-        'fi': 'Finnish finlandés',
-        'da': 'Danish danés',
+        'fi': 'Finnish finlandés finlandes',
+        'da': 'Danish danés danes',
         'no': 'Norwegian noruego',
-        'nb': 'Bokmål noruego bokmål',
+        'nb': 'Bokmål noruego bokmål bokmal',
         'nn': 'Nynorsk noruego nynorsk',
         'cs': 'Czech checo',
-        'hu': 'Hungarian húngaro',
+        'hu': 'Hungarian húngaro hungaro',
         'ro': 'Romanian rumano',
-        'bg': 'Bulgarian búlgaro',
+        'bg': 'Bulgarian búlgaro bulgaro',
         'sr': 'Serbian serbio',
         'hr': 'Croatian croata',
         'sk': 'Slovak eslovaco',
         'sl': 'Slovenian esloveno',
         'et': 'Estonian estonio',
-        'lv': 'Latvian letón',
-        'lt': 'Lithuanian lituano'
+        'lv': 'Latvian letón leton',
+        'lt': 'Lithuanian lituano',
+        'sq': 'Albanian albanés albanes',
+        'be': 'Belarusian bielorruso',
+        'mk': 'Macedonian macedonio',
+        'hy': 'Armenian armenio',
+        'ka': 'Georgian georgiano',
+        'az': 'Azerbaijani azerí azeri azerbaiyano',
+        'ur': 'Urdu urdu',
+        'ta': 'Tamil tamil',
+        'te': 'Telugu telugu',
+        'kn': 'Kannada canarés canares',
+        'ml': 'Malayalam malayalam',
+        'si': 'Sinhala cingalés cingales',
+        'my': 'Burmese birmano',
+        'km': 'Khmer jemer camboyano',
+        'lo': 'Lao laosiano',
+        'am': 'Amharic amhárico amharico',
+        'so': 'Somali somalí somali',
+        'ha': 'Hausa hausa',
+        'yo': 'Yoruba yoruba',
+        'ig': 'Igbo igbo',
+        'zu': 'Zulu zulú zulu',
+        'xh': 'Xhosa xhosa',
+        'af': 'Afrikaans afrikáans afrikaans',
+        'is': 'Icelandic islandés islandes',
+        'ga': 'Irish irlandés irlandes',
+        'cy': 'Welsh galés gales',
+        'gd': 'Scottish Gaelic gaélico escocés gaelico escoces',
+        'br': 'Breton bretón breton',
+        'oc': 'Occitan occitano',
+        'an': 'Aragonese aragonés aragones'
     };
+
+    function normalizeLangStr(str) {
+        return (str || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
 
     function fetchSupportedLanguages() {
         if (cachedLanguageList) {
@@ -6825,7 +6916,7 @@
             api.get({
                 action: 'query',
                 meta: 'wbcontentlanguages|languageinfo',
-                wbclcontext: 'monolingualtext',
+                wbclcontext: 'term',
                 wbclprop: 'code|name|autonym',
                 liprop: 'code|name|autonym',
                 formatversion: 2
@@ -6833,28 +6924,44 @@
                 let wbLangs = (res && res.query && res.query.wbcontentlanguages) ? res.query.wbcontentlanguages : {};
                 let cldrLangs = (res && res.query && res.query.languageinfo) ? res.query.languageinfo : {};
                 
-                let codes = new Set([...Object.keys(wbLangs), ...Object.keys(cldrLangs)]);
-                if (codes.size > 0) {
-                    cachedLanguageList = Array.from(codes).map(code => {
-                        let wbObj = wbLangs[code] || {};
-                        let cldrObj = cldrLangs[code] || {};
-                        let autonym = cldrObj.autonym || wbObj.autonym || wbObj.name || code;
-                        let name = cldrObj.name || wbObj.name || autonym;
-                        let extra = commonLanguageNames[code] || '';
-                        
-                        let displayName = name || autonym;
-                        return {
-                            code: code,
-                            name: displayName,
-                            searchStr: (code + ' ' + name + ' ' + autonym + ' ' + extra).toLowerCase()
-                        };
-                    });
-                    
-                    cachedLanguageList.sort((a, b) => a.code.localeCompare(b.code));
-                    resolve(cachedLanguageList);
-                    return;
+                let codes = new Set([
+                    ...Object.keys(wbLangs),
+                    ...Object.keys(cldrLangs),
+                    ...Object.keys(commonLanguageNames)
+                ]);
+
+                if (window.$ && $.uls && $.uls.data && $.uls.data.languages) {
+                    Object.keys($.uls.data.languages).forEach(c => codes.add(c));
                 }
-                fallbackLangs();
+
+                cachedLanguageList = Array.from(codes).map(code => {
+                    let wbObj = wbLangs[code] || {};
+                    let cldrObj = cldrLangs[code] || {};
+                    let ulsAutonym = (window.$ && $.uls && $.uls.data && typeof $.uls.data.getAutonym === 'function') ? $.uls.data.getAutonym(code) : '';
+                    let ulsName = (window.$ && $.uls && $.uls.data && $.uls.data.languages && $.uls.data.languages[code]) ? ($.uls.data.languages[code][2] || '') : '';
+                    
+                    let autonym = ulsAutonym || cldrObj.autonym || wbObj.autonym || wbObj.name || code;
+                    let name = cldrObj.name || ulsName || wbObj.name || autonym;
+                    let extra = commonLanguageNames[code] || '';
+                    
+                    let displayName = autonym;
+                    if (name && name.toLowerCase() !== autonym.toLowerCase()) {
+                        displayName = `${autonym} (${name})`;
+                    }
+
+                    let searchTokens = [code, name, autonym, extra].filter(Boolean).join(' ');
+                    return {
+                        code: code,
+                        name: displayName,
+                        autonym: autonym,
+                        englishName: name,
+                        searchStr: searchTokens.toLowerCase(),
+                        searchStrNorm: normalizeLangStr(searchTokens)
+                    };
+                });
+                
+                cachedLanguageList.sort((a, b) => a.code.localeCompare(b.code));
+                resolve(cachedLanguageList);
             }).fail(function() {
                 fallbackLangs();
             });
@@ -6867,45 +6974,70 @@
                     formatversion: 2
                 }).done(function(res) {
                     let langs = (res && res.query && res.query.languages) ? res.query.languages : [];
-                    cachedLanguageList = langs.map(l => {
-                        let code = l.code || '';
-                        let autonym = l.name || l['*'] || code;
+                    let codes = new Set([
+                        ...langs.map(l => l.code),
+                        ...Object.keys(commonLanguageNames)
+                    ]);
+                    if (window.$ && $.uls && $.uls.data && $.uls.data.languages) {
+                        Object.keys($.uls.data.languages).forEach(c => codes.add(c));
+                    }
+                    cachedLanguageList = Array.from(codes).map(code => {
+                        let lObj = langs.find(l => l.code === code) || {};
+                        let ulsAutonym = (window.$ && $.uls && $.uls.data && typeof $.uls.data.getAutonym === 'function') ? $.uls.data.getAutonym(code) : '';
+                        let autonym = ulsAutonym || lObj.name || lObj['*'] || code;
                         let extra = commonLanguageNames[code] || '';
+                        let searchTokens = [code, autonym, extra].filter(Boolean).join(' ');
                         return {
                             code: code,
                             name: autonym,
-                            searchStr: (code + ' ' + autonym + ' ' + extra).toLowerCase()
+                            autonym: autonym,
+                            englishName: autonym,
+                            searchStr: searchTokens.toLowerCase(),
+                            searchStrNorm: normalizeLangStr(searchTokens)
                         };
                     });
                     resolve(cachedLanguageList);
                 }).fail(function() {
-                    cachedLanguageList = Object.keys(commonLanguageNames).map(c => ({
-                        code: c,
-                        name: commonLanguageNames[c].split(' ')[0],
-                        searchStr: (c + ' ' + commonLanguageNames[c]).toLowerCase()
-                    }));
+                    cachedLanguageList = Object.keys(commonLanguageNames).map(c => {
+                        let extra = commonLanguageNames[c] || '';
+                        let first = extra.split(' ')[0] || c;
+                        let searchTokens = [c, extra].filter(Boolean).join(' ');
+                        return {
+                            code: c,
+                            name: first,
+                            autonym: first,
+                            englishName: first,
+                            searchStr: searchTokens.toLowerCase(),
+                            searchStrNorm: normalizeLangStr(searchTokens)
+                        };
+                    });
                     resolve(cachedLanguageList);
                 });
             }
         });
     }
 
-    function setupLanguageAutocomplete($input, onSelect) {
-        let $wrapper = $('<div>').addClass('cradle-lang-autocomplete-wrapper').css({
-            'position': 'relative',
-            'flex': '0 0 110px',
-            'min-width': '110px',
-            'display': 'inline-block'
-        });
-        $input.css({'width': '100%', 'box-sizing': 'border-box'}).wrap($wrapper);
-        let $containerWrapper = $input.parent();
+    function setupLanguageAutocomplete($input, onSelect, getExcludedLangs) {
+        let $containerWrapper = $input.parent('.cradle-lang-autocomplete-wrapper');
+        if (!$containerWrapper.length) {
+            let $wrapper = $('<div>').addClass('cradle-lang-autocomplete-wrapper').css({
+                'position': 'relative',
+                'flex': '0 0 110px',
+                'min-width': '95px',
+                'display': 'inline-block'
+            });
+            $input.css({'width': '100%', 'box-sizing': 'border-box'}).wrap($wrapper);
+            $containerWrapper = $input.parent();
+        } else {
+            $containerWrapper.css('position', 'relative');
+        }
 
         let $dropdown = $('<ul>').addClass('cradle-autocomplete-dropdown').css({
             'position': 'absolute',
             'top': '100%',
             'left': '0',
-            'min-width': '220px',
-            'max-height': '180px',
+            'min-width': '230px',
+            'max-height': '200px',
             'overflow-y': 'auto',
             'z-index': '10010',
             'background-color': 'var(--background-color-base, #ffffff)',
@@ -6919,21 +7051,45 @@
         $containerWrapper.append($dropdown);
 
         function updateDropdown() {
-            let q = $input.val().trim().toLowerCase();
+            let q = $input.val().trim();
+            let qLower = q.toLowerCase();
+            let qNorm = normalizeLangStr(q);
+
             fetchSupportedLanguages().then(langs => {
+                let excluded = (typeof getExcludedLangs === 'function') ? (getExcludedLangs() || []) : [];
+                let available = langs.filter(l => !excluded.includes(l.code.toLowerCase()));
+
                 let filtered = [];
                 if (!q) {
-                    filtered = langs.slice(0, 12);
+                    let priorityCodes = ['es', 'en', 'fr', 'de', 'pt', 'it', 'ca', 'ru', 'zh', 'ja', 'ar', 'nl', 'sv', 'pl'];
+                    let topLangs = priorityCodes.map(c => available.find(l => l.code === c)).filter(Boolean);
+                    let rest = available.filter(l => !priorityCodes.includes(l.code)).slice(0, Math.max(0, 15 - topLangs.length));
+                    filtered = [...topLangs, ...rest];
                 } else {
-                    filtered = langs.filter(l => l.searchStr.includes(q));
-                    filtered.sort((a, b) => {
-                        if (a.code === q) return -1;
-                        if (b.code === q) return 1;
-                        if (a.code.startsWith(q)) return -1;
-                        if (b.code.startsWith(q)) return 1;
-                        return 0;
+                    filtered = available.filter(l => {
+                        return l.code.toLowerCase() === qLower ||
+                               l.searchStr.includes(qLower) ||
+                               l.searchStrNorm.includes(qNorm);
                     });
-                    filtered = filtered.slice(0, 15);
+
+                    filtered.sort((a, b) => {
+                        let aCode = a.code.toLowerCase();
+                        let bCode = b.code.toLowerCase();
+                        // 1. Exact code match
+                        if (aCode === qLower && bCode !== qLower) return -1;
+                        if (bCode === qLower && aCode !== qLower) return 1;
+                        // 2. Code starts with
+                        if (aCode.startsWith(qLower) && !bCode.startsWith(qLower)) return -1;
+                        if (bCode.startsWith(qLower) && !aCode.startsWith(qLower)) return 1;
+                        // 3. Normalized autonym or englishName starts with query
+                        let aStart = normalizeLangStr(a.autonym).startsWith(qNorm) || normalizeLangStr(a.englishName).startsWith(qNorm);
+                        let bStart = normalizeLangStr(b.autonym).startsWith(qNorm) || normalizeLangStr(b.englishName).startsWith(qNorm);
+                        if (aStart && !bStart) return -1;
+                        if (bStart && !aStart) return 1;
+                        return aCode.localeCompare(bCode);
+                    });
+
+                    filtered = filtered.slice(0, 20);
                 }
 
                 $dropdown.empty();
@@ -6974,7 +7130,7 @@
         });
 
         $(document).on('click.cradleLangAutocomplete', function(e) {
-            if (!$wrapper.is(e.target) && $wrapper.has(e.target).length === 0) {
+            if (!$(e.target).closest('.cradle-lang-autocomplete-wrapper').is($containerWrapper)) {
                 $dropdown.hide();
             }
         });
@@ -7019,7 +7175,8 @@ function searchWikidataItems(term) {
             let primaryLabelFound = false;
 
             $('.cradle-identity-lang-row').each(function() {
-                let langCode = $(this).find('.cradle-lang-input').val().trim() || 'en';
+                let langCode = $(this).find('.cradle-lang-input').val().trim();
+                if (!langCode) return;
                 let labelVal = $(this).find('.cradle-label-input').val().trim();
                 let descVal = $(this).find('.cradle-desc-input').val().trim();
                 let aliasesVal = $(this).find('.cradle-aliases-input').val().trim();
